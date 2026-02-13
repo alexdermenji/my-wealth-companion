@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { useFinance } from '@/contexts/FinanceContext';
 import { MONTHS, BudgetType } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
+import { useDashboardSummary, useMonthlyComparison } from '@/hooks/api/useDashboard';
+import { useSettings } from '@/hooks/api/useSettings';
 
 const PIE_COLORS = [
   'hsl(217, 71%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)',
@@ -14,28 +15,15 @@ const PIE_COLORS = [
 ];
 
 export default function DashboardPage() {
-  const { state, getTrackedAmount, getBudgetAmount } = useFinance();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
 
-  const budgetTypes: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
+  const { data: summary } = useDashboardSummary(year, month);
+  const { data: monthlyComparison } = useMonthlyComparison(year);
+  const { data: settings } = useSettings();
 
-  const breakdown = useMemo(() => {
-    return budgetTypes.map(type => {
-      const cats = state.categories.filter(c => c.type === type);
-      const items = cats.map(cat => {
-        const tracked = getTrackedAmount(cat.id, year, month);
-        const budget = getBudgetAmount(cat.id, year, month);
-        const pct = budget > 0 ? Math.round((tracked / budget) * 100) : tracked > 0 ? 100 : 0;
-        return { ...cat, tracked, budget, pct };
-      });
-      const totalTracked = items.reduce((s, i) => s + i.tracked, 0);
-      const totalBudget = items.reduce((s, i) => s + i.budget, 0);
-      return { type, items, totalTracked, totalBudget };
-    });
-  }, [state.categories, year, month, getTrackedAmount, getBudgetAmount]);
-
+  const breakdown = summary?.breakdown ?? [];
   const incomeData = breakdown.find(b => b.type === 'Income');
   const expenseData = breakdown.find(b => b.type === 'Expenses');
   const savingsData = breakdown.find(b => b.type === 'Savings');
@@ -48,13 +36,13 @@ export default function DashboardPage() {
 
   // Monthly comparison chart data
   const monthlyData = useMemo(() => {
-    return MONTHS.map((m, i) => {
-      const mo = i + 1;
-      const inc = state.categories.filter(c => c.type === 'Income').reduce((s, c) => s + getTrackedAmount(c.id, year, mo), 0);
-      const exp = state.categories.filter(c => c.type === 'Expenses').reduce((s, c) => s + getTrackedAmount(c.id, year, mo), 0);
-      return { month: m, Income: inc, Expenses: exp };
-    });
-  }, [state.categories, year, getTrackedAmount]);
+    if (!monthlyComparison) return [];
+    return monthlyComparison.months.map(m => ({
+      month: m.monthName,
+      Income: m.income,
+      Expenses: m.expenses,
+    }));
+  }, [monthlyComparison]);
 
   // Expense allocation pie
   const expensePie = useMemo(() => {
@@ -66,7 +54,8 @@ export default function DashboardPage() {
     return Object.entries(groups).filter(([, v]) => v > 0).map(([name, value]) => ({ name, value }));
   }, [expenseData]);
 
-  const formatCurrency = (val: number) => `${state.settings.currency}${val.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
+  const currency = settings?.currency ?? '$';
+  const formatCurrency = (val: number) => `${currency}${val.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -143,15 +132,15 @@ export default function DashboardPage() {
                 </h3>
                 <div className="space-y-2">
                   {section.items.filter(i => i.budget > 0 || i.tracked > 0).map(item => (
-                    <div key={item.id} className="space-y-1">
+                    <div key={item.categoryId} className="space-y-1">
                       <div className="flex justify-between text-sm">
-                        <span className="text-foreground">{item.name}</span>
+                        <span className="text-foreground">{item.categoryName}</span>
                         <span className="text-muted-foreground">
                           {formatCurrency(item.tracked)} / {formatCurrency(item.budget)}
-                          <span className="ml-2 font-medium">{item.pct}%</span>
+                          <span className="ml-2 font-medium">{item.percentage}%</span>
                         </span>
                       </div>
-                      <Progress value={Math.min(item.pct, 100)} className="h-1.5" />
+                      <Progress value={Math.min(item.percentage, 100)} className="h-1.5" />
                     </div>
                   ))}
                   {section.items.filter(i => i.budget > 0 || i.tracked > 0).length === 0 && (

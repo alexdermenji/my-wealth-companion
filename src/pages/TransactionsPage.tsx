@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useFinance } from '@/contexts/FinanceContext';
 import { Transaction, BudgetType } from '@/lib/types';
-import { genId } from '@/lib/store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -12,21 +10,37 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '@/hooks/api/useTransactions';
+import { useAccounts } from '@/hooks/api/useAccounts';
+import { useCategories } from '@/hooks/api/useCategories';
+import { useSettings } from '@/hooks/api/useSettings';
 
 const BUDGET_TYPES: (BudgetType | '')[] = ['Income', 'Expenses', 'Savings', 'Debt', 'Transfer', ''];
 
 export default function TransactionsPage() {
-  const { state, addTransaction, updateTransaction, deleteTransaction } = useFinance();
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState<Transaction | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterAccount, setFilterAccount] = useState<string>('all');
+
+  const { data: transactions = [] } = useTransactions(
+    filterType !== 'all' || filterAccount !== 'all'
+      ? { budgetType: filterType !== 'all' ? filterType : undefined, accountId: filterAccount !== 'all' ? filterAccount : undefined }
+      : undefined
+  );
+  const { data: accounts = [] } = useAccounts();
+  const { data: categories = [] } = useCategories();
+  const { data: settings } = useSettings();
+  const createTransaction = useCreateTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
+  const deleteTransactionMutation = useDeleteTransaction();
+
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Transaction | null>(null);
 
   const [form, setForm] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
     details: '',
-    accountId: state.accounts[0]?.id ?? '',
+    accountId: '',
     budgetType: '' as BudgetType | '',
     budgetPositionId: '',
   });
@@ -36,7 +50,7 @@ export default function TransactionsPage() {
       date: format(new Date(), 'yyyy-MM-dd'),
       amount: '',
       details: '',
-      accountId: state.accounts[0]?.id ?? '',
+      accountId: accounts[0]?.id ?? '',
       budgetType: '',
       budgetPositionId: '',
     });
@@ -48,9 +62,16 @@ export default function TransactionsPage() {
     if (isNaN(amount) || !form.date || !form.accountId) return;
 
     if (editing) {
-      updateTransaction(editing.id, { ...form, amount });
+      updateTransactionMutation.mutate({
+        id: editing.id,
+        data: { ...form, amount, budgetType: form.budgetType === 'none' ? '' : form.budgetType },
+      });
     } else {
-      addTransaction({ ...form, amount });
+      createTransaction.mutate({
+        ...form,
+        amount,
+        budgetType: form.budgetType === 'none' ? '' : form.budgetType,
+      });
     }
     setOpen(false);
     resetForm();
@@ -69,23 +90,19 @@ export default function TransactionsPage() {
     setOpen(true);
   };
 
-  const filteredCategories = state.categories.filter(c => !form.budgetType || c.type === form.budgetType);
+  const filteredCategories = categories.filter(c => !form.budgetType || form.budgetType === 'none' || c.type === form.budgetType);
 
-  const sortedTransactions = [...state.transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .filter(t => filterType === 'all' || t.budgetType === filterType)
-    .filter(t => filterAccount === 'all' || t.accountId === filterAccount);
-
-  const getAccountName = (id: string) => state.accounts.find(a => a.id === id)?.name ?? 'Unknown';
-  const getCategoryName = (id: string) => state.categories.find(c => c.id === id)?.name ?? '-';
-  const formatCurrency = (val: number) => `${state.settings.currency}${Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const getAccountName = (id: string) => accounts.find(a => a.id === id)?.name ?? 'Unknown';
+  const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name ?? '-';
+  const currency = settings?.currency ?? '$';
+  const formatCurrency = (val: number) => `${currency}${Math.abs(val).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-display font-bold">Transactions</h1>
-          <p className="text-muted-foreground text-sm">{state.transactions.length} transactions recorded</p>
+          <p className="text-muted-foreground text-sm">{transactions.length} transactions recorded</p>
         </div>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) resetForm(); }}>
           <DialogTrigger asChild>
@@ -116,14 +133,14 @@ export default function TransactionsPage() {
                 <Select value={form.accountId} onValueChange={v => setForm(f => ({ ...f, accountId: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {state.accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                    {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Budget Type</Label>
-                  <Select value={form.budgetType} onValueChange={v => setForm(f => ({ ...f, budgetType: v as BudgetType | '', budgetPositionId: '' }))}>
+                  <Select value={form.budgetType || 'none'} onValueChange={v => setForm(f => ({ ...f, budgetType: v === 'none' ? '' : v as BudgetType, budgetPositionId: '' }))}>
                     <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                     <SelectContent>
                       {BUDGET_TYPES.map(t => <SelectItem key={t || 'none'} value={t || 'none'}>{t || '- None -'}</SelectItem>)}
@@ -159,7 +176,7 @@ export default function TransactionsPage() {
           <SelectTrigger className="w-44"><SelectValue placeholder="All accounts" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Accounts</SelectItem>
-            {state.accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -179,14 +196,14 @@ export default function TransactionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedTransactions.length === 0 ? (
+              {transactions.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                     No transactions yet. Click "Add Transaction" to get started.
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedTransactions.map(tx => (
+                transactions.map(tx => (
                   <TableRow key={tx.id}>
                     <TableCell className="text-sm">{format(new Date(tx.date), 'dd-MMM-yy')}</TableCell>
                     <TableCell className={cn('font-medium', tx.amount >= 0 ? 'amount-positive' : 'amount-negative')}>
@@ -201,7 +218,7 @@ export default function TransactionsPage() {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(tx)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteTransaction(tx.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteTransactionMutation.mutate(tx.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
