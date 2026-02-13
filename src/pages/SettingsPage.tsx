@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useFinance } from '@/contexts/FinanceContext';
 import { BudgetType } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Trash2, Pencil } from 'lucide-react';
+import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount } from '@/hooks/api/useAccounts';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/api/useCategories';
+import { useSettings, useUpdateSettings } from '@/hooks/api/useSettings';
 
 const ACCOUNT_TYPES = ['Cash', 'Bank', 'Credit Card', 'Investment', 'Retirement', 'Loan', 'Other'] as const;
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 export default function SettingsPage() {
-  const { state, addAccount, updateAccount, deleteAccount, addCategory, updateCategory, deleteCategory, updateSettings } = useFinance();
+  const { data: accounts = [] } = useAccounts();
+  const { data: categories = [] } = useCategories();
+  const { data: settings } = useSettings();
+  const updateSettingsMutation = useUpdateSettings();
+  const createAccount = useCreateAccount();
+  const updateAccountMutation = useUpdateAccount();
+  const deleteAccountMutation = useDeleteAccount();
+  const createCategory = useCreateCategory();
+  const updateCategoryMutation = useUpdateCategory();
+  const deleteCategoryMutation = useDeleteCategory();
 
   // Account form
   const [accOpen, setAccOpen] = useState(false);
@@ -24,9 +35,9 @@ export default function SettingsPage() {
   const handleAccSubmit = () => {
     if (!accForm.name) return;
     if (editingAcc) {
-      updateAccount(editingAcc, accForm);
+      updateAccountMutation.mutate({ id: editingAcc, data: accForm });
     } else {
-      addAccount(accForm);
+      createAccount.mutate(accForm);
     }
     setAccOpen(false);
     setAccForm({ name: '', type: 'Bank' });
@@ -41,13 +52,18 @@ export default function SettingsPage() {
   const handleCatSubmit = () => {
     if (!catForm.name || !catForm.group) return;
     if (editingCat) {
-      updateCategory(editingCat, catForm);
+      updateCategoryMutation.mutate({ id: editingCat, data: catForm });
     } else {
-      addCategory(catForm);
+      createCategory.mutate(catForm);
     }
     setCatOpen(false);
     setCatForm({ name: '', type: 'Expenses', group: '' });
     setEditingCat(null);
+  };
+
+  const handleSettingsChange = (updates: Partial<{ startYear: number; startMonth: number; currency: string }>) => {
+    if (!settings) return;
+    updateSettingsMutation.mutate({ ...settings, ...updates });
   };
 
   return (
@@ -64,15 +80,15 @@ export default function SettingsPage() {
           <div className="grid grid-cols-3 gap-4 max-w-md">
             <div>
               <Label>Start Year</Label>
-              <Input type="number" value={state.settings.startYear} onChange={e => updateSettings({ startYear: Number(e.target.value) })} />
+              <Input type="number" value={settings?.startYear ?? ''} onChange={e => handleSettingsChange({ startYear: Number(e.target.value) })} />
             </div>
             <div>
               <Label>Start Month</Label>
-              <Input type="number" min={1} max={12} value={state.settings.startMonth} onChange={e => updateSettings({ startMonth: Number(e.target.value) })} />
+              <Input type="number" min={1} max={12} value={settings?.startMonth ?? ''} onChange={e => handleSettingsChange({ startMonth: Number(e.target.value) })} />
             </div>
             <div>
               <Label>Currency</Label>
-              <Input value={state.settings.currency} onChange={e => updateSettings({ currency: e.target.value })} />
+              <Input value={settings?.currency ?? ''} onChange={e => handleSettingsChange({ currency: e.target.value })} />
             </div>
           </div>
         </CardContent>
@@ -117,7 +133,7 @@ export default function SettingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {state.accounts.map(a => (
+              {accounts.map(a => (
                 <TableRow key={a.id}>
                   <TableCell className="font-medium">{a.name}</TableCell>
                   <TableCell className="text-muted-foreground">{a.type}</TableCell>
@@ -126,7 +142,7 @@ export default function SettingsPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setAccForm({ name: a.name, type: a.type }); setEditingAcc(a.id); setAccOpen(true); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteAccount(a.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteAccountMutation.mutate(a.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -182,7 +198,7 @@ export default function SettingsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {state.categories.map(c => (
+              {categories.map(c => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell className={`text-${c.type === 'Income' ? 'income' : c.type === 'Expenses' ? 'expense' : c.type === 'Savings' ? 'savings' : 'debt'}`}>{c.type}</TableCell>
@@ -192,7 +208,7 @@ export default function SettingsPage() {
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setCatForm({ name: c.name, type: c.type, group: c.group }); setEditingCat(c.id); setCatOpen(true); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteCategory(c.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteCategoryMutation.mutate(c.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

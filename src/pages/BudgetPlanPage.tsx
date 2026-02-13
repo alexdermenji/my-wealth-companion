@@ -1,17 +1,23 @@
 import { useState } from 'react';
-import { useFinance } from '@/contexts/FinanceContext';
 import { MONTHS, BudgetType } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useCategories } from '@/hooks/api/useCategories';
+import { useBudgetPlans, useSetBudgetAmount } from '@/hooks/api/useBudgetPlans';
+import { useSettings } from '@/hooks/api/useSettings';
 
 export default function BudgetPlanPage() {
-  const { state, setBudgetAmount, getBudgetAmount } = useFinance();
   const [year, setYear] = useState(new Date().getFullYear());
   const [activeType, setActiveType] = useState<BudgetType>('Expenses');
 
-  const categories = state.categories.filter(c => c.type === activeType);
+  const { data: allCategories = [] } = useCategories();
+  const { data: budgetPlans = [] } = useBudgetPlans(year);
+  const { data: settings } = useSettings();
+  const setBudgetAmountMutation = useSetBudgetAmount();
+
+  const categories = allCategories.filter(c => c.type === activeType);
 
   // Group categories
   const groups = categories.reduce<Record<string, typeof categories>>((acc, cat) => {
@@ -19,20 +25,26 @@ export default function BudgetPlanPage() {
     return acc;
   }, {});
 
+  const getBudgetAmount = (catId: string, month: number): number => {
+    const plan = budgetPlans.find(bp => bp.categoryId === catId);
+    return plan?.months[month] ?? 0;
+  };
+
   const handleChange = (catId: string, month: number, value: string) => {
     const num = parseFloat(value) || 0;
-    setBudgetAmount(catId, year, month, num);
+    setBudgetAmountMutation.mutate({ categoryId: catId, year, month, amount: num });
   };
 
   const getMonthTotal = (month: number) => {
-    return categories.reduce((s, c) => s + getBudgetAmount(c.id, year, month), 0);
+    return categories.reduce((s, c) => s + getBudgetAmount(c.id, month), 0);
   };
 
   const getYearTotal = (catId: string) => {
-    return Array.from({ length: 12 }, (_, i) => getBudgetAmount(catId, year, i + 1)).reduce((a, b) => a + b, 0);
+    return Array.from({ length: 12 }, (_, i) => getBudgetAmount(catId, i + 1)).reduce((a, b) => a + b, 0);
   };
 
-  const formatCurrency = (v: number) => v > 0 ? `${state.settings.currency}${v.toLocaleString()}` : '-';
+  const currency = settings?.currency ?? '$';
+  const formatCurrency = (v: number) => v > 0 ? `${currency}${v.toLocaleString()}` : '-';
 
   const types: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
@@ -96,7 +108,7 @@ export default function BudgetPlanPage() {
                     <TableRow key={cat.id}>
                       <TableCell className="sticky left-0 bg-card z-10 text-sm font-medium">{cat.name}</TableCell>
                       {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => {
-                        const val = getBudgetAmount(cat.id, year, mo);
+                        const val = getBudgetAmount(cat.id, mo);
                         return (
                           <TableCell key={mo} className="p-1">
                             <Input
