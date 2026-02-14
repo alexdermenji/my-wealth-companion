@@ -59,7 +59,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = new Transaction
         {
-            Date = DateTime.Parse(request.Date),
+            Date = DateTime.Parse(request.Date).ToUniversalTime(),
             Amount = request.Amount,
             Details = request.Details,
             AccountId = request.AccountId,
@@ -79,7 +79,7 @@ public class TransactionService : ITransactionService
         var transaction = await _db.Transactions.FindAsync(id);
         if (transaction is null) return null;
 
-        transaction.Date = DateTime.Parse(request.Date);
+        transaction.Date = DateTime.Parse(request.Date).ToUniversalTime();
         transaction.Amount = request.Amount;
         transaction.Details = request.Details;
         transaction.AccountId = request.AccountId;
