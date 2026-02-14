@@ -12,7 +12,7 @@ export class AppNav {
   }
 
   async expectActiveLink(label: string) {
-    const link = this.nav.getByText(label, { exact: true }).locator('..');
+    const link = this.nav.locator('a').filter({ hasText: label });
     await expect(link).toHaveClass(/bg-primary/);
   }
 }

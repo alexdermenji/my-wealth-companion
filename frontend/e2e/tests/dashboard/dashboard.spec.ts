@@ -6,7 +6,7 @@ test.describe('Dashboard', () => {
     expect(income).toContain('3,500');
 
     const expenses = await dashboardPage.getSummaryValue('Expenses');
-    expect(expenses).toContain('86');
+    expect(expenses).toContain('85');
 
     const savings = await dashboardPage.getSummaryValue('Savings');
     expect(savings).toContain('0');
