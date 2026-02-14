@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { MONTHS, BudgetType } from '@/lib/types';
+import { MONTHS, BudgetType } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from 'lucide-react';
-import { useDashboardSummary, useMonthlyComparison } from '@/hooks/api/useDashboard';
-import { useSettings } from '@/hooks/api/useSettings';
+import { useDashboardSummary, useMonthlyComparison } from './hooks';
+import { useSettings } from '@/features/settings/hooks';
 
 const PIE_COLORS = [
   'hsl(217, 71%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(38, 92%, 50%)',

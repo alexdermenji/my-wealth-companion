@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { transactionsApi } from "@/api/transactionsApi";
-import type { Transaction } from "@/lib/types";
+import { transactionsApi } from "./api";
+import type { Transaction } from "./types";
 
 export function useTransactions(filters?: {
   budgetType?: string;

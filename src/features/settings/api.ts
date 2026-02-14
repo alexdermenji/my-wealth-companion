@@ -1,10 +1,5 @@
-import { api } from "./client";
-
-export interface SettingsDto {
-  startYear: number;
-  startMonth: number;
-  currency: string;
-}
+import { api } from "@/shared/api/client";
+import type { SettingsDto } from "./types";
 
 export const settingsApi = {
   get: () => api.get<SettingsDto>("/settings"),

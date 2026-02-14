@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { accountsApi } from "@/api/accountsApi";
-import type { Account } from "@/lib/types";
+import { accountsApi } from "@/shared/api/accountsApi";
+import type { Account } from "@/shared/types";
 
 export function useAccounts() {
   return useQuery({

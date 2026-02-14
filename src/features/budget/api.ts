@@ -1,5 +1,5 @@
-import { api } from "./client";
-import type { BudgetPlan } from "@/lib/types";
+import { api } from "@/shared/api/client";
+import type { BudgetPlan } from "./types";
 
 export const budgetPlansApi = {
   getByYear: (year: number, categoryId?: string) => {

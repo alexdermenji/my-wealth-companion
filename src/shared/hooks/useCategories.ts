@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { categoriesApi } from "@/api/categoriesApi";
-import type { BudgetCategory } from "@/lib/types";
+import { categoriesApi } from "@/shared/api/categoriesApi";
+import type { BudgetCategory } from "@/shared/types";
 
 export function useCategories(type?: string) {
   return useQuery({

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { settingsApi, type SettingsDto } from "@/api/settingsApi";
+import { settingsApi } from "./api";
+import type { SettingsDto } from "./types";
 
 export function useSettings() {
   return useQuery({

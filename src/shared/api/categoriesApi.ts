@@ -1,5 +1,5 @@
-import { api } from "./client";
-import type { BudgetCategory } from "@/lib/types";
+import { api } from "@/shared/api/client";
+import type { BudgetCategory } from "@/shared/types";
 
 export const categoriesApi = {
   getAll: (type?: string) => {

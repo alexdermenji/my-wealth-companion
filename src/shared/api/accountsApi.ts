@@ -1,5 +1,5 @@
-import { api } from "./client";
-import type { Account } from "@/lib/types";
+import { api } from "@/shared/api/client";
+import type { Account } from "@/shared/types";
 
 export const accountsApi = {
   getAll: () => api.get<Account[]>("/accounts"),

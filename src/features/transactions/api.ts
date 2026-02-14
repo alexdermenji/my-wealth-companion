@@ -1,5 +1,5 @@
-import { api } from "./client";
-import type { Transaction } from "@/lib/types";
+import { api } from "@/shared/api/client";
+import type { Transaction } from "./types";
 
 export const transactionsApi = {
   getAll: (filters?: { budgetType?: string; accountId?: string }) => {

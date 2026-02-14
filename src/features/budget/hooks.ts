@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { budgetPlansApi } from "@/api/budgetPlansApi";
+import { budgetPlansApi } from "./api";
 
 export function useBudgetPlans(year: number) {
   return useQuery({
