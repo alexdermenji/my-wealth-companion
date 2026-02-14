@@ -11,4 +11,9 @@ export const categoriesApi = {
   update: (id: string, data: Omit<BudgetCategory, "id">) =>
     api.put<BudgetCategory>(`/categories/${id}`, data),
   delete: (id: string) => api.delete<void>(`/categories/${id}`),
+  forceDelete: (id: string) => api.delete<void>(`/categories/${id}?force=true`),
+  getUsage: (id: string) =>
+    api.get<{ transactionCount: number; budgetPlanCount: number }>(
+      `/categories/${id}/usage`
+    ),
 };
