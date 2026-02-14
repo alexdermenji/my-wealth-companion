@@ -6,16 +6,19 @@ import { useBudgetPlans } from "../hooks";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useSettings } from "@/features/settings/hooks";
 
+import type { BudgetCategory } from "@/shared/types";
+import type { BudgetPlan } from "../types";
+
 vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
 vi.mock("@/features/settings/hooks");
 
-const mockCategories = [
+const mockCategories: BudgetCategory[] = [
   { id: "c1", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
   { id: "c2", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
 ];
 
-const mockPlans = [
+const mockPlans: BudgetPlan[] = [
   { categoryId: "c1", year: 2026, months: { 1: 4000, 2: 4000 } },
   { categoryId: "c2", year: 2026, months: { 1: 1200, 2: 1200 } },
 ];

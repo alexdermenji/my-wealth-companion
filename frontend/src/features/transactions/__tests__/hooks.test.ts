@@ -9,9 +9,11 @@ import {
 import { transactionsApi } from "../api";
 import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 
+import type { Transaction } from "../types";
+
 vi.mock("../api");
 
-const mockTransactions = [
+const mockTransactions: Transaction[] = [
   {
     id: "t1",
     date: "2026-01-15",

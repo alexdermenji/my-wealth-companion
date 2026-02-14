@@ -10,9 +10,11 @@ import {
 import { categoriesApi } from "@/shared/api/categoriesApi";
 import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 
+import type { BudgetCategory } from "@/shared/types";
+
 vi.mock("@/shared/api/categoriesApi");
 
-const mockCategories = [
+const mockCategories: BudgetCategory[] = [
   { id: "c1", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
   { id: "c2", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
 ];

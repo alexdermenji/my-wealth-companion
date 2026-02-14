@@ -4,9 +4,11 @@ import { useBudgetPlans, useSetBudgetAmount } from "../hooks";
 import { budgetPlansApi } from "../api";
 import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 
+import type { BudgetPlan } from "../types";
+
 vi.mock("../api");
 
-const mockPlans = [
+const mockPlans: BudgetPlan[] = [
   { categoryId: "c1", year: 2026, months: { 1: 1000, 2: 1000 } },
   { categoryId: "c2", year: 2026, months: { 1: 500 } },
 ];
