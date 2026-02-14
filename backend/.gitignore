@@ -5,3 +5,5 @@ obj/
 *.db-wal
 .vs/
 *.user
+.env
+appsettings.Development.json

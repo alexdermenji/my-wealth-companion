@@ -5,33 +5,38 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace FinanceFlow.Api.Migrations
 {
     [DbContext(typeof(FinanceDbContext))]
-    [Migration("20260213193730_InitialCreate")]
+    [Migration("20260214104325_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.13");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "9.0.13")
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("FinanceFlow.Api.Models.Domain.Account", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -61,19 +66,23 @@ namespace FinanceFlow.Api.Migrations
             modelBuilder.Entity("FinanceFlow.Api.Models.Domain.BudgetCategory", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Group")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
+
+                    b.Property<string>("GroupEmoji")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -84,6 +93,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c1",
                             Group = "Work Income",
+                            GroupEmoji = "",
                             Name = "Employment (Net)",
                             Type = "Income"
                         },
@@ -91,6 +101,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c2",
                             Group = "Work Income",
+                            GroupEmoji = "",
                             Name = "Side Hustle (Net)",
                             Type = "Income"
                         },
@@ -98,6 +109,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c3",
                             Group = "Capital Income",
+                            GroupEmoji = "",
                             Name = "Dividends (Net)",
                             Type = "Income"
                         },
@@ -105,6 +117,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c4",
                             Group = "Housing",
+                            GroupEmoji = "",
                             Name = "Rent",
                             Type = "Expenses"
                         },
@@ -112,6 +125,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c5",
                             Group = "Housing",
+                            GroupEmoji = "",
                             Name = "Utilities",
                             Type = "Expenses"
                         },
@@ -119,6 +133,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c6",
                             Group = "Housing",
+                            GroupEmoji = "",
                             Name = "Internet",
                             Type = "Expenses"
                         },
@@ -126,6 +141,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c7",
                             Group = "Groceries",
+                            GroupEmoji = "",
                             Name = "Groceries",
                             Type = "Expenses"
                         },
@@ -133,6 +149,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c8",
                             Group = "Fun",
+                            GroupEmoji = "",
                             Name = "Going Out",
                             Type = "Expenses"
                         },
@@ -140,6 +157,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c9",
                             Group = "Fun",
+                            GroupEmoji = "",
                             Name = "Shopping",
                             Type = "Expenses"
                         },
@@ -147,6 +165,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c10",
                             Group = "Self-Care",
+                            GroupEmoji = "",
                             Name = "Gym",
                             Type = "Expenses"
                         },
@@ -154,6 +173,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c11",
                             Group = "Self-Care",
+                            GroupEmoji = "",
                             Name = "Body Care & Medicine",
                             Type = "Expenses"
                         },
@@ -161,6 +181,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c12",
                             Group = "Transportation",
+                            GroupEmoji = "",
                             Name = "Car Gas",
                             Type = "Expenses"
                         },
@@ -168,6 +189,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c13",
                             Group = "Transportation",
+                            GroupEmoji = "",
                             Name = "Metro Ticket",
                             Type = "Expenses"
                         },
@@ -175,6 +197,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c14",
                             Group = "Entertainment",
+                            GroupEmoji = "",
                             Name = "Netflix",
                             Type = "Expenses"
                         },
@@ -182,6 +205,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c15",
                             Group = "Retirement",
+                            GroupEmoji = "",
                             Name = "Roth IRA",
                             Type = "Savings"
                         },
@@ -189,6 +213,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c16",
                             Group = "Emergency",
+                            GroupEmoji = "",
                             Name = "Emergency Fund",
                             Type = "Savings"
                         },
@@ -196,6 +221,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c17",
                             Group = "Investments",
+                            GroupEmoji = "",
                             Name = "Stock Portfolio",
                             Type = "Savings"
                         },
@@ -203,6 +229,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c18",
                             Group = "Car Debt",
+                            GroupEmoji = "",
                             Name = "Car Loan",
                             Type = "Debt"
                         },
@@ -210,6 +237,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c19",
                             Group = "Credit Card Debt",
+                            GroupEmoji = "",
                             Name = "Credit Card Debt",
                             Type = "Debt"
                         },
@@ -217,6 +245,7 @@ namespace FinanceFlow.Api.Migrations
                         {
                             Id = "c20",
                             Group = "Student Loan Debt",
+                            GroupEmoji = "",
                             Name = "Undergraduate Loan",
                             Type = "Debt"
                         });
@@ -226,20 +255,22 @@ namespace FinanceFlow.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
-                    b.Property<decimal>("Amount")
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<float>("Amount")
                         .HasColumnType("REAL");
 
                     b.Property<string>("CategoryId")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("Month")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Year")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -253,17 +284,19 @@ namespace FinanceFlow.Api.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<int>("StartMonth")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<int>("StartYear")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -282,28 +315,28 @@ namespace FinanceFlow.Api.Migrations
             modelBuilder.Entity("FinanceFlow.Api.Models.Domain.Transaction", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("AccountId")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
-                    b.Property<decimal>("Amount")
+                    b.Property<float>("Amount")
                         .HasColumnType("REAL");
 
                     b.Property<string>("BudgetPositionId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<string>("BudgetType")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("Date")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Details")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 

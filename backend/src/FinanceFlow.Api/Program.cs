@@ -6,8 +6,12 @@ using Scalar.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD") ?? "";
+connectionString = connectionString.Replace("%DB_PASSWORD%", dbPassword);
+
 builder.Services.AddDbContext<FinanceDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 // Services
 builder.Services.AddScoped<IAccountService, AccountService>();

@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -17,9 +18,9 @@ namespace FinanceFlow.Api.Migrations
                 name: "Accounts",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -30,10 +31,11 @@ namespace FinanceFlow.Api.Migrations
                 name: "Categories",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Type = table.Column<string>(type: "TEXT", nullable: false),
-                    Group = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Name = table.Column<string>(type: "text", nullable: false),
+                    Type = table.Column<string>(type: "text", nullable: false),
+                    Group = table.Column<string>(type: "text", nullable: false),
+                    GroupEmoji = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -44,11 +46,11 @@ namespace FinanceFlow.Api.Migrations
                 name: "Settings",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    StartYear = table.Column<int>(type: "INTEGER", nullable: false),
-                    StartMonth = table.Column<int>(type: "INTEGER", nullable: false),
-                    Currency = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    StartYear = table.Column<int>(type: "integer", nullable: false),
+                    StartMonth = table.Column<int>(type: "integer", nullable: false),
+                    Currency = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -59,12 +61,12 @@ namespace FinanceFlow.Api.Migrations
                 name: "BudgetPlans",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "INTEGER", nullable: false)
-                        .Annotation("Sqlite:Autoincrement", true),
-                    CategoryId = table.Column<string>(type: "TEXT", nullable: false),
-                    Year = table.Column<int>(type: "INTEGER", nullable: false),
-                    Month = table.Column<int>(type: "INTEGER", nullable: false),
-                    Amount = table.Column<decimal>(type: "REAL", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CategoryId = table.Column<string>(type: "text", nullable: false),
+                    Year = table.Column<int>(type: "integer", nullable: false),
+                    Month = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<float>(type: "REAL", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -81,13 +83,13 @@ namespace FinanceFlow.Api.Migrations
                 name: "Transactions",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "TEXT", nullable: false),
-                    Date = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Amount = table.Column<decimal>(type: "REAL", nullable: false),
-                    Details = table.Column<string>(type: "TEXT", nullable: false),
-                    AccountId = table.Column<string>(type: "TEXT", nullable: false),
-                    BudgetType = table.Column<string>(type: "TEXT", nullable: false),
-                    BudgetPositionId = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    Date = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Amount = table.Column<float>(type: "REAL", nullable: false),
+                    Details = table.Column<string>(type: "text", nullable: false),
+                    AccountId = table.Column<string>(type: "text", nullable: false),
+                    BudgetType = table.Column<string>(type: "text", nullable: false),
+                    BudgetPositionId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -118,29 +120,29 @@ namespace FinanceFlow.Api.Migrations
 
             migrationBuilder.InsertData(
                 table: "Categories",
-                columns: new[] { "Id", "Group", "Name", "Type" },
+                columns: new[] { "Id", "Group", "GroupEmoji", "Name", "Type" },
                 values: new object[,]
                 {
-                    { "c1", "Work Income", "Employment (Net)", "Income" },
-                    { "c10", "Self-Care", "Gym", "Expenses" },
-                    { "c11", "Self-Care", "Body Care & Medicine", "Expenses" },
-                    { "c12", "Transportation", "Car Gas", "Expenses" },
-                    { "c13", "Transportation", "Metro Ticket", "Expenses" },
-                    { "c14", "Entertainment", "Netflix", "Expenses" },
-                    { "c15", "Retirement", "Roth IRA", "Savings" },
-                    { "c16", "Emergency", "Emergency Fund", "Savings" },
-                    { "c17", "Investments", "Stock Portfolio", "Savings" },
-                    { "c18", "Car Debt", "Car Loan", "Debt" },
-                    { "c19", "Credit Card Debt", "Credit Card Debt", "Debt" },
-                    { "c2", "Work Income", "Side Hustle (Net)", "Income" },
-                    { "c20", "Student Loan Debt", "Undergraduate Loan", "Debt" },
-                    { "c3", "Capital Income", "Dividends (Net)", "Income" },
-                    { "c4", "Housing", "Rent", "Expenses" },
-                    { "c5", "Housing", "Utilities", "Expenses" },
-                    { "c6", "Housing", "Internet", "Expenses" },
-                    { "c7", "Groceries", "Groceries", "Expenses" },
-                    { "c8", "Fun", "Going Out", "Expenses" },
-                    { "c9", "Fun", "Shopping", "Expenses" }
+                    { "c1", "Work Income", "", "Employment (Net)", "Income" },
+                    { "c10", "Self-Care", "", "Gym", "Expenses" },
+                    { "c11", "Self-Care", "", "Body Care & Medicine", "Expenses" },
+                    { "c12", "Transportation", "", "Car Gas", "Expenses" },
+                    { "c13", "Transportation", "", "Metro Ticket", "Expenses" },
+                    { "c14", "Entertainment", "", "Netflix", "Expenses" },
+                    { "c15", "Retirement", "", "Roth IRA", "Savings" },
+                    { "c16", "Emergency", "", "Emergency Fund", "Savings" },
+                    { "c17", "Investments", "", "Stock Portfolio", "Savings" },
+                    { "c18", "Car Debt", "", "Car Loan", "Debt" },
+                    { "c19", "Credit Card Debt", "", "Credit Card Debt", "Debt" },
+                    { "c2", "Work Income", "", "Side Hustle (Net)", "Income" },
+                    { "c20", "Student Loan Debt", "", "Undergraduate Loan", "Debt" },
+                    { "c3", "Capital Income", "", "Dividends (Net)", "Income" },
+                    { "c4", "Housing", "", "Rent", "Expenses" },
+                    { "c5", "Housing", "", "Utilities", "Expenses" },
+                    { "c6", "Housing", "", "Internet", "Expenses" },
+                    { "c7", "Groceries", "", "Groceries", "Expenses" },
+                    { "c8", "Fun", "", "Going Out", "Expenses" },
+                    { "c9", "Fun", "", "Shopping", "Expenses" }
                 });
 
             migrationBuilder.InsertData(
