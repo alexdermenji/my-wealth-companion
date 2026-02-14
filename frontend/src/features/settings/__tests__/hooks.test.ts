@@ -1,10 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import { useSettings, useUpdateSettings } from "../hooks";
 import { settingsApi } from "../api";
 import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 
 vi.mock("../api");
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 const mockSettings = { startYear: 2026, startMonth: 1, currency: "USD" };
 
@@ -49,6 +56,27 @@ describe("useUpdateSettings", () => {
       currency: "EUR",
     });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["settings"] });
+  });
+
+  it("shows success toast on update", async () => {
+    const { result } = renderHook(() => useUpdateSettings(), {
+      wrapper: createHookWrapper(),
+    });
+
+    result.current.mutate({ startYear: 2025, startMonth: 6, currency: "EUR" });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(toast.success).toHaveBeenCalledWith("Settings saved", { id: "settings-saved" });
+  });
+
+  it("shows error toast on update failure", async () => {
+    vi.mocked(settingsApi.update).mockRejectedValue(new Error("Network error"));
+    const { result } = renderHook(() => useUpdateSettings(), {
+      wrapper: createHookWrapper(),
+    });
+
+    result.current.mutate({ startYear: 2025, startMonth: 6, currency: "EUR" });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledWith("Failed to save settings", { id: "settings-saved" });
   });
 
   it("handles update error", async () => {

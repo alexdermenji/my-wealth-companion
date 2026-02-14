@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { MONTHS, BudgetType } from '@/shared/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useBudgetPlans, useSetBudgetAmount } from './hooks';
 import { useSettings } from '@/features/settings/hooks';
@@ -78,8 +78,8 @@ export default function BudgetPlanPage() {
   };
 
   return (
-    <div className="space-y-3 animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shrink-0 pb-3">
         <div>
           <h1 className="text-2xl font-display font-bold">Budget Planning</h1>
           <p className="text-muted-foreground text-sm">Plan your monthly budgets — allocate every dollar</p>
@@ -96,43 +96,36 @@ export default function BudgetPlanPage() {
         </div>
       </div>
 
-      {/* To be Allocated bar */}
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader>
+      <Card className="flex-1 min-h-0 overflow-auto">
+        <CardContent className="p-0">
+          <table className="w-full caption-bottom text-sm">
+            {/* To be Allocated — sticky header + remaining row */}
+            <TableHeader className="sticky top-0 z-20 bg-card shadow-sm">
               <TableRow>
-                <TableHead className="sticky left-0 bg-card z-10 min-w-[150px] font-display font-bold">
+                <TableHead className="sticky left-0 bg-card z-30 min-w-[150px] font-display font-bold">
                   To be Allocated
                 </TableHead>
+                <TableHead className="bg-card" />
                 {MONTHS.map((m, i) => (
-                  <TableHead key={i} className="text-center min-w-[90px] text-xs">{m}</TableHead>
+                  <TableHead key={i} className="text-center min-w-[90px] text-xs bg-card">{m}</TableHead>
                 ))}
-                <TableHead className="text-center font-semibold min-w-[100px] text-xs">{year}</TableHead>
+                <TableHead className="text-center font-semibold min-w-[100px] text-xs bg-card">{year}</TableHead>
+              </TableRow>
+              <TableRow>
+                <TableHead className="sticky left-0 z-30 bg-card text-sm font-semibold text-foreground">Remaining</TableHead>
+                <TableHead className="bg-card" />
+                {toBeAllocated.map((val, i) => (
+                  <TableHead key={i} className={cn('text-center text-sm font-normal', allocationColor(val), allocationBg(val))}>
+                    {formatAllocation(val)}
+                  </TableHead>
+                ))}
+                <TableHead className={cn('text-center text-sm font-normal', allocationColor(toBeAllocatedYearly), allocationBg(toBeAllocatedYearly))}>
+                  {formatAllocation(toBeAllocatedYearly)}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="sticky left-0 bg-card z-10 text-sm font-semibold">Remaining</TableCell>
-                {toBeAllocated.map((val, i) => (
-                  <TableCell key={i} className={cn('text-center text-sm', allocationColor(val), allocationBg(val))}>
-                    {formatAllocation(val)}
-                  </TableCell>
-                ))}
-                <TableCell className={cn('text-center text-sm', allocationColor(toBeAllocatedYearly), allocationBg(toBeAllocatedYearly))}>
-                  {formatAllocation(toBeAllocatedYearly)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Budget sections */}
-      <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableBody>
+              {/* Budget sections */}
               {BUDGET_TYPES.map(type => (
                 <BudgetSection
                   key={type}
@@ -145,7 +138,7 @@ export default function BudgetPlanPage() {
                 />
               ))}
             </TableBody>
-          </Table>
+          </table>
         </CardContent>
       </Card>
     </div>
