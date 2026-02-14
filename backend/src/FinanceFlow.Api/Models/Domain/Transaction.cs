@@ -9,6 +9,7 @@ public class Transaction
     public string AccountId { get; set; } = string.Empty;
     public string BudgetType { get; set; } = string.Empty;
     public string? BudgetPositionId { get; set; }
+    public string UserId { get; set; } = string.Empty;
 
     public Account? Account { get; set; }
     public BudgetCategory? BudgetPosition { get; set; }

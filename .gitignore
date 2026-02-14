@@ -1,9 +1,14 @@
 .DS_Store
 .idea
 .vscode
+.claude/
 node_modules/
 dist/
 .env
+
+# Backend build artifacts
+backend/**/bin/
+backend/**/obj/
 
 # Playwright
 /frontend/test-results/
