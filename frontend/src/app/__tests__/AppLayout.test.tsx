@@ -1,7 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
 import { AppLayout } from "../AppLayout";
 import { renderWithProviders } from "@/test/test-utils";
+
+vi.mock("@/shared/auth/AuthProvider", () => ({
+  useAuth: () => ({
+    logout: vi.fn(),
+    userName: "test-user",
+    authenticated: true,
+    keycloak: {},
+  }),
+}));
 
 describe("AppLayout", () => {
   it("renders the app title", () => {
