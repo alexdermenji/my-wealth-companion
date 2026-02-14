@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import TransactionsPage from "../TransactionsPage";
 import { renderWithProviders } from "@/test/test-utils";
-import { useTransactions } from "../hooks";
+import { useTransactions, useCreateTransaction } from "../hooks";
 import { useAccounts } from "@/shared/hooks/useAccounts";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useSettings } from "@/features/settings/hooks";
@@ -95,5 +96,34 @@ describe("TransactionsPage", () => {
     renderWithProviders(<TransactionsPage />);
     expect(screen.getByText("$3,500.00")).toBeInTheDocument();
     expect(screen.getByText("($85.50)")).toBeInTheDocument();
+  });
+
+  it("calls createTransaction.mutate when submitting with default account", async () => {
+    const mutateFn = vi.fn();
+    vi.mocked(useCreateTransaction).mockReturnValue({
+      mutate: mutateFn,
+    } as unknown as ReturnType<typeof useCreateTransaction>);
+
+    renderWithProviders(<TransactionsPage />);
+    const user = userEvent.setup();
+
+    // Open dialog
+    await user.click(screen.getByRole("button", { name: /add transaction/i }));
+
+    // Fill amount (the only required field besides accountId and date which have defaults)
+    const amountInput = screen.getByPlaceholderText("-100.00");
+    await user.clear(amountInput);
+    await user.type(amountInput, "-50");
+
+    // Submit without explicitly selecting an account — should use the default
+    await user.click(screen.getByRole("button", { name: /add transaction$/i }));
+
+    expect(mutateFn).toHaveBeenCalledTimes(1);
+    expect(mutateFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: "a1",
+        amount: -50,
+      })
+    );
   });
 });

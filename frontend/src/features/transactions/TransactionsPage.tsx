@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,10 +35,17 @@ export default function TransactionsPage() {
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
     details: '',
-    accountId: '',
+    accountId: accounts[0]?.id ?? '',
     budgetType: '' as BudgetType | '',
     budgetPositionId: '',
   });
+
+  useEffect(() => {
+    if (accounts.length > 0 && !form.accountId) {
+      setForm(f => ({ ...f, accountId: accounts[0].id }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts]);
 
   const resetForm = () => {
     setForm({

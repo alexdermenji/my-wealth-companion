@@ -119,6 +119,23 @@ test.describe('Add Transaction', () => {
   });
 });
 
+test.describe('Add Transaction - Default Account', () => {
+  test('should submit with the default account without explicitly selecting one', async ({ transactionsPage }) => {
+    const initialCount = await transactionsPage.table.getRowCount();
+
+    await transactionsPage.openAddDialog();
+
+    // Fill only amount and details — do NOT select an account
+    await transactionsPage.form.amountInput.fill('-25.00');
+    await transactionsPage.form.detailsInput.fill('Default account test');
+    await transactionsPage.form.submit();
+    await transactionsPage.form.waitForClosed();
+
+    await transactionsPage.table.expectRowCount(initialCount + 1);
+    await transactionsPage.table.expectRowContains('Default account test', ['$25.00']);
+  });
+});
+
 test.describe('Add Transaction - Empty State', () => {
   test.use({
     mockSetup: async ({ page }, use) => {
