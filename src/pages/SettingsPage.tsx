@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BudgetType } from '@/lib/types';
+import { BudgetType, BudgetCategory } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,13 +7,85 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount } from '@/hooks/api/useAccounts';
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from '@/hooks/api/useCategories';
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, useForceDeleteCategory } from '@/hooks/api/useCategories';
 import { useSettings, useUpdateSettings } from '@/hooks/api/useSettings';
+import { categoriesApi } from '@/api/categoriesApi';
 
 const ACCOUNT_TYPES = ['Cash', 'Bank', 'Credit Card', 'Investment', 'Retirement', 'Loan', 'Other'] as const;
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
+
+const TYPE_COLORS: Record<BudgetType, string> = {
+  Income: 'text-income',
+  Expenses: 'text-expense',
+  Savings: 'text-savings',
+  Debt: 'text-debt',
+};
+
+const TYPE_BG: Record<BudgetType, string> = {
+  Income: 'bg-green-500/10 border-green-500/30',
+  Expenses: 'bg-red-500/10 border-red-500/30',
+  Savings: 'bg-blue-500/10 border-blue-500/30',
+  Debt: 'bg-purple-500/10 border-purple-500/30',
+};
+
+function CategoryBlock({
+  type,
+  categories,
+  onAdd,
+  onEdit,
+  onDelete,
+}: {
+  type: BudgetType;
+  categories: BudgetCategory[];
+  onAdd: () => void;
+  onEdit: (cat: BudgetCategory) => void;
+  onDelete: (cat: BudgetCategory) => void;
+}) {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className={`flex flex-row items-center justify-between border-b ${TYPE_BG[type]}`}>
+        <CardTitle className={`font-display text-sm ${TYPE_COLORS[type]}`}>
+          {type} Categories
+        </CardTitle>
+        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={onAdd}>
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </CardHeader>
+      <CardContent className="p-0 flex-1">
+        {categories.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">No categories yet</p>
+        ) : (
+          <div className="divide-y">
+            {categories.map(cat => (
+              <div key={cat.id} className="flex items-center justify-between px-3 py-2 group">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{cat.name}</p>
+                  {cat.group && (
+                    <p className="text-xs text-muted-foreground truncate">{cat.groupEmoji ? `${cat.groupEmoji} ${cat.group}` : cat.group}</p>
+                  )}
+                </div>
+                <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(cat)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onDelete(cat)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function SettingsPage() {
   const { data: accounts = [] } = useAccounts();
@@ -26,6 +98,7 @@ export default function SettingsPage() {
   const createCategory = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
+  const forceDeleteMutation = useForceDeleteCategory();
 
   // Account form
   const [accOpen, setAccOpen] = useState(false);
@@ -46,7 +119,7 @@ export default function SettingsPage() {
 
   // Category form
   const [catOpen, setCatOpen] = useState(false);
-  const [catForm, setCatForm] = useState({ name: '', type: 'Expenses' as BudgetType, group: '' });
+  const [catForm, setCatForm] = useState({ name: '', type: 'Expenses' as BudgetType, group: '', groupEmoji: '' });
   const [editingCat, setEditingCat] = useState<string | null>(null);
 
   const handleCatSubmit = () => {
@@ -57,8 +130,55 @@ export default function SettingsPage() {
       createCategory.mutate(catForm);
     }
     setCatOpen(false);
-    setCatForm({ name: '', type: 'Expenses', group: '' });
+    setCatForm({ name: '', type: 'Expenses', group: '', groupEmoji: '' });
     setEditingCat(null);
+  };
+
+  // Delete confirmation
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    id: string;
+    name: string;
+    transactionCount: number;
+    budgetPlanCount: number;
+  } | null>(null);
+
+  const handleDeleteCategory = async (cat: BudgetCategory) => {
+    try {
+      // Try normal delete first (will fail with 409 if has dependencies)
+      await deleteCategoryMutation.mutateAsync(cat.id);
+    } catch {
+      // Has dependencies — fetch usage and show confirmation
+      try {
+        const usage = await categoriesApi.getUsage(cat.id);
+        setDeleteConfirm({
+          id: cat.id,
+          name: cat.name,
+          transactionCount: usage.transactionCount,
+          budgetPlanCount: usage.budgetPlanCount,
+        });
+      } catch {
+        // Category not found or other error — ignore
+      }
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirm) {
+      forceDeleteMutation.mutate(deleteConfirm.id);
+      setDeleteConfirm(null);
+    }
+  };
+
+  const openCatFormForType = (type: BudgetType) => {
+    setCatForm({ name: '', type, group: '', groupEmoji: '' });
+    setEditingCat(null);
+    setCatOpen(true);
+  };
+
+  const openCatFormForEdit = (cat: BudgetCategory) => {
+    setCatForm({ name: cat.name, type: cat.type, group: cat.group, groupEmoji: cat.groupEmoji });
+    setEditingCat(cat.id);
+    setCatOpen(true);
   };
 
   const handleSettingsChange = (updates: Partial<{ startYear: number; startMonth: number; currency: string }>) => {
@@ -111,7 +231,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <Label>Type</Label>
-                  <Select value={accForm.type} onValueChange={v => setAccForm(f => ({ ...f, type: v as any }))}>
+                  <Select value={accForm.type} onValueChange={v => setAccForm(f => ({ ...f, type: v as typeof ACCOUNT_TYPES[number] }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ACCOUNT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -154,71 +274,69 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Categories */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="font-display">Budget Categories</CardTitle>
-          <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) { setEditingCat(null); setCatForm({ name: '', type: 'Expenses', group: '' }); } }}>
-            <DialogTrigger asChild>
-              <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle className="font-display">{editingCat ? 'Edit' : 'New'} Category</DialogTitle></DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Name</Label>
-                  <Input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Budget Type</Label>
-                  <Select value={catForm.type} onValueChange={v => setCatForm(f => ({ ...f, type: v as BudgetType }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BUDGET_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Group</Label>
-                  <Input placeholder="e.g. Housing, Fun, Self-Care" value={catForm.group} onChange={e => setCatForm(f => ({ ...f, group: e.target.value }))} />
-                </div>
-                <Button className="w-full" onClick={handleCatSubmit}>{editingCat ? 'Update' : 'Add'}</Button>
+      {/* Budget Categories — 4 blocks */}
+      <div>
+        <h2 className="text-lg font-display font-semibold mb-4">Budget Categories</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {BUDGET_TYPES.map(type => (
+            <CategoryBlock
+              key={type}
+              type={type}
+              categories={categories.filter(c => c.type === type)}
+              onAdd={() => openCatFormForType(type)}
+              onEdit={openCatFormForEdit}
+              onDelete={handleDeleteCategory}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Category Add/Edit Dialog */}
+      <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) { setEditingCat(null); setCatForm({ name: '', type: 'Expenses', group: '', groupEmoji: '' }); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-display">
+              {editingCat ? 'Edit' : 'New'} {catForm.type} Category
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Name</Label>
+              <Input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label>Group</Label>
+                <Input placeholder="e.g. Housing, Fun, Self-Care" value={catForm.group} onChange={e => setCatForm(f => ({ ...f, group: e.target.value }))} />
               </div>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Group</TableHead>
-                <TableHead className="w-20"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categories.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className={`text-${c.type === 'Income' ? 'income' : c.type === 'Expenses' ? 'expense' : c.type === 'Savings' ? 'savings' : 'debt'}`}>{c.type}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.group}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setCatForm({ name: c.name, type: c.type, group: c.group }); setEditingCat(c.id); setCatOpen(true); }}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteCategoryMutation.mutate(c.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              <div className="w-20">
+                <Label>Emoji</Label>
+                <Input className="text-center text-lg" placeholder="🏠" value={catForm.groupEmoji} onChange={e => setCatForm(f => ({ ...f, groupEmoji: e.target.value }))} maxLength={2} />
+              </div>
+            </div>
+            <Button className="w-full" onClick={handleCatSubmit}>{editingCat ? 'Update' : 'Add'}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteConfirm?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This category is used by {deleteConfirm?.transactionCount} transaction{deleteConfirm?.transactionCount !== 1 ? 's' : ''} and {deleteConfirm?.budgetPlanCount} budget entr{deleteConfirm?.budgetPlanCount !== 1 ? 'ies' : 'y'}.
+              Deleting it will remove those references.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
