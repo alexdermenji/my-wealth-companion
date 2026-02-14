@@ -59,13 +59,13 @@ export default function TransactionsPage() {
     if (editing) {
       updateTransactionMutation.mutate({
         id: editing.id,
-        data: { ...form, amount, budgetType: form.budgetType === 'none' ? '' : form.budgetType },
+        data: { ...form, amount, budgetType: form.budgetType },
       });
     } else {
       createTransaction.mutate({
         ...form,
         amount,
-        budgetType: form.budgetType === 'none' ? '' : form.budgetType,
+        budgetType: form.budgetType,
       });
     }
     setOpen(false);
@@ -85,7 +85,7 @@ export default function TransactionsPage() {
     setOpen(true);
   };
 
-  const filteredCategories = categories.filter(c => !form.budgetType || form.budgetType === 'none' || c.type === form.budgetType);
+  const filteredCategories = categories.filter(c => !form.budgetType || c.type === form.budgetType);
 
   const getAccountName = (id: string) => accounts.find(a => a.id === id)?.name ?? 'Unknown';
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name ?? '-';

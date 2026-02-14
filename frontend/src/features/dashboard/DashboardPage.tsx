@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MONTHS, BudgetType } from '@/shared/types';
+import { MONTHS } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';

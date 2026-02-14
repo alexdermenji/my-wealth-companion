@@ -3,14 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 
-const TYPE_COLORS: Record<BudgetType, string> = {
+const TYPE_COLORS: Partial<Record<BudgetType, string>> = {
   Income: 'text-income',
   Expenses: 'text-expense',
   Savings: 'text-savings',
   Debt: 'text-debt',
 };
 
-const TYPE_BG: Record<BudgetType, string> = {
+const TYPE_BG: Partial<Record<BudgetType, string>> = {
   Income: 'bg-green-500/10 border-green-500/30',
   Expenses: 'bg-red-500/10 border-red-500/30',
   Savings: 'bg-blue-500/10 border-blue-500/30',
@@ -34,8 +34,8 @@ export function CategoryBlock({
 }: CategoryBlockProps) {
   return (
     <Card className="flex flex-col">
-      <CardHeader className={`flex flex-row items-center justify-between border-b ${TYPE_BG[type]}`}>
-        <CardTitle className={`font-display text-sm ${TYPE_COLORS[type]}`}>
+      <CardHeader className={`flex flex-row items-center justify-between border-b ${TYPE_BG[type] ?? ''}`}>
+        <CardTitle className={`font-display text-sm ${TYPE_COLORS[type] ?? ''}`}>
           {type} Categories
         </CardTitle>
         <Button size="sm" variant="ghost" className="h-7 px-2" onClick={onAdd}>

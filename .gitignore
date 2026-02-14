@@ -6,6 +6,9 @@ node_modules/
 dist/
 .env
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Backend build artifacts
 backend/**/bin/
 backend/**/obj/
