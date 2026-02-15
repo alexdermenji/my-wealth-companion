@@ -1,13 +1,25 @@
 {
   "realm": "financeflow",
   "enabled": true,
+  "loginTheme": "financeflow",
+  "emailTheme": "financeflow",
   "sslRequired": "external",
   "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
   "editUsernameAllowed": false,
   "bruteForceProtected": true,
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "noreply@financeflow.local",
+    "fromDisplayName": "FinanceFlow",
+    "ssl": "false",
+    "starttls": "false",
+    "auth": "false"
+  },
   "clients": [
     {
       "clientId": "financeflow-spa",

@@ -16,7 +16,8 @@
     "e2e:ui": "playwright test --ui",
     "e2e:headed": "playwright test --headed",
     "keycloak:up": "docker compose -f ../docker-compose.yml up -d",
-    "keycloak:down": "docker compose -f ../docker-compose.yml down"
+    "keycloak:down": "docker compose -f ../docker-compose.yml down",
+    "keycloak:build-theme": "cd ../keycloak-theme && npm run build-keycloak-theme"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
