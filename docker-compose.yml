@@ -10,6 +10,12 @@ services:
     ports:
       - "5433:5432"
 
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     environment:
@@ -22,10 +28,12 @@ services:
     command: start-dev --import-realm
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+      - ./keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/financeflow-theme.jar
     ports:
       - "8180:8080"
     depends_on:
       - keycloak-db
+      - mailpit
 
 volumes:
   keycloak_db_data:

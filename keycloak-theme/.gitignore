@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist_keycloak/
+vite.config.js
+vite.config.d.ts
+tsconfig.node.tsbuildinfo
