@@ -53,6 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             size="icon"
             className="md:hidden mr-2 h-8 w-8"
             onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
           >
             <Menu className="h-5 w-5" />
           </Button>
