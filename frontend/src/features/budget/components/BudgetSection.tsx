@@ -4,11 +4,35 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { BudgetCell } from './BudgetCell';
 
-const SECTION_STYLES: Record<string, { text: string; rowBg: string; headerBg: string }> = {
-  Income: { text: 'text-green-700', rowBg: 'bg-green-50 dark:bg-green-950/30', headerBg: 'bg-green-800 dark:bg-green-900' },
-  Expenses: { text: 'text-rose-700', rowBg: 'bg-rose-50 dark:bg-rose-950/30', headerBg: 'bg-rose-800 dark:bg-rose-900' },
-  Savings: { text: 'text-blue-700', rowBg: 'bg-blue-50 dark:bg-blue-950/30', headerBg: 'bg-blue-800 dark:bg-blue-900' },
-  Debt: { text: 'text-purple-700', rowBg: 'bg-purple-50 dark:bg-purple-950/30', headerBg: 'bg-purple-800 dark:bg-purple-900' },
+const SECTION_STYLES: Record<string, { text: string; rowBg: string; headerBg: string; headerText: string; accentBorder: string }> = {
+  Income: {
+    text: 'text-green-700',
+    rowBg: 'bg-budget-row',
+    headerBg: 'bg-budget-income-header',
+    headerText: 'text-budget-income-text',
+    accentBorder: 'border-budget-income-accent',
+  },
+  Expenses: {
+    text: 'text-rose-700',
+    rowBg: 'bg-budget-row',
+    headerBg: 'bg-budget-expenses-header',
+    headerText: 'text-budget-expenses-text',
+    accentBorder: 'border-budget-expenses-accent',
+  },
+  Savings: {
+    text: 'text-blue-700',
+    rowBg: 'bg-budget-row',
+    headerBg: 'bg-budget-savings-header',
+    headerText: 'text-budget-savings-text',
+    accentBorder: 'border-budget-savings-accent',
+  },
+  Debt: {
+    text: 'text-purple-700',
+    rowBg: 'bg-budget-row',
+    headerBg: 'bg-budget-debt-header',
+    headerText: 'text-budget-debt-text',
+    accentBorder: 'border-budget-debt-accent',
+  },
 };
 
 interface BudgetSectionProps {
@@ -55,21 +79,21 @@ export function BudgetSection({
         <TableCell colSpan={14} className="p-3 border-none" />
       </TableRow>
 
-      {/* Section header — saturated color with white text */}
+      {/* Section header — custom colors */}
       <TableRow className={cn(style.headerBg, 'border-none')}>
-        <TableCell className={cn('sticky left-0 z-10 font-bold text-xs text-white py-1.5', style.headerBg)}>
+        <TableCell className={cn('sticky left-0 z-10 border-l-4 font-bold text-xs py-1.5', style.headerBg, style.headerText, style.accentBorder)}>
           {type}
         </TableCell>
         {MONTHS.map((m, i) => (
-          <TableCell key={i} className="text-center text-xs font-semibold text-white py-1.5">{m}</TableCell>
+          <TableCell key={i} className={cn('text-center text-xs font-semibold py-1.5', style.headerText)}>{m}</TableCell>
         ))}
-        <TableCell className="text-center text-xs font-semibold text-white py-1.5">{year}</TableCell>
+        <TableCell className={cn('text-center text-xs font-semibold py-1.5', style.headerText)}>{year}</TableCell>
       </TableRow>
 
       {/* Category rows — light tinted background */}
       {typeCats.map(cat => (
         <TableRow key={cat.id} className={style.rowBg}>
-          <TableCell className={cn('sticky left-0 z-10 min-w-[150px] sticky-border-r', style.rowBg)}>
+          <TableCell className={cn('sticky left-0 z-10 min-w-[150px] border-l-4 sticky-border-r', style.rowBg, style.accentBorder)}>
             <div className="text-sm font-medium">{cat.name}</div>
             {cat.group && (
               <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/5 text-muted-foreground">
@@ -94,7 +118,7 @@ export function BudgetSection({
 
       {/* Section total */}
       <TableRow className={style.rowBg}>
-        <TableCell className={cn('sticky left-0 z-10 text-sm font-bold sticky-border-r', style.rowBg, style.text)}>
+        <TableCell className={cn('sticky left-0 z-10 border-l-4 text-sm font-bold sticky-border-r', style.rowBg, style.text, style.accentBorder)}>
           Total
         </TableCell>
         {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (

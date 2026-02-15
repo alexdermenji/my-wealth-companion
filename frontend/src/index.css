@@ -62,6 +62,20 @@
     --chart-3: 38 92% 50%;
     --chart-4: 280 65% 60%;
     --chart-5: 0 72% 51%;
+
+    --budget-row-bg: #f9fafb;
+    --budget-income-header-bg: #e6f4ea;
+    --budget-income-header-text: #166534;
+    --budget-income-accent: #166534;
+    --budget-expenses-header-bg: #fde8e8;
+    --budget-expenses-header-text: #991b1b;
+    --budget-expenses-accent: #991b1b;
+    --budget-savings-header-bg: #e6f0ff;
+    --budget-savings-header-text: #1d4ed8;
+    --budget-savings-accent: #1d4ed8;
+    --budget-debt-header-bg: #f3e8ff;
+    --budget-debt-header-text: #6b21a8;
+    --budget-debt-accent: #6b21a8;
   }
 }
 
@@ -106,7 +120,23 @@
     width: 1px;
     background: #d1d5db;
   }
-  .dark .sticky-border-r::after {
-    background: #374151;
-  }
+.dark .sticky-border-r::after {
+  background: #374151;
+}
+
+.dark {
+  --budget-row-bg: rgba(31, 41, 55, 0.4);
+  --budget-income-header-bg: #14532d;
+  --budget-income-header-text: #ffffff;
+  --budget-income-accent: #16a34a;
+  --budget-expenses-header-bg: #881337;
+  --budget-expenses-header-text: #ffffff;
+  --budget-expenses-accent: #ef4444;
+  --budget-savings-header-bg: #1e3a8a;
+  --budget-savings-header-text: #ffffff;
+  --budget-savings-accent: #3b82f6;
+  --budget-debt-header-bg: #581c87;
+  --budget-debt-header-text: #ffffff;
+  --budget-debt-accent: #a855f7;
+}
 }
