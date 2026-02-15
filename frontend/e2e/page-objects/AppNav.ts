@@ -4,15 +4,15 @@ export class AppNav {
   private readonly nav: Locator;
 
   constructor(private page: Page) {
-    this.nav = page.locator('aside nav');
+    this.nav = page.locator('header nav');
   }
 
   async navigateTo(label: string) {
-    await this.nav.getByText(label, { exact: true }).click();
+    await this.nav.getByRole('link', { name: label, exact: true }).click();
   }
 
   async expectActiveLink(label: string) {
     const link = this.nav.locator('a').filter({ hasText: label });
-    await expect(link).toHaveClass(/bg-primary/);
+    await expect(link).toHaveClass(/bg-secondary/);
   }
 }

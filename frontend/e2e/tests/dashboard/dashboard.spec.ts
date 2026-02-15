@@ -19,8 +19,9 @@ test.describe('Dashboard', () => {
     const title = dashboardPage.getBreakdownTitle();
     await expect(title).toContainText('Breakdown');
 
-    await expect(dashboardPage.page.getByText('Employment (Net)')).toBeVisible();
-    await expect(dashboardPage.page.getByText('Groceries')).toBeVisible();
+    const breakdownCard = dashboardPage.page.locator('.rounded-lg').filter({ hasText: /Breakdown —/ });
+    await expect(breakdownCard.getByText('Employment (Net)', { exact: true })).toBeVisible();
+    await expect(breakdownCard.getByText('Groceries', { exact: true })).toBeVisible();
   });
 
   test('should change year', async ({ dashboardPage }) => {

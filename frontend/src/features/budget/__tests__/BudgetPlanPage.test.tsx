@@ -23,16 +23,20 @@ const mockPlans: BudgetPlan[] = [
   { categoryId: "c2", year: 2026, months: { 1: 1200, 2: 1200 } },
 ];
 
+const mockBudgetPlans = (data: BudgetPlan[]) => {
+  vi.mocked(useBudgetPlans).mockReturnValue({
+    data,
+    isLoading: false,
+  } as unknown as ReturnType<typeof useBudgetPlans>);
+};
+
 describe("BudgetPlanPage", () => {
   beforeEach(() => {
     vi.mocked(useCategories).mockReturnValue({
       data: mockCategories,
       isLoading: false,
     } as ReturnType<typeof useCategories>);
-    vi.mocked(useBudgetPlans).mockReturnValue({
-      data: mockPlans,
-      isLoading: false,
-    } as ReturnType<typeof useBudgetPlans>);
+    mockBudgetPlans(mockPlans);
     vi.mocked(useSettings).mockReturnValue({
       data: { startYear: 2026, startMonth: 1, currency: "$" },
       isLoading: false,
@@ -65,5 +69,36 @@ describe("BudgetPlanPage", () => {
     // Month 1 & 2: 4000 - 1200 = 2800 each
     const allocationCells = screen.getAllByText("$2,800");
     expect(allocationCells.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows green check when allocations match income for a month with data", () => {
+    mockBudgetPlans([
+      { categoryId: "c1", year: 2026, months: { 1: 1000 } },
+      { categoryId: "c2", year: 2026, months: { 1: 1000 } },
+    ]);
+
+    const { container } = renderWithProviders(<BudgetPlanPage />);
+    const checks = container.querySelectorAll("svg.stroke-\\[3\\]");
+    // Month 1 + Year total (both zero with data)
+    expect(checks).toHaveLength(2);
+  });
+
+  it("shows allocation amount when allocations do not match income", () => {
+    mockBudgetPlans([
+      { categoryId: "c1", year: 2026, months: { 1: 1000 } },
+      { categoryId: "c2", year: 2026, months: { 1: 800 } },
+    ]);
+
+    const { container } = renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("$200").length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll("svg.stroke-\\[3\\]")).toHaveLength(0);
+  });
+
+  it("shows '-' when there are no values", () => {
+    mockBudgetPlans([]);
+
+    const { container } = renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
+    expect(container.querySelectorAll("svg.stroke-\\[3\\]")).toHaveLength(0);
   });
 });
