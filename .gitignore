@@ -1,11 +1,22 @@
 .DS_Store
 .idea
 .vscode
+.claude/
 node_modules/
 dist/
 .env
 
+# TypeScript build cache
+*.tsbuildinfo
+
+# Backend build artifacts
+backend/**/bin/
+backend/**/obj/
+
 # Playwright
+test-results/
 /frontend/test-results/
 /frontend/playwright-report/
 /frontend/playwright/.cache/
+
+/CLAUDE.MD

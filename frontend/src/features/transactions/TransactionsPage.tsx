@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -35,10 +35,17 @@ export default function TransactionsPage() {
     date: format(new Date(), 'yyyy-MM-dd'),
     amount: '',
     details: '',
-    accountId: '',
+    accountId: accounts[0]?.id ?? '',
     budgetType: '' as BudgetType | '',
     budgetPositionId: '',
   });
+
+  useEffect(() => {
+    if (accounts.length > 0 && !form.accountId) {
+      setForm(f => ({ ...f, accountId: accounts[0].id }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts]);
 
   const resetForm = () => {
     setForm({
@@ -59,13 +66,13 @@ export default function TransactionsPage() {
     if (editing) {
       updateTransactionMutation.mutate({
         id: editing.id,
-        data: { ...form, amount, budgetType: form.budgetType === 'none' ? '' : form.budgetType },
+        data: { ...form, amount, budgetType: form.budgetType },
       });
     } else {
       createTransaction.mutate({
         ...form,
         amount,
-        budgetType: form.budgetType === 'none' ? '' : form.budgetType,
+        budgetType: form.budgetType,
       });
     }
     setOpen(false);
@@ -85,7 +92,7 @@ export default function TransactionsPage() {
     setOpen(true);
   };
 
-  const filteredCategories = categories.filter(c => !form.budgetType || form.budgetType === 'none' || c.type === form.budgetType);
+  const filteredCategories = categories.filter(c => !form.budgetType || c.type === form.budgetType);
 
   const getAccountName = (id: string) => accounts.find(a => a.id === id)?.name ?? 'Unknown';
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name ?? '-';

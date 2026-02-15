@@ -1,11 +1,18 @@
 using FinanceFlow.Api.Models.Domain;
+using FinanceFlow.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace FinanceFlow.Api.Data;
 
 public class FinanceDbContext : DbContext
 {
-    public FinanceDbContext(DbContextOptions<FinanceDbContext> options) : base(options) { }
+    private readonly ICurrentUserService? _currentUser;
+
+    public FinanceDbContext(DbContextOptions<FinanceDbContext> options, ICurrentUserService? currentUser = null)
+        : base(options)
+    {
+        _currentUser = currentUser;
+    }
 
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<BudgetCategory> Categories => Set<BudgetCategory>();
@@ -15,9 +22,17 @@ public class FinanceDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // BudgetPlan: unique constraint on (CategoryId, Year, Month)
+        // Global query filters for multi-user data isolation
+        // Bypass filter when no user context (migrations, startup)
+        modelBuilder.Entity<Account>().HasQueryFilter(e => _currentUser == null || _currentUser.UserId == null || e.UserId == _currentUser.UserId);
+        modelBuilder.Entity<Transaction>().HasQueryFilter(e => _currentUser == null || _currentUser.UserId == null || e.UserId == _currentUser.UserId);
+        modelBuilder.Entity<BudgetCategory>().HasQueryFilter(e => _currentUser == null || _currentUser.UserId == null || e.UserId == _currentUser.UserId);
+        modelBuilder.Entity<BudgetPlan>().HasQueryFilter(e => _currentUser == null || _currentUser.UserId == null || e.UserId == _currentUser.UserId);
+        modelBuilder.Entity<Settings>().HasQueryFilter(e => _currentUser == null || _currentUser.UserId == null || e.UserId == _currentUser.UserId);
+
+        // BudgetPlan: unique constraint on (CategoryId, Year, Month, UserId)
         modelBuilder.Entity<BudgetPlan>()
-            .HasIndex(bp => new { bp.CategoryId, bp.Year, bp.Month })
+            .HasIndex(bp => new { bp.CategoryId, bp.Year, bp.Month, bp.UserId })
             .IsUnique();
 
         // Transaction -> Account
@@ -50,39 +65,40 @@ public class FinanceDbContext : DbContext
             .Property(bp => bp.Amount)
             .HasColumnType("REAL");
 
-        // --- Seed data (matches store.ts defaultState) ---
+        // Index on UserId for faster queries
+        modelBuilder.Entity<Account>().HasIndex(e => e.UserId);
+        modelBuilder.Entity<Transaction>().HasIndex(e => e.UserId);
+        modelBuilder.Entity<BudgetCategory>().HasIndex(e => e.UserId);
+        modelBuilder.Entity<BudgetPlan>().HasIndex(e => e.UserId);
+        modelBuilder.Entity<Settings>().HasIndex(e => e.UserId).IsUnique();
+    }
 
-        modelBuilder.Entity<Settings>().HasData(
-            new Settings { Id = 1, StartYear = 2026, StartMonth = 1, Currency = "$" }
-        );
+    public override int SaveChanges()
+    {
+        StampUserId();
+        return base.SaveChanges();
+    }
 
-        modelBuilder.Entity<Account>().HasData(
-            new Account { Id = "1", Name = "Bank Account", Type = "Bank" },
-            new Account { Id = "2", Name = "Cash on Hand", Type = "Cash" },
-            new Account { Id = "3", Name = "Credit Card 1", Type = "Credit Card" }
-        );
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        StampUserId();
+        return base.SaveChangesAsync(cancellationToken);
+    }
 
-        modelBuilder.Entity<BudgetCategory>().HasData(
-            new BudgetCategory { Id = "c1", Name = "Employment (Net)", Type = "Income", Group = "Work Income" },
-            new BudgetCategory { Id = "c2", Name = "Side Hustle (Net)", Type = "Income", Group = "Work Income" },
-            new BudgetCategory { Id = "c3", Name = "Dividends (Net)", Type = "Income", Group = "Capital Income" },
-            new BudgetCategory { Id = "c4", Name = "Rent", Type = "Expenses", Group = "Housing" },
-            new BudgetCategory { Id = "c5", Name = "Utilities", Type = "Expenses", Group = "Housing" },
-            new BudgetCategory { Id = "c6", Name = "Internet", Type = "Expenses", Group = "Housing" },
-            new BudgetCategory { Id = "c7", Name = "Groceries", Type = "Expenses", Group = "Groceries" },
-            new BudgetCategory { Id = "c8", Name = "Going Out", Type = "Expenses", Group = "Fun" },
-            new BudgetCategory { Id = "c9", Name = "Shopping", Type = "Expenses", Group = "Fun" },
-            new BudgetCategory { Id = "c10", Name = "Gym", Type = "Expenses", Group = "Self-Care" },
-            new BudgetCategory { Id = "c11", Name = "Body Care & Medicine", Type = "Expenses", Group = "Self-Care" },
-            new BudgetCategory { Id = "c12", Name = "Car Gas", Type = "Expenses", Group = "Transportation" },
-            new BudgetCategory { Id = "c13", Name = "Metro Ticket", Type = "Expenses", Group = "Transportation" },
-            new BudgetCategory { Id = "c14", Name = "Netflix", Type = "Expenses", Group = "Entertainment" },
-            new BudgetCategory { Id = "c15", Name = "Roth IRA", Type = "Savings", Group = "Retirement" },
-            new BudgetCategory { Id = "c16", Name = "Emergency Fund", Type = "Savings", Group = "Emergency" },
-            new BudgetCategory { Id = "c17", Name = "Stock Portfolio", Type = "Savings", Group = "Investments" },
-            new BudgetCategory { Id = "c18", Name = "Car Loan", Type = "Debt", Group = "Car Debt" },
-            new BudgetCategory { Id = "c19", Name = "Credit Card Debt", Type = "Debt", Group = "Credit Card Debt" },
-            new BudgetCategory { Id = "c20", Name = "Undergraduate Loan", Type = "Debt", Group = "Student Loan Debt" }
-        );
+    private void StampUserId()
+    {
+        if (_currentUser?.UserId == null) return;
+
+        foreach (var entry in ChangeTracker.Entries().Where(e => e.State == EntityState.Added))
+        {
+            switch (entry.Entity)
+            {
+                case Account a: a.UserId = _currentUser.UserId; break;
+                case Transaction t: t.UserId = _currentUser.UserId; break;
+                case BudgetCategory c: c.UserId = _currentUser.UserId; break;
+                case BudgetPlan bp: bp.UserId = _currentUser.UserId; break;
+                case Settings s: s.UserId = _currentUser.UserId; break;
+            }
+        }
     }
 }

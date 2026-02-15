@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { budgetPlansApi } from "./api";
 
 export function useBudgetPlans(year: number) {
@@ -20,6 +21,10 @@ export function useSetBudgetAmount() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgetPlans"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast.success("Budget updated", { id: "budget-saved" });
+    },
+    onError: () => {
+      toast.error("Failed to update budget", { id: "budget-saved" });
     },
   });
 }

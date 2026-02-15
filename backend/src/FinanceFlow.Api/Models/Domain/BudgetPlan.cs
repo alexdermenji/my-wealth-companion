@@ -7,6 +7,7 @@ public class BudgetPlan
     public int Year { get; set; }
     public int Month { get; set; }
     public decimal Amount { get; set; }
+    public string UserId { get; set; } = string.Empty;
 
     public BudgetCategory? Category { get; set; }
 }

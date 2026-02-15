@@ -3,7 +3,7 @@ import { Page, Locator } from '@playwright/test';
 export class SettingsPage {
   readonly heading: Locator;
 
-  constructor(private page: Page) {
+  constructor(readonly page: Page) {
     this.heading = page.getByRole('heading', { name: 'Settings' });
   }
 

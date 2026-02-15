@@ -1,5 +1,7 @@
 using FinanceFlow.Api.Data;
+using FinanceFlow.Api.Middleware;
 using FinanceFlow.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -13,6 +15,33 @@ connectionString = connectionString.Replace("%DB_PASSWORD%", dbPassword);
 builder.Services.AddDbContext<FinanceDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Authentication (Keycloak JWT)
+var keycloakAuthority = Environment.GetEnvironmentVariable("KEYCLOAK_AUTHORITY")
+    ?? "http://localhost:8180/realms/financeflow";
+var keycloakAudience = Environment.GetEnvironmentVariable("KEYCLOAK_AUDIENCE")
+    ?? "financeflow-spa";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = keycloakAuthority;
+        options.Audience = keycloakAudience;
+        options.RequireHttpsMetadata = false; // dev only — Keycloak runs on HTTP locally
+
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidAudiences = new[] { keycloakAudience, "account" },
+        };
+    });
+builder.Services.AddAuthorization();
+
+// Current user
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
 // Services
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
@@ -20,6 +49,7 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IBudgetPlanService, BudgetPlanService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IUserDataSeeder, UserDataSeeder>();
 
 // Controllers + JSON
 builder.Services.AddControllers();
@@ -55,5 +85,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("DevCors");
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseMiddleware<UserSeedMiddleware>();
 app.MapControllers();
 app.Run();

@@ -44,6 +44,12 @@ test.describe('Budget Plan', () => {
     expect(putCalled).toBe(true);
   });
 
+  test('should show success toast after editing a budget cell', async ({ budgetPlanPage }) => {
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '5000');
+    const toast = budgetPlanPage.page.locator('[data-sonner-toast]', { hasText: 'Budget updated' });
+    await expect(toast).toBeVisible();
+  });
+
   test('should display section totals', async ({ budgetPlanPage }) => {
     // Income total for Jan = 4000 + 1000 = 5000
     const totalRow = budgetPlanPage.page.locator('tr').filter({ hasText: /Total/ }).first();

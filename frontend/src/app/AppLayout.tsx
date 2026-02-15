@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, TrendingUp, LogOut, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/shared/auth/AuthProvider';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -11,6 +12,7 @@ const navItems = [
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { logout, userName } = useAuth();
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -39,6 +41,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+
+        {/* User info + Logout */}
+        <div className="border-t px-3 py-4 space-y-2">
+          {userName && (
+            <div className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground">
+              <User className="h-4 w-4" />
+              <span className="truncate">{userName}</span>
+            </div>
+          )}
+          <button
+            onClick={logout}
+            className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </aside>
 
       {/* Mobile nav */}
@@ -59,6 +78,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {item.label}
             </Link>
           ))}
+          <button
+            onClick={logout}
+            className="flex flex-col items-center gap-1 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </button>
         </nav>
       </div>
 

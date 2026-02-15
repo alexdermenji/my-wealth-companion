@@ -4,7 +4,7 @@ import { RadixSelect } from './components/RadixSelect';
 export class DashboardPage {
   readonly heading: Locator;
 
-  constructor(private page: Page) {
+  constructor(readonly page: Page) {
     this.heading = page.getByRole('heading', { name: 'Budget Dashboard' });
   }
 

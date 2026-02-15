@@ -25,6 +25,12 @@ test.describe('General Settings', () => {
     expect((putBody as Record<string, unknown>).currency).toBe('€');
   });
 
+  test('should show success toast after saving', async ({ settingsPage }) => {
+    await settingsPage.setGeneralValue('Currency', '€');
+    const toast = settingsPage.page.locator('[data-sonner-toast]', { hasText: 'Settings saved' });
+    await expect(toast).toBeVisible();
+  });
+
   test('should update start year', async ({ settingsPage }) => {
     await settingsPage.setGeneralValue('Start Year', '2025');
     await expect(settingsPage.getGeneralInput('Start Year')).toHaveValue('2025');

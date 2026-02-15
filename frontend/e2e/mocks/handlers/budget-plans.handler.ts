@@ -7,7 +7,7 @@ export interface BudgetPlansMockOptions {
 }
 
 export async function setupBudgetPlansMock(page: Page, options: BudgetPlansMockOptions = {}) {
-  const store = [...(options.initialData ?? mockBudgetPlans)];
+  const store = (options.initialData ?? mockBudgetPlans).map(p => ({ ...p, months: { ...p.months } }));
 
   await page.route(
     (url) => url.pathname === '/api/budget-plans',

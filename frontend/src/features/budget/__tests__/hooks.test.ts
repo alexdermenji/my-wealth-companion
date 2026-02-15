@@ -1,12 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import { useBudgetPlans, useSetBudgetAmount } from "../hooks";
 import { budgetPlansApi } from "../api";
 import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 
-vi.mock("../api");
+import type { BudgetPlan } from "../types";
 
-const mockPlans = [
+vi.mock("../api");
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+const mockPlans: BudgetPlan[] = [
   { categoryId: "c1", year: 2026, months: { 1: 1000, 2: 1000 } },
   { categoryId: "c2", year: 2026, months: { 1: 500 } },
 ];
@@ -64,6 +73,27 @@ describe("useSetBudgetAmount", () => {
     });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["budgetPlans"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["dashboard"] });
+  });
+
+  it("shows success toast on update", async () => {
+    const { result } = renderHook(() => useSetBudgetAmount(), {
+      wrapper: createHookWrapper(),
+    });
+
+    result.current.mutate({ categoryId: "c1", year: 2026, month: 1, amount: 2000 });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(toast.success).toHaveBeenCalledWith("Budget updated", { id: "budget-saved" });
+  });
+
+  it("shows error toast on update failure", async () => {
+    vi.mocked(budgetPlansApi.setAmount).mockRejectedValue(new Error("fail"));
+    const { result } = renderHook(() => useSetBudgetAmount(), {
+      wrapper: createHookWrapper(),
+    });
+
+    result.current.mutate({ categoryId: "c1", year: 2026, month: 1, amount: 2000 });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledWith("Failed to update budget", { id: "budget-saved" });
   });
 
   it("handles mutation error", async () => {
