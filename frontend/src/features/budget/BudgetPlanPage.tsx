@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { MONTHS, BudgetType } from '@/shared/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useBudgetPlans, useSetBudgetAmount } from './hooks';
 import { useSettings } from '@/features/settings/hooks';
