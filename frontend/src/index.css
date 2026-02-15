@@ -96,4 +96,17 @@
   .amount-negative {
     color: hsl(var(--expense));
   }
+
+  .sticky-border-r::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 1px;
+    background: #d1d5db;
+  }
+  .dark .sticky-border-r::after {
+    background: #374151;
+  }
 }
