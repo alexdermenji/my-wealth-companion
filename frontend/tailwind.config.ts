@@ -64,6 +64,29 @@ export default {
         savings: "hsl(var(--savings))",
         debt: "hsl(var(--debt))",
         transfer: "hsl(var(--transfer))",
+        budget: {
+          row: "var(--budget-row-bg)",
+          income: {
+            header: "var(--budget-income-header-bg)",
+            text: "var(--budget-income-header-text)",
+            accent: "var(--budget-income-accent)",
+          },
+          expenses: {
+            header: "var(--budget-expenses-header-bg)",
+            text: "var(--budget-expenses-header-text)",
+            accent: "var(--budget-expenses-accent)",
+          },
+          savings: {
+            header: "var(--budget-savings-header-bg)",
+            text: "var(--budget-savings-header-text)",
+            accent: "var(--budget-savings-accent)",
+          },
+          debt: {
+            header: "var(--budget-debt-header-bg)",
+            text: "var(--budget-debt-header-text)",
+            accent: "var(--budget-debt-accent)",
+          },
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

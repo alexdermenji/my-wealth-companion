@@ -33,7 +33,7 @@ export class BudgetPlanPage {
 
   async setCategoryAmount(categoryName: string, monthIndex: number, value: string) {
     const row = this.getCategoryRow(categoryName);
-    const input = row.locator('input[type="number"]').nth(monthIndex);
+    const input = row.locator('input').nth(monthIndex);
     await input.focus();
     await input.fill('');
     await input.fill(value);
@@ -42,7 +42,7 @@ export class BudgetPlanPage {
 
   async getCategoryInput(categoryName: string, monthIndex: number): Promise<string> {
     const row = this.getCategoryRow(categoryName);
-    return row.locator('input[type="number"]').nth(monthIndex).inputValue();
+    return row.locator('input').nth(monthIndex).inputValue();
   }
 
   getSectionTotalRow(type: string): Locator {

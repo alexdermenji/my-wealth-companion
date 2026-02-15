@@ -23,7 +23,7 @@ test.describe('Budget Plan', () => {
 
   test('should display category amounts', async ({ budgetPlanPage }) => {
     const value = await budgetPlanPage.getCategoryInput('Employment (Net)', 0);
-    expect(value).toBe('4000');
+    expect(value).toBe('4,000');
   });
 
   test('should edit a budget cell', async ({ budgetPlanPage }) => {
@@ -66,8 +66,40 @@ test.describe('Budget Plan', () => {
     await budgetPlanPage.selectYear('2025');
     // With no data for 2025, inputs should be empty/zero
     const row = budgetPlanPage.getCategoryRow('Employment (Net)');
-    const firstInput = row.locator('input[type="number"]').first();
+    const firstInput = row.locator('input').first();
     const value = await firstInput.inputValue();
     expect(value === '' || value === '0').toBeTruthy();
+  });
+});
+
+test.describe('Budget Plan - Allocation indicators', () => {
+  test.use({
+    mockOptions: {
+      budgetPlans: { initialData: [] },
+    },
+  });
+
+  test('shows "-" when there are no values', async ({ budgetPlanPage }) => {
+    const row = budgetPlanPage.getRemainingRow();
+    await expect(row).toContainText('-');
+    await expect(row.locator('svg.stroke-\\[3\\]')).toHaveCount(0);
+  });
+
+  test('shows allocation value when totals do not match', async ({ budgetPlanPage }) => {
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '1000');
+
+    const row = budgetPlanPage.getRemainingRow();
+    await expect(row).toContainText('$1,000');
+    await expect(row.locator('svg.stroke-\\[3\\]')).toHaveCount(0);
+  });
+
+  test('shows green check when allocations match income', async ({ budgetPlanPage }) => {
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '1000');
+    await budgetPlanPage.setCategoryAmount('Rent', 0, '600');
+    await budgetPlanPage.setCategoryAmount('Emergency Fund', 0, '300');
+    await budgetPlanPage.setCategoryAmount('Credit Card Debt', 0, '100');
+
+    const row = budgetPlanPage.getRemainingRow();
+    await expect(row.locator('svg.stroke-\\[3\\]')).toHaveCount(2);
   });
 });

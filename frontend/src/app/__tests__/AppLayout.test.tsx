@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AppLayout } from "../AppLayout";
 import { renderWithProviders } from "@/test/test-utils";
 
@@ -18,8 +19,17 @@ describe("AppLayout", () => {
     expect(screen.getByText("FinanceFlow")).toBeInTheDocument();
   });
 
-  it("renders all navigation links", () => {
+  it("renders all navigation links", async () => {
     renderWithProviders(<AppLayout>Content</AppLayout>);
+    const user = userEvent.setup();
+
+    expect(screen.getAllByText("Dashboard")).toHaveLength(1); // desktop only
+    expect(screen.getAllByText("Transactions")).toHaveLength(1);
+    expect(screen.getAllByText("Budget Plan")).toHaveLength(1);
+    expect(screen.getAllByText("Settings")).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: /open navigation/i }));
+
     expect(screen.getAllByText("Dashboard")).toHaveLength(2); // desktop + mobile
     expect(screen.getAllByText("Transactions")).toHaveLength(2);
     expect(screen.getAllByText("Budget Plan")).toHaveLength(2);
@@ -38,6 +48,6 @@ describe("AppLayout", () => {
     // Desktop sidebar links
     const links = screen.getAllByText("Transactions");
     const desktopLink = links[0].closest("a");
-    expect(desktopLink?.className).toContain("bg-primary");
+    expect(desktopLink?.className).toContain("bg-secondary");
   });
 });
