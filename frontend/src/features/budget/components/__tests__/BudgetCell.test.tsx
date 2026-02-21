@@ -11,8 +11,8 @@ describe("BudgetCell", () => {
 
   it("displays empty string when value is 0", () => {
     render(<BudgetCell value={0} onChange={vi.fn()} />);
-    const input = screen.getByPlaceholderText("0");
-    expect(input).toHaveValue(null);
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue("");
   });
 
   it("calls onChange on blur when value changed", async () => {
