@@ -1,7 +1,13 @@
-.PHONY: help be fe fe-build fe-lint fe-test fe-test-watch fe-e2e keycloak-up keycloak-down keycloak-restart
+.PHONY: help be fe fe-build fe-lint fe-test fe-test-watch fe-e2e keycloak-up keycloak-down keycloak-restart start
 
+start:
+	make be & make fe
 
 be:
+	@if lsof -i :5062 -t > /dev/null 2>&1; then \
+		echo "Error: port 5062 is already in use. Run: lsof -i :5062"; \
+		exit 1; \
+	fi
 	cd backend && source .env && export DB_PASSWORD KEYCLOAK_AUTHORITY KEYCLOAK_AUDIENCE && \
 	export PATH="/opt/homebrew/opt/dotnet@9/bin:$$PATH" && \
 	export DOTNET_ROOT="/opt/homebrew/opt/dotnet@9/libexec" && \
