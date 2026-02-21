@@ -14,6 +14,7 @@ Personal finance application for tracking income, expenses, savings, and debt wi
 
 - [Node.js](https://nodejs.org/) >= 18
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
+- [Docker](https://www.docker.com/) (for Keycloak)
 
 ## Getting Started
 
@@ -22,38 +23,23 @@ git clone git@github.com:alexdermenji/my-wealth-companion.git
 cd my-wealth-companion
 ```
 
-### Backend
-
-```bash
-cd backend/src/FinanceFlow.Api
-dotnet run
-```
-
-The API starts at **http://localhost:5062**. The database (`finance.db`) is created automatically on first run.
-
-API docs are available at http://localhost:5062/scalar.
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Opens at **http://localhost:8080**. API calls to `/api/*` are automatically proxied to the backend.
-
-### Running Both
+### Running with Make
 
 Open two terminals:
 
 ```bash
 # Terminal 1 — Backend
-cd backend/src/FinanceFlow.Api && dotnet watch
+make be
 
-# Terminal 2 — Frontend
-cd frontend && npm run dev
+# Terminal 2 — Frontend (also starts Keycloak)
+make fe
 ```
+
+- Frontend: **http://localhost:8080**
+- Backend API: **http://localhost:5062** · Docs: http://localhost:5062/scalar
+- Keycloak: **http://localhost:8180**
+
+Run `make help` to see all available commands.
 
 ## Project Structure
 
@@ -93,22 +79,17 @@ my-wealth-companion/
 | Dashboard      | `GET /api/dashboard/summary`, `GET /api/dashboard/monthly-comparison` |
 | Settings       | `GET/PUT /api/settings`                   |
 
-## Scripts
+## Make Commands
 
-### Frontend
-
-| Command          | Description              |
-| ---------------- | ------------------------ |
-| `npm run dev`    | Start dev server         |
-| `npm run build`  | Production build         |
-| `npm run lint`   | Run ESLint               |
-| `npm run test`   | Run tests (Vitest)       |
-
-### Backend
-
-| Command            | Description                 |
-| ------------------ | --------------------------- |
-| `dotnet run`       | Start the API               |
-| `dotnet watch`     | Start with hot reload       |
-| `dotnet build`     | Build the project           |
-| `dotnet test`      | Run tests                   |
+| Command                | Description                              |
+| ---------------------- | ---------------------------------------- |
+| `make be`              | Run backend (dotnet watch)               |
+| `make fe`              | Start Keycloak + frontend dev server     |
+| `make fe-build`        | Production build                         |
+| `make fe-lint`         | Run ESLint                               |
+| `make fe-test`         | Run unit tests (Vitest)                  |
+| `make fe-test-watch`   | Run unit tests in watch mode             |
+| `make fe-e2e`          | Run Playwright e2e tests                 |
+| `make keycloak-up`     | Start Keycloak via Docker                |
+| `make keycloak-down`   | Stop Keycloak                            |
+| `make keycloak-restart`| Restart Keycloak                         |
