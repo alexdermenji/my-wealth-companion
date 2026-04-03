@@ -4,40 +4,59 @@ import userEvent from "@testing-library/user-event";
 import { BudgetCell } from "../BudgetCell";
 
 describe("BudgetCell", () => {
-  it("displays the value", () => {
+  it("displays formatted value as text when not editing", () => {
     render(<BudgetCell value={500} onChange={vi.fn()} />);
-    expect(screen.getByDisplayValue("500")).toBeInTheDocument();
+    expect(screen.getByText("500.00")).toBeInTheDocument();
   });
 
-  it("displays empty string when value is 0", () => {
+  it("displays '-' when value is 0", () => {
     render(<BudgetCell value={0} onChange={vi.fn()} />);
-    const input = screen.getByRole("textbox");
-    expect(input).toHaveValue("");
+    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
   });
 
-  it("calls onChange on blur when value changed", async () => {
+  it("switches to input on click and calls onChange on blur", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<BudgetCell value={100} onChange={onChange} />);
-    const input = screen.getByDisplayValue("100");
-    await userEvent.clear(input);
-    await userEvent.type(input, "200");
-    await userEvent.tab();
+
+    // Click the span to start editing
+    await user.click(screen.getByText("100.00"));
+    const input = screen.getByRole("spinbutton");
+    expect(input).toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "200");
+    await user.tab();
     expect(onChange).toHaveBeenCalledWith("200");
   });
 
   it("does not call onChange on blur when value unchanged", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
     render(<BudgetCell value={100} onChange={onChange} />);
-    const input = screen.getByDisplayValue("100");
-    await userEvent.click(input);
-    await userEvent.tab();
+
+    await user.click(screen.getByText("100.00"));
+    await user.tab();
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("syncs local state when prop value changes", async () => {
+  it("syncs display when prop value changes", () => {
     const { rerender } = render(<BudgetCell value={100} onChange={vi.fn()} />);
-    expect(screen.getByDisplayValue("100")).toBeInTheDocument();
+    expect(screen.getByText("100.00")).toBeInTheDocument();
     rerender(<BudgetCell value={200} onChange={vi.fn()} />);
-    expect(screen.getByDisplayValue("200")).toBeInTheDocument();
+    expect(screen.getByText("200.00")).toBeInTheDocument();
+  });
+
+  it("reverts to span after blur", async () => {
+    const user = userEvent.setup();
+    render(<BudgetCell value={100} onChange={vi.fn()} />);
+
+    await user.click(screen.getByText("100.00"));
+    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(screen.getByText("100.00")).toBeInTheDocument();
   });
 });

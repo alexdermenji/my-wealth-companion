@@ -9,10 +9,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  timeout: 15_000,
   use: {
     baseURL: `http://localhost:${E2E_PORT}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 8_000,
   },
   projects: [
     {

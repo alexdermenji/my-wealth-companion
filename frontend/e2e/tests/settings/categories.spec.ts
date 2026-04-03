@@ -19,7 +19,6 @@ test.describe('Categories Settings', () => {
     await settingsPage.addCategory('Expenses', {
       name: 'Dining Out',
       group: 'Food',
-      emoji: '🍽️',
     });
     await settingsPage.page.waitForTimeout(300);
 

@@ -1,37 +1,41 @@
+import { useState } from 'react';
 import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../types';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { BudgetCell } from './BudgetCell';
+import { AddEntryRow } from './AddEntryRow';
+import { Trash2 } from 'lucide-react';
+import { useForceDeleteCategory } from '@/shared/hooks/useCategories';
 
-const SECTION_STYLES: Record<string, { text: string; rowBg: string; headerBg: string; headerText: string; accentBorder: string }> = {
+const DISPLAY_LABELS: Partial<Record<BudgetType, string>> = {
+  Debt: 'Liabilities',
+};
+
+const SECTION_STYLES: Record<string, { bg: string; text: string; rowBg: string; accentBorder: string }> = {
   Income: {
-    text: 'text-green-700',
-    rowBg: 'bg-budget-row',
-    headerBg: 'bg-budget-income-header',
-    headerText: 'text-budget-income-text',
-    accentBorder: 'border-budget-income-accent',
+    bg: 'bg-[#43a047]',
+    text: 'text-white',
+    rowBg: 'bg-white dark:bg-gray-900',
+    accentBorder: 'border-[#43a047]',
   },
   Expenses: {
-    text: 'text-rose-700',
-    rowBg: 'bg-budget-row',
-    headerBg: 'bg-budget-expenses-header',
-    headerText: 'text-budget-expenses-text',
-    accentBorder: 'border-budget-expenses-accent',
+    bg: 'bg-[#d81b60]',
+    text: 'text-white',
+    rowBg: 'bg-white dark:bg-gray-900',
+    accentBorder: 'border-[#d81b60]',
   },
   Savings: {
-    text: 'text-blue-700',
-    rowBg: 'bg-budget-row',
-    headerBg: 'bg-budget-savings-header',
-    headerText: 'text-budget-savings-text',
-    accentBorder: 'border-budget-savings-accent',
+    bg: 'bg-[#7b1fa2]',
+    text: 'text-white',
+    rowBg: 'bg-white dark:bg-gray-900',
+    accentBorder: 'border-[#7b1fa2]',
   },
   Debt: {
-    text: 'text-purple-700',
-    rowBg: 'bg-budget-row',
-    headerBg: 'bg-budget-debt-header',
-    headerText: 'text-budget-debt-text',
-    accentBorder: 'border-budget-debt-accent',
+    bg: 'bg-[#1565c0]',
+    text: 'text-white',
+    rowBg: 'bg-white dark:bg-gray-900',
+    accentBorder: 'border-[#1565c0]',
   },
 };
 
@@ -39,8 +43,6 @@ interface BudgetSectionProps {
   type: BudgetType;
   categories: BudgetCategory[];
   budgetPlans: BudgetPlan[];
-  currency: string;
-  year: number;
   onAmountChange: (catId: string, month: number, value: string) => void;
 }
 
@@ -48,88 +50,103 @@ export function BudgetSection({
   type,
   categories,
   budgetPlans,
-  currency,
-  year,
   onAmountChange,
 }: BudgetSectionProps) {
   const style = SECTION_STYLES[type];
+  const displayLabel = DISPLAY_LABELS[type] ?? type;
   const typeCats = categories.filter(c => c.type === type);
+  const [adding, setAdding] = useState(false);
+  const forceDeleteMutation = useForceDeleteCategory();
 
   const getBudget = (catId: string, month: number): number => {
     const plan = budgetPlans.find(bp => bp.categoryId === catId);
     return plan?.months[month] ?? 0;
   };
 
-  const getCatYearTotal = (catId: string) =>
-    Array.from({ length: 12 }, (_, i) => getBudget(catId, i + 1)).reduce((a, b) => a + b, 0);
-
   const getMonthTotal = (month: number) =>
     typeCats.reduce((s, c) => s + getBudget(c.id, month), 0);
 
-  const yearGrandTotal = Array.from({ length: 12 }, (_, i) => getMonthTotal(i + 1)).reduce((a, b) => a + b, 0);
+  const fmt = (v: number) => (v > 0 ? v.toFixed(2) : '-');
 
-  const fmt = (v: number) => v > 0 ? `${currency}${v.toLocaleString()}` : '-';
-
-  if (typeCats.length === 0) return null;
+  const handleDelete = (catId: string) => {
+    forceDeleteMutation.mutate(catId);
+  };
 
   return (
     <>
-      {/* Spacer row for visual separation between sections */}
+      {/* Spacer row */}
       <TableRow className="border-none">
         <TableCell colSpan={14} className="p-3 border-none" />
       </TableRow>
 
-      {/* Section header — custom colors */}
-      <TableRow className={cn(style.headerBg, 'border-none')}>
-        <TableCell className={cn('sticky left-0 z-10 border-l-4 font-bold text-xs py-1.5', style.headerBg, style.headerText, style.accentBorder)}>
-          {type}
+      {/* Section header */}
+      <TableRow className={cn(style.bg, 'border-none')}>
+        <TableCell className={cn('sticky left-0 z-10 font-bold text-xs py-1.5', style.bg, style.text)}>
+          Category
+        </TableCell>
+        <TableCell className={cn('font-bold text-xs py-1.5', style.text)}>
+          {displayLabel}
         </TableCell>
         {MONTHS.map((m, i) => (
-          <TableCell key={i} className={cn('text-center text-xs font-semibold py-1.5', style.headerText)}>{m}</TableCell>
+          <TableCell key={i} className={cn('text-center text-xs font-semibold py-1.5', style.text)}>{m}</TableCell>
         ))}
-        <TableCell className={cn('text-center text-xs font-semibold py-1.5', style.headerText)}>{year}</TableCell>
       </TableRow>
 
-      {/* Category rows — light tinted background */}
+      {/* Category rows */}
       {typeCats.map(cat => (
-        <TableRow key={cat.id} className={style.rowBg}>
-          <TableCell className={cn('sticky left-0 z-10 min-w-[150px] border-l-4 sticky-border-r', style.rowBg, style.accentBorder)}>
-            <div className="text-sm font-medium">{cat.name}</div>
-            {cat.group && (
-              <span className="inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded bg-black/5 text-muted-foreground">
-                {cat.groupEmoji ? `${cat.groupEmoji} ` : ''}{cat.group}
-              </span>
-            )}
+        <TableRow key={cat.id} className={cn('group/row border-b', style.rowBg)}>
+          <TableCell className={cn('sticky left-0 z-10 min-w-[120px] sticky-border-r', style.rowBg)}>
+            <span className="text-sm text-muted-foreground italic">{cat.group || cat.name}</span>
+          </TableCell>
+          <TableCell className="min-w-[130px] relative">
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-medium">{cat.name}</span>
+              <button
+                className="opacity-0 group-hover/row:opacity-100 transition-opacity text-red-400 hover:text-red-600 ml-1 p-0.5"
+                onClick={() => handleDelete(cat.id)}
+                title="Delete entry"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </TableCell>
           {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (
-              <TableCell key={mo} className={cn('p-1', mo === 1 && 'pl-3')}>
-                <BudgetCell
-                  value={getBudget(cat.id, mo)}
-                  onChange={v => onAmountChange(cat.id, mo, v)}
-                  className={style.rowBg}
-                />
-              </TableCell>
+            <TableCell key={mo} className="p-1">
+              <BudgetCell
+                value={getBudget(cat.id, mo)}
+                onChange={v => onAmountChange(cat.id, mo, v)}
+              />
+            </TableCell>
           ))}
-          <TableCell className="text-center font-medium text-sm">
-            {fmt(getCatYearTotal(cat.id))}
-          </TableCell>
         </TableRow>
       ))}
 
       {/* Section total */}
       <TableRow className={style.rowBg}>
-        <TableCell className={cn('sticky left-0 z-10 border-l-4 text-sm font-bold sticky-border-r', style.rowBg, style.text, style.accentBorder)}>
-          Total
-        </TableCell>
+        <TableCell className={cn('sticky left-0 z-10 sticky-border-r', style.rowBg)} />
+        <TableCell className="text-sm font-bold">Total</TableCell>
         {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (
-          <TableCell key={mo} className={cn('text-center text-sm font-bold', style.text, mo === 1 && 'pl-3')}>
+          <TableCell key={mo} className="text-center text-sm font-bold">
             {fmt(getMonthTotal(mo))}
           </TableCell>
         ))}
-        <TableCell className={cn('text-center text-sm font-bold', style.text)}>
-          {fmt(yearGrandTotal)}
-        </TableCell>
       </TableRow>
+
+      {/* Add entry */}
+      {adding ? (
+        <AddEntryRow type={type} onCancel={() => setAdding(false)} onAdded={() => setAdding(false)} />
+      ) : (
+        <TableRow className="border-none">
+          <TableCell colSpan={14} className="py-1 border-none">
+            <button
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => setAdding(true)}
+            >
+              + Add entry
+            </button>
+          </TableCell>
+        </TableRow>
+      )}
     </>
   );
 }

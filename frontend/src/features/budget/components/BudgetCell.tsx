@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
@@ -9,25 +9,46 @@ interface BudgetCellProps {
 }
 
 export function BudgetCell({ value, onChange, className }: BudgetCellProps) {
-  const display = (v: number) => v === 0 ? '' : v.toLocaleString();
-  const [local, setLocal] = useState(display(value));
+  const [local, setLocal] = useState('');
   const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!editing) {
-      setLocal(display(value));
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-  }, [value, editing]);
+  }, [editing]);
+
+  const display = value === 0 ? '-' : value.toFixed(2);
+
+  if (!editing) {
+    return (
+      <span
+        className={cn(
+          'block h-8 leading-8 text-sm text-center w-20 cursor-pointer rounded border border-transparent hover:border-gray-300 dark:hover:border-gray-600 select-none',
+          value === 0 && 'text-muted-foreground',
+          className,
+        )}
+        onClick={() => {
+          setLocal(value ? value.toString() : '');
+          setEditing(true);
+        }}
+      >
+        {display}
+      </span>
+    );
+  }
 
   return (
     <Input
-      type={editing ? 'number' : 'text'}
-      className={cn("h-8 text-sm text-center w-20 border-gray-300 dark:border-gray-600 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]", className)}
-      value={editing ? local : display(value)}
-      onFocus={() => {
-        setEditing(true);
-        setLocal(value ? value.toString() : '');
-      }}
+      ref={inputRef}
+      type="number"
+      className={cn(
+        'h-8 text-sm text-center w-20 border-gray-300 dark:border-gray-600 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]',
+        className,
+      )}
+      value={local}
       onChange={e => setLocal(e.target.value)}
       onBlur={() => {
         const num = parseFloat(local) || 0;
@@ -35,6 +56,13 @@ export function BudgetCell({ value, onChange, className }: BudgetCellProps) {
           onChange(local);
         }
         setEditing(false);
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
+          e.currentTarget.blur();
+        } else if (e.key === 'Escape') {
+          setEditing(false);
+        }
       }}
     />
   );

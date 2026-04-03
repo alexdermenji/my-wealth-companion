@@ -15,8 +15,8 @@ import type { BudgetCategory } from "@/shared/types";
 vi.mock("@/shared/api/categoriesApi");
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
-  { id: "c2", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
+  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c2", name: "Salary", type: "Income", group: "Employment" },
 ];
 
 describe("useCategories", () => {
@@ -63,7 +63,6 @@ describe("useCreateCategory", () => {
       name: "Gym",
       type: "Expenses",
       group: "Health",
-      groupEmoji: "🏋️",
     });
   });
 
@@ -74,7 +73,7 @@ describe("useCreateCategory", () => {
       wrapper: createHookWrapper(queryClient),
     });
 
-    const newCat = { name: "Gym", type: "Expenses" as const, group: "Health", groupEmoji: "🏋️" };
+    const newCat = { name: "Gym", type: "Expenses" as const, group: "Health" };
     result.current.mutate(newCat);
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(categoriesApi.create).toHaveBeenCalledWith(newCat);
@@ -90,7 +89,6 @@ describe("useUpdateCategory", () => {
       name: "Updated",
       type: "Expenses",
       group: "Housing",
-      groupEmoji: "🏠",
     });
   });
 
@@ -103,7 +101,7 @@ describe("useUpdateCategory", () => {
 
     result.current.mutate({
       id: "c1",
-      data: { name: "Updated", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
+      data: { name: "Updated", type: "Expenses", group: "Housing" },
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["categories"] });

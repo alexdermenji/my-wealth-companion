@@ -53,7 +53,7 @@ export default function SettingsPage() {
 
   // Category form
   const [catOpen, setCatOpen] = useState(false);
-  const [catForm, setCatForm] = useState({ name: '', type: 'Expenses' as BudgetType, group: '', groupEmoji: '' });
+  const [catForm, setCatForm] = useState({ name: '', type: 'Expenses' as BudgetType, group: '' });
   const [editingCat, setEditingCat] = useState<string | null>(null);
 
   const handleCatSubmit = () => {
@@ -64,7 +64,7 @@ export default function SettingsPage() {
       createCategory.mutate(catForm);
     }
     setCatOpen(false);
-    setCatForm({ name: '', type: 'Expenses', group: '', groupEmoji: '' });
+    setCatForm({ name: '', type: 'Expenses', group: '' });
     setEditingCat(null);
   };
 
@@ -104,13 +104,13 @@ export default function SettingsPage() {
   };
 
   const openCatFormForType = (type: BudgetType) => {
-    setCatForm({ name: '', type, group: '', groupEmoji: '' });
+    setCatForm({ name: '', type, group: '' });
     setEditingCat(null);
     setCatOpen(true);
   };
 
   const openCatFormForEdit = (cat: BudgetCategory) => {
-    setCatForm({ name: cat.name, type: cat.type, group: cat.group, groupEmoji: cat.groupEmoji });
+    setCatForm({ name: cat.name, type: cat.type, group: cat.group });
     setEditingCat(cat.id);
     setCatOpen(true);
   };
@@ -226,7 +226,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Category Add/Edit Dialog */}
-      <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) { setEditingCat(null); setCatForm({ name: '', type: 'Expenses', group: '', groupEmoji: '' }); } }}>
+      <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) { setEditingCat(null); setCatForm({ name: '', type: 'Expenses', group: '' }); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-display">
@@ -238,15 +238,9 @@ export default function SettingsPage() {
               <Label>Name</Label>
               <Input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} />
             </div>
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Label>Group</Label>
-                <Input placeholder="e.g. Housing, Fun, Self-Care" value={catForm.group} onChange={e => setCatForm(f => ({ ...f, group: e.target.value }))} />
-              </div>
-              <div className="w-20">
-                <Label>Emoji</Label>
-                <Input className="text-center text-lg" placeholder="🏠" value={catForm.groupEmoji} onChange={e => setCatForm(f => ({ ...f, groupEmoji: e.target.value }))} maxLength={2} />
-              </div>
+            <div>
+              <Label>Group</Label>
+              <Input placeholder="e.g. Housing, Fun, Self-Care" value={catForm.group} onChange={e => setCatForm(f => ({ ...f, group: e.target.value }))} />
             </div>
             <Button className="w-full" onClick={handleCatSubmit}>{editingCat ? 'Update' : 'Add'}</Button>
           </div>

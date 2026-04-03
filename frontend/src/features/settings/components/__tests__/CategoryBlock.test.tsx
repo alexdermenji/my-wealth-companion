@@ -5,8 +5,8 @@ import { CategoryBlock } from "../CategoryBlock";
 import type { BudgetCategory } from "@/shared/types";
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
-  { id: "c2", name: "Groceries", type: "Expenses", group: "Food", groupEmoji: "🍕" },
+  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c2", name: "Groceries", type: "Expenses", group: "Food" },
 ];
 
 const defaultProps = {
@@ -29,10 +29,10 @@ describe("CategoryBlock", () => {
     expect(screen.getByText("Expenses Categories")).toBeInTheDocument();
   });
 
-  it("displays group info with emoji", () => {
+  it("displays group info", () => {
     render(<CategoryBlock {...defaultProps} />);
-    expect(screen.getByText("🏠 Housing")).toBeInTheDocument();
-    expect(screen.getByText("🍕 Food")).toBeInTheDocument();
+    expect(screen.getByText("Housing")).toBeInTheDocument();
+    expect(screen.getByText("Food")).toBeInTheDocument();
   });
 
   it("shows empty state when no categories", () => {

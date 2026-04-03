@@ -1,22 +1,35 @@
 import { Page, Locator } from '@playwright/test';
-import { RadixSelect } from './components/RadixSelect';
 
 export class BudgetPlanPage {
   readonly heading: Locator;
 
   constructor(readonly page: Page) {
-    this.heading = page.getByRole('heading', { name: 'Budget Planning' });
+    // Page no longer has a "Budget Planning" h1 — use the Allocations header as the ready signal
+    this.heading = page.getByText('Allocations', { exact: true }).first();
   }
 
   async goto() {
     await this.page.goto('/budget');
-    await this.heading.waitFor();
+    await this.page.waitForLoadState('networkidle');
   }
 
   async selectYear(year: string) {
-    const trigger = this.page.locator('button[role="combobox"]').first();
-    const select = new RadixSelect(this.page, trigger);
-    await select.selectOption(year);
+    // Year nav is now arrow buttons: < 2026 >
+    // Read current year then click left or right arrows accordingly
+    const yearText = this.page.locator('span.font-bold').filter({ hasText: /^\d{4}$/ });
+    const current = parseInt(await yearText.textContent() ?? '2026', 10);
+    const target = parseInt(year, 10);
+    const diff = target - current;
+    const buttons = this.page.getByRole('button');
+    if (diff < 0) {
+      for (let i = 0; i < Math.abs(diff); i++) {
+        await buttons.first().click();
+      }
+    } else {
+      for (let i = 0; i < diff; i++) {
+        await buttons.nth(1).click();
+      }
+    }
   }
 
   getRemainingRow(): Locator {
@@ -33,21 +46,25 @@ export class BudgetPlanPage {
 
   async setCategoryAmount(categoryName: string, monthIndex: number, value: string) {
     const row = this.getCategoryRow(categoryName);
-    const input = row.locator('input').nth(monthIndex);
-    await input.focus();
-    await input.fill('');
+    // Budget cells are td > span.cursor-pointer elements (one per month column)
+    const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
+    await cell.click();
+    const input = row.locator('input[type="number"]').first();
     await input.fill(value);
     await input.press('Tab');
   }
 
   async getCategoryInput(categoryName: string, monthIndex: number): Promise<string> {
     const row = this.getCategoryRow(categoryName);
-    return row.locator('input').nth(monthIndex).inputValue();
+    const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
+    await cell.click();
+    const input = row.locator('input[type="number"]').first();
+    const val = await input.inputValue();
+    await input.press('Escape');
+    return val;
   }
 
   getSectionTotalRow(type: string): Locator {
-    // The total row is inside the section, after category rows
-    // Each section has its own table body; total row contains "Total" text
     return this.page.locator('tr').filter({ hasText: 'Total' }).filter({ hasText: type });
   }
 }

@@ -22,7 +22,7 @@ public class CategoryService : ICategoryService
             query = query.Where(c => c.Type == type);
         }
         return await query
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Type, c.Group, c.GroupEmoji))
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Type, c.Group))
             .ToListAsync();
     }
 
@@ -30,39 +30,20 @@ public class CategoryService : ICategoryService
     {
         var category = await _db.Categories.FindAsync(id);
         if (category is null) return null;
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.GroupEmoji);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
     }
 
     public async Task<CategoryDto> CreateAsync(CreateCategoryRequest request)
     {
-        // Inherit emoji from existing group, or propagate if provided
-        var emoji = request.GroupEmoji;
-        if (!string.IsNullOrEmpty(request.Group))
-        {
-            var existing = await _db.Categories
-                .FirstOrDefaultAsync(c => c.Group == request.Group && c.GroupEmoji != "");
-            if (string.IsNullOrEmpty(emoji) && existing is not null)
-                emoji = existing.GroupEmoji;
-            else if (!string.IsNullOrEmpty(emoji))
-            {
-                var siblings = await _db.Categories
-                    .Where(c => c.Group == request.Group)
-                    .ToListAsync();
-                foreach (var s in siblings)
-                    s.GroupEmoji = emoji;
-            }
-        }
-
         var category = new BudgetCategory
         {
             Name = request.Name,
             Type = request.Type,
             Group = request.Group,
-            GroupEmoji = emoji ?? ""
         };
         _db.Categories.Add(category);
         await _db.SaveChangesAsync();
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.GroupEmoji);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
     }
 
     public async Task<CategoryDto?> UpdateAsync(string id, UpdateCategoryRequest request)
@@ -73,20 +54,9 @@ public class CategoryService : ICategoryService
         category.Name = request.Name;
         category.Type = request.Type;
         category.Group = request.Group;
-        category.GroupEmoji = request.GroupEmoji;
-
-        // Propagate emoji to all categories sharing the same group
-        if (!string.IsNullOrEmpty(request.Group))
-        {
-            var siblings = await _db.Categories
-                .Where(c => c.Group == request.Group && c.Id != id)
-                .ToListAsync();
-            foreach (var s in siblings)
-                s.GroupEmoji = request.GroupEmoji;
-        }
 
         await _db.SaveChangesAsync();
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.GroupEmoji);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
     }
 
     public async Task<CategoryUsageDto?> GetUsageAsync(string id)

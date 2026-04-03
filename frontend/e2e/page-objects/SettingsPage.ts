@@ -86,10 +86,8 @@ export class SettingsPage {
     return this.getCategoryBlock(type).locator('[class*="group"]');
   }
 
-  async addCategory(type: string, data: { name: string; group: string; emoji?: string }) {
+  async addCategory(type: string, data: { name: string; group: string }) {
     const block = this.getCategoryBlock(type);
-    // The add button is the small ghost button with Plus icon in the card header
-    // It's the only button in the card header area
     const headerButtons = block.locator('button');
     await headerButtons.first().click();
     const dialog = this.page.getByRole('dialog');
@@ -98,19 +96,14 @@ export class SettingsPage {
     await nameInput.fill(data.name);
     const groupInput = dialog.locator('input[placeholder*="Housing"]');
     await groupInput.fill(data.group);
-    if (data.emoji) {
-      const emojiInput = dialog.locator('input[placeholder="🏠"]');
-      await emojiInput.fill(data.emoji);
-    }
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
     await dialog.waitFor({ state: 'hidden' });
   }
 
-  async editCategory(type: string, name: string, data: { name?: string; group?: string; emoji?: string }) {
+  async editCategory(type: string, name: string, data: { name?: string; group?: string }) {
     const block = this.getCategoryBlock(type);
     const item = block.locator('div.group').filter({ hasText: name });
     await item.hover();
-    // Edit button (pencil icon) - first button in the item
     await item.getByRole('button').first().click();
     const dialog = this.page.getByRole('dialog');
     await dialog.waitFor({ state: 'visible' });
@@ -121,10 +114,6 @@ export class SettingsPage {
     if (data.group) {
       const groupInput = dialog.locator('input[placeholder*="Housing"]');
       await groupInput.fill(data.group);
-    }
-    if (data.emoji) {
-      const emojiInput = dialog.locator('input[placeholder="🏠"]');
-      await emojiInput.fill(data.emoji);
     }
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
     await dialog.waitFor({ state: 'hidden' });
