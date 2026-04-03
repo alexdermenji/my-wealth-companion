@@ -12,7 +12,7 @@ test.describe('Budget Plan', () => {
     const row = budgetPlanPage.getRemainingRow();
     await expect(row).toBeVisible();
     // Jan: Income(5000) - Expenses(2000) - Savings(500) - Debt(300) = 2200
-    await expect(row).toContainText('2200.00');
+    await expect(row).toContainText('2,200.00');
   });
 
   test('should display 4 budget sections', async ({ budgetPlanPage }) => {
@@ -26,7 +26,7 @@ test.describe('Budget Plan', () => {
   test('should display category amounts', async ({ budgetPlanPage }) => {
     const row = budgetPlanPage.getCategoryRow('Employment (Net)');
     // Cell shows formatted value as span text
-    await expect(row).toContainText('4000.00');
+    await expect(row).toContainText('4,000.00');
   });
 
   test('should edit a budget cell', async ({ budgetPlanPage }) => {
@@ -55,7 +55,7 @@ test.describe('Budget Plan', () => {
   test('should display section totals', async ({ budgetPlanPage }) => {
     // Income total for Jan = 4000 + 1000 = 5000
     const totalRow = budgetPlanPage.page.locator('tr').filter({ hasText: /Total/ }).first();
-    await expect(totalRow).toContainText('5000.00');
+    await expect(totalRow).toContainText('5,000.00');
   });
 
   test('should switch year', async ({ budgetPlanPage }) => {
@@ -82,7 +82,7 @@ test.describe('Budget Plan - Allocation indicators', () => {
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '1000');
 
     const row = budgetPlanPage.getRemainingRow();
-    await expect(row).toContainText('1000.00');
+    await expect(row).toContainText('1,000.00');
   });
 
   test('shows zero remaining when income equals outflow', async ({ budgetPlanPage }) => {

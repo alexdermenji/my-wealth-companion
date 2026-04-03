@@ -94,8 +94,9 @@ export class SettingsPage {
     await dialog.waitFor({ state: 'visible' });
     const nameInput = this.findInputByLabel(dialog, 'Name');
     await nameInput.fill(data.name);
-    const groupInput = dialog.locator('input[placeholder*="Housing"]');
-    await groupInput.fill(data.group);
+    // GroupCombobox: click the trigger button then type in the command input
+    await dialog.getByRole('combobox').first().click();
+    await this.page.getByPlaceholder('Search or type new group...').fill(data.group);
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
     await dialog.waitFor({ state: 'hidden' });
   }
@@ -112,8 +113,8 @@ export class SettingsPage {
       await nameInput.fill(data.name);
     }
     if (data.group) {
-      const groupInput = dialog.locator('input[placeholder*="Housing"]');
-      await groupInput.fill(data.group);
+      await dialog.getByRole('combobox').first().click();
+      await this.page.getByPlaceholder('Search or type new group...').fill(data.group);
     }
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
     await dialog.waitFor({ state: 'hidden' });
