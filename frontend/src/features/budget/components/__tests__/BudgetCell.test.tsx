@@ -9,6 +9,21 @@ describe("BudgetCell", () => {
     expect(screen.getByText("500.00")).toBeInTheDocument();
   });
 
+  it("formats large numbers with thousand separators", () => {
+    render(<BudgetCell value={1234567.89} onChange={vi.fn()} />);
+    expect(screen.getByText("1,234,567.89")).toBeInTheDocument();
+  });
+
+  it("does not shift layout when switching to input — span stays in DOM", async () => {
+    const user = userEvent.setup();
+    render(<BudgetCell value={100} onChange={vi.fn()} />);
+    const span = screen.getByText("100.00");
+    await user.click(span);
+    // Span still in DOM (invisible), input overlays it
+    expect(span).toBeInTheDocument();
+    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+  });
+
   it("displays '-' when value is 0", () => {
     render(<BudgetCell value={0} onChange={vi.fn()} />);
     expect(screen.getByText("-")).toBeInTheDocument();

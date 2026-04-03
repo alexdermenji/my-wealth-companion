@@ -62,7 +62,7 @@ describe("BudgetPlanPage", () => {
   it("computes remaining values (income - expenses) in Remaining row", () => {
     renderWithProviders(<BudgetPlanPage />);
     // Month 1 & 2: 4000 - 1200 = 2800 each
-    const cells = screen.getAllByText("2800.00");
+    const cells = screen.getAllByText("2,800.00");
     expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 

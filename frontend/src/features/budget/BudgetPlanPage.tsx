@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MONTHS, BudgetType } from '@/shared/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,6 +15,12 @@ const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 export default function BudgetPlanPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const { fullWidth, setFullWidth } = useFullWidth();
+
+  useEffect(() => {
+    setFullWidth(true);
+    return () => setFullWidth(false);
+  }, [setFullWidth]);
+
 
   const { data: allCategories = [] } = useCategories();
   const { data: budgetPlans = [] } = useBudgetPlans(year);
@@ -63,7 +69,7 @@ export default function BudgetPlanPage() {
 
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in">
+    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in max-w-[90%] mx-auto">
       {/* Year navigation */}
       <div className="flex items-center justify-center gap-4 shrink-0 pb-3">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setYear(y => y - 1)}>
@@ -90,22 +96,20 @@ export default function BudgetPlanPage() {
             <TableHeader className="sticky top-0 z-20 shadow-sm">
               {/* Allocations header */}
               <TableRow className="bg-[#e8901e] dark:bg-[#b5700f]">
-                <TableHead className="sticky left-0 z-30 bg-[#e8901e] dark:bg-[#b5700f] text-white font-bold text-xs py-1.5 sticky-border-r">
+                <TableHead colSpan={2} className="sticky left-0 z-30 bg-[#e8901e] dark:bg-[#b5700f] text-white font-bold text-xs py-1.5 sticky-border-r">
                   Allocations
                 </TableHead>
-                <TableHead className="text-white font-bold text-xs py-1.5">Where it goes</TableHead>
                 {MONTHS.map((m, i) => (
-                  <TableHead key={i} className="text-center text-xs font-semibold py-1.5 text-white min-w-[90px]">{m}</TableHead>
+                  <TableHead key={i} className="text-center text-xs font-semibold py-1.5 text-white min-w-[60px]">{m}</TableHead>
                 ))}
               </TableRow>
 
               {/* Remaining row */}
               <TableRow className="bg-white dark:bg-gray-800">
-                <TableHead className="sticky left-0 z-30 bg-white dark:bg-gray-800 sticky-border-r" />
-                <TableHead className="text-sm font-bold text-foreground">Remaining</TableHead>
+                <TableHead colSpan={2} className="sticky left-0 z-30 bg-white dark:bg-gray-800 sticky-border-r text-sm font-bold text-foreground">Remaining</TableHead>
                 {toBeAllocated.map((val, i) => (
-                  <TableHead key={i} className={cn('text-center text-sm font-medium', allocationColor(val))}>
-                    {val === 0 ? '-' : val.toFixed(2)}
+                  <TableHead key={i} className={cn('text-center text-sm font-medium min-w-[60px]', allocationColor(val))}>
+                    {val === 0 ? '-' : new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val)}
                   </TableHead>
                 ))}
               </TableRow>
