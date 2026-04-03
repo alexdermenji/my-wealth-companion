@@ -13,8 +13,8 @@ const mockUpdate = vi.fn();
 beforeEach(() => {
   mockCreate.mockReset();
   mockUpdate.mockReset();
-  vi.mocked(useCreateCategory).mockReturnValue({ mutate: mockCreate, isPending: false } as ReturnType<typeof useCreateCategory>);
-  vi.mocked(useUpdateCategory).mockReturnValue({ mutate: mockUpdate, isPending: false } as ReturnType<typeof useUpdateCategory>);
+  vi.mocked(useCreateCategory).mockReturnValue({ mutate: mockCreate, isPending: false } as unknown as ReturnType<typeof useCreateCategory>);
+  vi.mocked(useUpdateCategory).mockReturnValue({ mutate: mockUpdate, isPending: false } as unknown as ReturnType<typeof useUpdateCategory>);
 });
 
 describe("CategoryFormDialog", () => {
@@ -76,7 +76,7 @@ describe("CategoryFormDialog", () => {
   });
 
   it("disables submit button while pending", () => {
-    vi.mocked(useCreateCategory).mockReturnValue({ mutate: mockCreate, isPending: true } as ReturnType<typeof useCreateCategory>);
+    vi.mocked(useCreateCategory).mockReturnValue({ mutate: mockCreate, isPending: true } as unknown as ReturnType<typeof useCreateCategory>);
     renderWithProviders(
       <CategoryFormDialog open onOpenChange={vi.fn()} defaultType="Expenses" existingGroups={[]} />
     );
