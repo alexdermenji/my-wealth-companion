@@ -40,8 +40,8 @@ const mockAccounts = [
 ];
 
 const mockCategories = [
-  { id: "c1", name: "Employment (Net)", type: "Income", group: "Employment", groupEmoji: "💼" },
-  { id: "c2", name: "Food & Dining", type: "Expenses", group: "Food", groupEmoji: "🍕" },
+  { id: "c1", name: "Employment (Net)", type: "Income", group: "Employment" },
+  { id: "c2", name: "Food & Dining", type: "Expenses", group: "Food" },
 ];
 
 describe("TransactionsPage", () => {

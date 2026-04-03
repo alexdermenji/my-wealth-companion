@@ -52,7 +52,7 @@ export function CategoryBlock({
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{cat.name}</p>
                   {cat.group && (
-                    <p className="text-xs text-muted-foreground truncate">{cat.groupEmoji ? `${cat.groupEmoji} ${cat.group}` : cat.group}</p>
+                    <p className="text-xs text-muted-foreground truncate">{cat.group}</p>
                   )}
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

@@ -17,9 +17,9 @@ const mockAccounts = [
 ];
 
 const mockCategories = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
-  { id: "c2", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
-  { id: "c3", name: "Emergency Fund", type: "Savings", group: "Savings", groupEmoji: "🏦" },
+  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c2", name: "Salary", type: "Income", group: "Employment" },
+  { id: "c3", name: "Emergency Fund", type: "Savings", group: "Savings" },
 ];
 
 describe("SettingsPage", () => {

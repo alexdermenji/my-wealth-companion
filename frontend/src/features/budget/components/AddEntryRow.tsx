@@ -24,7 +24,6 @@ export function AddEntryRow({ type, onCancel, onAdded }: AddEntryRowProps) {
         name: trimmedName,
         type,
         group: group.trim() || trimmedName,
-        groupEmoji: '',
       },
       { onSuccess: () => onAdded() },
     );

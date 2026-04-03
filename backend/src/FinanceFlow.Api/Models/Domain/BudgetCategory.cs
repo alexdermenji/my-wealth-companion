@@ -6,7 +6,6 @@ public class BudgetCategory
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = "Expenses";
     public string Group { get; set; } = string.Empty;
-    public string GroupEmoji { get; set; } = string.Empty;
     public string UserId { get; set; } = string.Empty;
 
     public ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

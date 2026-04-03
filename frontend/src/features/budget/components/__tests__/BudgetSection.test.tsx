@@ -7,9 +7,9 @@ import type { BudgetPlan } from "../../types";
 vi.mock("@/shared/hooks/useCategories");
 
 const categories: BudgetCategory[] = [
-  { id: "c1", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
-  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle", groupEmoji: "💻" },
-  { id: "c3", name: "Rent", type: "Expenses", group: "Housing", groupEmoji: "🏠" },
+  { id: "c1", name: "Salary", type: "Income", group: "Employment" },
+  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle" },
+  { id: "c3", name: "Rent", type: "Expenses", group: "Housing" },
 ];
 
 const budgetPlans: BudgetPlan[] = [
@@ -58,7 +58,7 @@ describe("BudgetSection", () => {
 
   it("displays Liabilities label for Debt type", () => {
     const debtCategories: BudgetCategory[] = [
-      { id: "d1", name: "Loan", type: "Debt", group: "Loans", groupEmoji: "" },
+      { id: "d1", name: "Loan", type: "Debt", group: "Loans" },
     ];
     renderInTable(
       <BudgetSection

@@ -19,7 +19,7 @@ test.describe('Navigation', () => {
     await page.goto('/');
     await appNav.navigateTo('Budget Plan');
     await expect(page).toHaveURL('/budget');
-    await expect(page.getByRole('heading', { name: 'Budget Planning' })).toBeVisible();
+    await expect(page.getByText('Allocations', { exact: true }).first()).toBeVisible();
   });
 
   test('should navigate to Settings', async ({ page, appNav }) => {
