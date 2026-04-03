@@ -3,7 +3,8 @@ import type { DashboardSummary, MonthlyComparison } from '../../../src/features/
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export function createMockDashboardSummary(year: number, month: number): DashboardSummary {
-  const hasData = year === 2026 && month <= 2;
+  const hasData = year === 2026;
+  const hasExpenses = hasData && month !== 12;
   return {
     year,
     month,
@@ -19,11 +20,11 @@ export function createMockDashboardSummary(year: number, month: number): Dashboa
       },
       {
         type: 'Expenses',
-        totalTracked: hasData ? 85.5 : 0,
+        totalTracked: hasExpenses ? 85.5 : 0,
         totalBudget: 2000,
         items: [
           { categoryId: 'c3', categoryName: 'Rent', group: 'Housing', tracked: 0, budget: 1200, percentage: 0 },
-          { categoryId: 'c4', categoryName: 'Groceries', group: 'Groceries', tracked: hasData ? 85.5 : 0, budget: 800, percentage: hasData ? 11 : 0 },
+          { categoryId: 'c4', categoryName: 'Groceries', group: 'Groceries', tracked: hasExpenses ? 85.5 : 0, budget: 800, percentage: hasExpenses ? 11 : 0 },
         ],
       },
       {
