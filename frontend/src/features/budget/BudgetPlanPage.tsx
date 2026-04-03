@@ -4,7 +4,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useBudgetPlans, useSetBudgetAmount } from './hooks';
-import { useSettings } from '@/features/settings/hooks';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,15 +18,12 @@ export default function BudgetPlanPage() {
 
   const { data: allCategories = [] } = useCategories();
   const { data: budgetPlans = [] } = useBudgetPlans(year);
-  const { data: settings } = useSettings();
   const setBudgetAmountMutation = useSetBudgetAmount();
 
   const handleChange = (catId: string, month: number, value: string) => {
     const num = parseFloat(value) || 0;
     setBudgetAmountMutation.mutate({ categoryId: catId, year, month, amount: num });
   };
-
-  const currency = settings?.currency ?? '$';
 
   // Compute per-type monthly totals
   const typeTotals = useMemo(() => {
@@ -122,8 +118,6 @@ export default function BudgetPlanPage() {
                   type={type}
                   categories={allCategories}
                   budgetPlans={budgetPlans}
-                  currency={currency}
-                  year={year}
                   onAmountChange={handleChange}
                 />
               ))}

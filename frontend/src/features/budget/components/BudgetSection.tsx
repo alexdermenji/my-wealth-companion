@@ -43,8 +43,6 @@ interface BudgetSectionProps {
   type: BudgetType;
   categories: BudgetCategory[];
   budgetPlans: BudgetPlan[];
-  currency: string;
-  year: number;
   onAmountChange: (catId: string, month: number, value: string) => void;
 }
 
@@ -52,8 +50,6 @@ export function BudgetSection({
   type,
   categories,
   budgetPlans,
-  currency,
-  year,
   onAmountChange,
 }: BudgetSectionProps) {
   const style = SECTION_STYLES[type];

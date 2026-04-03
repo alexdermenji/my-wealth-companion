@@ -21,8 +21,6 @@ const defaultProps = {
   type: "Income" as const,
   categories,
   budgetPlans,
-  currency: "$",
-  year: 2026,
   onAmountChange: vi.fn(),
 };
 

@@ -5,14 +5,12 @@ import BudgetPlanPage from "../BudgetPlanPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useBudgetPlans } from "../hooks";
 import { useCategories } from "@/shared/hooks/useCategories";
-import { useSettings } from "@/features/settings/hooks";
 
 import type { BudgetCategory } from "@/shared/types";
 import type { BudgetPlan } from "../types";
 
 vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
-vi.mock("@/features/settings/hooks");
 
 const mockCategories: BudgetCategory[] = [
   { id: "c1", name: "Salary", type: "Income", group: "Employment", groupEmoji: "💼" },
@@ -38,10 +36,6 @@ describe("BudgetPlanPage", () => {
       isLoading: false,
     } as ReturnType<typeof useCategories>);
     mockBudgetPlans(mockPlans);
-    vi.mocked(useSettings).mockReturnValue({
-      data: { startYear: 2026, startMonth: 1, currency: "$" },
-      isLoading: false,
-    } as ReturnType<typeof useSettings>);
   });
 
   it("renders the year in the header", () => {
@@ -49,9 +43,9 @@ describe("BudgetPlanPage", () => {
     expect(screen.getByText(new Date().getFullYear().toString())).toBeInTheDocument();
   });
 
-  it("displays To be allocated header", () => {
+  it("displays Allocations header", () => {
     renderWithProviders(<BudgetPlanPage />);
-    expect(screen.getByText("To be allocated:")).toBeInTheDocument();
+    expect(screen.getByText("Allocations")).toBeInTheDocument();
   });
 
   it("shows Remaining row", () => {
@@ -65,11 +59,11 @@ describe("BudgetPlanPage", () => {
     expect(screen.getByText("Rent")).toBeInTheDocument();
   });
 
-  it("computes allocation values (income - expenses) in parentheses", () => {
+  it("computes remaining values (income - expenses) in Remaining row", () => {
     renderWithProviders(<BudgetPlanPage />);
-    // Month 1 & 2: 4000 - 1200 = 2800 each, displayed as (2800.00)
-    const allocationCells = screen.getAllByText("(2800.00)");
-    expect(allocationCells.length).toBeGreaterThanOrEqual(1);
+    // Month 1 & 2: 4000 - 1200 = 2800 each
+    const cells = screen.getAllByText("2800.00");
+    expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows '-' when there are no values", () => {
