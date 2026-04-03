@@ -90,14 +90,15 @@ export class SettingsPage {
     const block = this.getCategoryBlock(type);
     const headerButtons = block.locator('button');
     await headerButtons.first().click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = this.page.locator('[role="dialog"]').filter({ hasText: 'Category' }).first();
     await dialog.waitFor({ state: 'visible' });
     const nameInput = this.findInputByLabel(dialog, 'Name');
     await nameInput.fill(data.name);
-    const groupInput = dialog.locator('input[placeholder*="Housing"]');
-    await groupInput.fill(data.group);
+    // GroupCombobox: click the trigger button then type in the command input
+    await dialog.getByRole('combobox').first().click();
+    await this.page.getByPlaceholder('Search or type new group...').fill(data.group);
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
-    await dialog.waitFor({ state: 'hidden' });
+    await this.page.locator('[role="dialog"]').filter({ hasText: 'Category' }).waitFor({ state: 'hidden' });
   }
 
   async editCategory(type: string, name: string, data: { name?: string; group?: string }) {
@@ -105,18 +106,18 @@ export class SettingsPage {
     const item = block.locator('div.group').filter({ hasText: name });
     await item.hover();
     await item.getByRole('button').first().click();
-    const dialog = this.page.getByRole('dialog');
+    const dialog = this.page.locator('[role="dialog"]').filter({ hasText: 'Category' }).first();
     await dialog.waitFor({ state: 'visible' });
     if (data.name) {
       const nameInput = this.findInputByLabel(dialog, 'Name');
       await nameInput.fill(data.name);
     }
     if (data.group) {
-      const groupInput = dialog.locator('input[placeholder*="Housing"]');
-      await groupInput.fill(data.group);
+      await dialog.getByRole('combobox').first().click();
+      await this.page.getByPlaceholder('Search or type new group...').fill(data.group);
     }
     await dialog.getByRole('button', { name: /^(Add|Update)$/ }).click();
-    await dialog.waitFor({ state: 'hidden' });
+    await this.page.locator('[role="dialog"]').filter({ hasText: 'Category' }).waitFor({ state: 'hidden' });
   }
 
   async deleteCategory(type: string, name: string) {

@@ -1,10 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { BudgetSection } from "../BudgetSection";
 import type { BudgetCategory } from "@/shared/types";
 import type { BudgetPlan } from "../../types";
 
 vi.mock("@/shared/hooks/useCategories");
+vi.mock("@/features/settings/components/CategoryFormDialog", () => ({
+  CategoryFormDialog: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="category-dialog" /> : null,
+}));
 
 const categories: BudgetCategory[] = [
   { id: "c1", name: "Salary", type: "Income", group: "Employment" },
@@ -52,8 +57,8 @@ describe("BudgetSection", () => {
 
   it("shows monthly totals in the Total row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    // Month 1 total: 4000 + 1000 = 5000.00
-    expect(screen.getByText("5000.00")).toBeInTheDocument();
+    // Month 1 total: 4000 + 1000 = 5,000.00
+    expect(screen.getByText("5,000.00")).toBeInTheDocument();
   });
 
   it("displays Liabilities label for Debt type", () => {
@@ -79,7 +84,39 @@ describe("BudgetSection", () => {
 
   it("shows add entry button", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    expect(screen.getByText("+ Add entry")).toBeInTheDocument();
+    expect(screen.getByText("Add entry")).toBeInTheDocument();
+  });
+
+  it("opens add dialog when Add entry is clicked", async () => {
+    const user = userEvent.setup();
+    renderInTable(<BudgetSection {...defaultProps} />);
+    await user.click(screen.getByText("Add entry"));
+    expect(screen.getByTestId("category-dialog")).toBeInTheDocument();
+  });
+
+  it("shows edit and delete buttons on hover", async () => {
+    const user = userEvent.setup();
+    renderInTable(<BudgetSection {...defaultProps} />);
+    const row = screen.getByText("Salary").closest("tr")!;
+    await user.hover(row);
+    expect(row.querySelector("[title='Edit entry']")).toBeInTheDocument();
+    expect(row.querySelector("[title='Delete entry']")).toBeInTheDocument();
+  });
+
+  it("shows delete confirmation dialog when delete is clicked", async () => {
+    const user = userEvent.setup();
+    renderInTable(<BudgetSection {...defaultProps} />);
+    const deleteBtn = screen.getAllByTitle("Delete entry")[0];
+    await user.click(deleteBtn);
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+  });
+
+  it("formats totals with thousand separators", () => {
+    const plans: BudgetPlan[] = [
+      { categoryId: "c1", year: 2026, months: { 1: 10000 } },
+    ];
+    renderInTable(<BudgetSection {...defaultProps} budgetPlans={plans} />);
+    expect(screen.getAllByText("10,000.00").length).toBeGreaterThan(0);
   });
 
   it("renders header and total even when no categories match the type", () => {

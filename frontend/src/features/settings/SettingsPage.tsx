@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BudgetType, BudgetCategory } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount } from '@/shared/hooks/useAccounts';
-import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, useForceDeleteCategory } from '@/shared/hooks/useCategories';
+import { useCategories, useDeleteCategory, useForceDeleteCategory } from '@/shared/hooks/useCategories';
+import { CategoryFormDialog } from './components/CategoryFormDialog';
 import { useSettings, useUpdateSettings } from './hooks';
 import { categoriesApi } from '@/shared/api/categoriesApi';
 import { CategoryBlock } from './components/CategoryBlock';
@@ -29,8 +30,6 @@ export default function SettingsPage() {
   const createAccount = useCreateAccount();
   const updateAccountMutation = useUpdateAccount();
   const deleteAccountMutation = useDeleteAccount();
-  const createCategory = useCreateCategory();
-  const updateCategoryMutation = useUpdateCategory();
   const deleteCategoryMutation = useDeleteCategory();
   const forceDeleteMutation = useForceDeleteCategory();
 
@@ -53,20 +52,13 @@ export default function SettingsPage() {
 
   // Category form
   const [catOpen, setCatOpen] = useState(false);
-  const [catForm, setCatForm] = useState({ name: '', type: 'Expenses' as BudgetType, group: '' });
+  const [addingType, setAddingType] = useState<BudgetType>('Expenses');
   const [editingCat, setEditingCat] = useState<string | null>(null);
 
-  const handleCatSubmit = () => {
-    if (!catForm.name || !catForm.group) return;
-    if (editingCat) {
-      updateCategoryMutation.mutate({ id: editingCat, data: catForm });
-    } else {
-      createCategory.mutate(catForm);
-    }
-    setCatOpen(false);
-    setCatForm({ name: '', type: 'Expenses', group: '' });
-    setEditingCat(null);
-  };
+  const existingGroups = useMemo(
+    () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
+    [categories],
+  );
 
   // Delete confirmation
   const [deleteConfirm, setDeleteConfirm] = useState<{
@@ -104,13 +96,12 @@ export default function SettingsPage() {
   };
 
   const openCatFormForType = (type: BudgetType) => {
-    setCatForm({ name: '', type, group: '' });
+    setAddingType(type);
     setEditingCat(null);
     setCatOpen(true);
   };
 
   const openCatFormForEdit = (cat: BudgetCategory) => {
-    setCatForm({ name: cat.name, type: cat.type, group: cat.group });
     setEditingCat(cat.id);
     setCatOpen(true);
   };
@@ -226,26 +217,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Category Add/Edit Dialog */}
-      <Dialog open={catOpen} onOpenChange={(o) => { setCatOpen(o); if (!o) { setEditingCat(null); setCatForm({ name: '', type: 'Expenses', group: '' }); } }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">
-              {editingCat ? 'Edit' : 'New'} {catForm.type} Category
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Name</Label>
-              <Input value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} />
-            </div>
-            <div>
-              <Label>Group</Label>
-              <Input placeholder="e.g. Housing, Fun, Self-Care" value={catForm.group} onChange={e => setCatForm(f => ({ ...f, group: e.target.value }))} />
-            </div>
-            <Button className="w-full" onClick={handleCatSubmit}>{editingCat ? 'Update' : 'Add'}</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CategoryFormDialog
+        open={catOpen}
+        onOpenChange={(o) => { setCatOpen(o); if (!o) setEditingCat(null); }}
+        defaultType={addingType}
+        editingCategory={editingCat ? categories.find(c => c.id === editingCat) ?? null : null}
+        existingGroups={existingGroups}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
