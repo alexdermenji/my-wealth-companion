@@ -120,7 +120,7 @@ describe("BudgetSection", () => {
       { categoryId: "c1", year: 2026, months: { 1: 10000 } },
     ];
     renderInTable(<BudgetSection {...defaultProps} budgetPlans={plans} />);
-    expect(screen.getAllByText("10,000.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$10,000").length).toBeGreaterThan(0);
   });
 
   it("renders header and total even when no categories match the type", () => {
