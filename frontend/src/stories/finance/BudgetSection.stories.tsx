@@ -42,30 +42,30 @@ type Story = StoryObj<typeof BudgetSection>;
 // ─── Shared demo data ─────────────────────────────────────────────────────────
 
 const INCOME_CATEGORIES: BudgetCategory[] = [
-  { id: "sal", name: "Salary",    type: "Income", group: "Employment"  },
-  { id: "bon", name: "Bonus",     type: "Income", group: "Employment"  },
-  { id: "fre", name: "Freelance", type: "Income", group: "Side Income" },
-  { id: "div", name: "Dividends", type: "Income", group: "Investments" },
+  { id: "sal", name: "Salary",    type: "Income", group: "Employment",  order: 0 },
+  { id: "bon", name: "Bonus",     type: "Income", group: "Employment",  order: 1 },
+  { id: "fre", name: "Freelance", type: "Income", group: "Side Income", order: 2 },
+  { id: "div", name: "Dividends", type: "Income", group: "Investments", order: 3 },
 ];
 
 const EXPENSES_CATEGORIES: BudgetCategory[] = [
-  { id: "ren", name: "Rent",          type: "Expenses", group: "Housing"   },
-  { id: "uti", name: "Utilities",     type: "Expenses", group: "Housing"   },
-  { id: "gro", name: "Groceries",     type: "Expenses", group: "Food"      },
-  { id: "eat", name: "Eating Out",    type: "Expenses", group: "Food"      },
-  { id: "tra", name: "Travel",        type: "Expenses", group: "Transport" },
-  { id: "sub", name: "Subscriptions", type: "Expenses", group: "Lifestyle" },
+  { id: "ren", name: "Rent",          type: "Expenses", group: "Housing",   order: 0 },
+  { id: "uti", name: "Utilities",     type: "Expenses", group: "Housing",   order: 1 },
+  { id: "gro", name: "Groceries",     type: "Expenses", group: "Food",      order: 2 },
+  { id: "eat", name: "Eating Out",    type: "Expenses", group: "Food",      order: 3 },
+  { id: "tra", name: "Travel",        type: "Expenses", group: "Transport", order: 4 },
+  { id: "sub", name: "Subscriptions", type: "Expenses", group: "Lifestyle", order: 5 },
 ];
 
 const SAVINGS_CATEGORIES: BudgetCategory[] = [
-  { id: "emf", name: "Emergency Fund", type: "Savings", group: "Emergency"  },
-  { id: "hol", name: "Holiday",        type: "Savings", group: "Goals"      },
-  { id: "isa", name: "ISA / Stocks",   type: "Savings", group: "Investment" },
+  { id: "emf", name: "Emergency Fund", type: "Savings", group: "Emergency",  order: 0 },
+  { id: "hol", name: "Holiday",        type: "Savings", group: "Goals",      order: 1 },
+  { id: "isa", name: "ISA / Stocks",   type: "Savings", group: "Investment", order: 2 },
 ];
 
 const DEBT_CATEGORIES: BudgetCategory[] = [
-  { id: "cc",  name: "Credit Card",  type: "Debt", group: "Credit" },
-  { id: "stu", name: "Student Loan", type: "Debt", group: "Loans"  },
+  { id: "cc",  name: "Credit Card",  type: "Debt", group: "Credit", order: 0 },
+  { id: "stu", name: "Student Loan", type: "Debt", group: "Loans",  order: 1 },
 ];
 
 function makePlans(cats: BudgetCategory[], valuesFn: (id: string, mo: number) => number): BudgetPlan[] {

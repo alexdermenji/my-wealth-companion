@@ -13,8 +13,8 @@ vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Salary", type: "Income", group: "Employment" },
-  { id: "c2", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c1", name: "Salary", type: "Income", group: "Employment", order: 0 },
+  { id: "c2", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
 ];
 
 const mockPlans: BudgetPlan[] = [
@@ -75,7 +75,7 @@ describe("BudgetPlanPage", () => {
   it("displays Liabilities label for Debt type", () => {
     const catsWithDebt: BudgetCategory[] = [
       ...mockCategories,
-      { id: "c3", name: "Loan", type: "Debt", group: "Loans" },
+      { id: "c3", name: "Loan", type: "Debt", group: "Loans", order: 0 },
     ];
     vi.mocked(useCategories).mockReturnValue({
       data: catsWithDebt,

@@ -12,9 +12,9 @@ vi.mock("@/features/settings/components/CategoryFormDialog", () => ({
 }));
 
 const categories: BudgetCategory[] = [
-  { id: "c1", name: "Salary", type: "Income", group: "Employment" },
-  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle" },
-  { id: "c3", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c1", name: "Salary", type: "Income", group: "Employment", order: 0 },
+  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle", order: 1 },
+  { id: "c3", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
 ];
 
 const budgetPlans: BudgetPlan[] = [
@@ -63,7 +63,7 @@ describe("BudgetSection", () => {
 
   it("displays Liabilities label for Debt type", () => {
     const debtCategories: BudgetCategory[] = [
-      { id: "d1", name: "Loan", type: "Debt", group: "Loans" },
+      { id: "d1", name: "Loan", type: "Debt", group: "Loans", order: 0 },
     ];
     renderInTable(
       <BudgetSection

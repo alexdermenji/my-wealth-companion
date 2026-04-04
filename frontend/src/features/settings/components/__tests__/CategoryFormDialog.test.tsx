@@ -26,7 +26,7 @@ describe("CategoryFormDialog", () => {
   });
 
   it("renders edit dialog with pre-filled fields", () => {
-    const cat = { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing" };
+    const cat = { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing", order: 0 };
     renderWithProviders(
       <CategoryFormDialog open onOpenChange={vi.fn()} editingCategory={cat} existingGroups={[]} />
     );
@@ -61,7 +61,7 @@ describe("CategoryFormDialog", () => {
 
   it("calls updateCategory when editing", async () => {
     const user = userEvent.setup();
-    const cat = { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing" };
+    const cat = { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing", order: 0 };
     renderWithProviders(
       <CategoryFormDialog open onOpenChange={vi.fn()} editingCategory={cat} existingGroups={["Housing"]} />
     );
