@@ -54,6 +54,14 @@ public class CategoriesController : ControllerBase
         return usage;
     }
 
+    [HttpPatch("{id}/order")]
+    public async Task<IActionResult> Reorder(string id, [FromBody] ReorderCategoryRequest request)
+    {
+        var ok = await _service.ReorderAsync(id, request.NewOrder);
+        if (!ok) return NotFound();
+        return NoContent();
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id, [FromQuery] bool force = false)
     {

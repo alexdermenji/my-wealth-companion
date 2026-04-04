@@ -59,9 +59,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </Button>
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 mr-8">
-            <TrendingUp className="h-5 w-5 text-primary" />
-            <span className="text-base font-display font-bold text-foreground">FinanceFlow</span>
+          <Link to="/" className="flex items-center mr-8">
+            <span className="font-display text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+              FinanceFlow
+            </span>
           </Link>
 
           {/* Desktop nav */}

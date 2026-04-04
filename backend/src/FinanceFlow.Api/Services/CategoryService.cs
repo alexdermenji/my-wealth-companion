@@ -22,7 +22,8 @@ public class CategoryService : ICategoryService
             query = query.Where(c => c.Type == type);
         }
         return await query
-            .Select(c => new CategoryDto(c.Id, c.Name, c.Type, c.Group))
+            .OrderBy(c => c.Order)
+            .Select(c => new CategoryDto(c.Id, c.Name, c.Type, c.Group, c.Order))
             .ToListAsync();
     }
 
@@ -30,20 +31,26 @@ public class CategoryService : ICategoryService
     {
         var category = await _db.Categories.FindAsync(id);
         if (category is null) return null;
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.Order);
     }
 
     public async Task<CategoryDto> CreateAsync(CreateCategoryRequest request)
     {
+        var maxOrder = await _db.Categories
+            .Where(c => c.Type == request.Type)
+            .Select(c => (int?)c.Order)
+            .MaxAsync() ?? -1;
+
         var category = new BudgetCategory
         {
             Name = request.Name,
             Type = request.Type,
             Group = request.Group,
+            Order = maxOrder + 1,
         };
         _db.Categories.Add(category);
         await _db.SaveChangesAsync();
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.Order);
     }
 
     public async Task<CategoryDto?> UpdateAsync(string id, UpdateCategoryRequest request)
@@ -56,7 +63,30 @@ public class CategoryService : ICategoryService
         category.Group = request.Group;
 
         await _db.SaveChangesAsync();
-        return new CategoryDto(category.Id, category.Name, category.Type, category.Group);
+        return new CategoryDto(category.Id, category.Name, category.Type, category.Group, category.Order);
+    }
+
+    public async Task<bool> ReorderAsync(string id, int newOrder)
+    {
+        var category = await _db.Categories.FindAsync(id);
+        if (category is null) return false;
+
+        var siblings = await _db.Categories
+            .Where(c => c.Type == category.Type && c.Id != id)
+            .OrderBy(c => c.Order)
+            .ToListAsync();
+
+        // Clamp newOrder to valid range
+        newOrder = Math.Clamp(newOrder, 0, siblings.Count);
+
+        // Insert category at newOrder position among siblings
+        siblings.Insert(newOrder, category);
+
+        for (var i = 0; i < siblings.Count; i++)
+            siblings[i].Order = i;
+
+        await _db.SaveChangesAsync();
+        return true;
     }
 
     public async Task<CategoryUsageDto?> GetUsageAsync(string id)

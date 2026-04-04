@@ -51,3 +51,13 @@ export function useForceDeleteCategory() {
       queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });
 }
+
+export function useReorderCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, newOrder }: { id: string; newOrder: number }) =>
+      categoriesApi.reorder(id, newOrder),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+}

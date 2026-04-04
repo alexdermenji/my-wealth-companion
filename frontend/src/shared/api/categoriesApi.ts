@@ -16,4 +16,6 @@ export const categoriesApi = {
     api.get<{ transactionCount: number; budgetPlanCount: number }>(
       `/categories/${id}/usage`
     ),
+  reorder: (id: string, newOrder: number) =>
+    api.patch<void>(`/categories/${id}/order`, { newOrder }),
 };

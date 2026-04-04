@@ -5,4 +5,5 @@ export interface BudgetCategory {
   name: string;
   type: BudgetType;
   group: string; // e.g. "Housing", "Fun", "Bills"
+  order: number;
 }
