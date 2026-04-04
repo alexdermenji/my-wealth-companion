@@ -84,30 +84,34 @@ describe("BudgetSection", () => {
 
   it("shows add entry button", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    expect(screen.getByText("Add entry")).toBeInTheDocument();
+    expect(screen.getByText("Add category")).toBeInTheDocument();
   });
 
-  it("opens add dialog when Add entry is clicked", async () => {
+  it("opens add dialog when Add category is clicked", async () => {
     const user = userEvent.setup();
     renderInTable(<BudgetSection {...defaultProps} />);
-    await user.click(screen.getByText("Add entry"));
+    await user.click(screen.getByText("Add category"));
     expect(screen.getByTestId("category-dialog")).toBeInTheDocument();
   });
 
-  it("shows edit and delete buttons on hover", async () => {
-    const user = userEvent.setup();
+  it("shows three-dot menu button on each category row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
+    // Each row has a MoreVertical trigger button
+    const menuButtons = document.querySelectorAll('[data-radix-collection-item]');
+    // At minimum, the salary row should have a dropdown trigger rendered
     const row = screen.getByText("Salary").closest("tr")!;
-    await user.hover(row);
-    expect(row.querySelector("[title='Edit entry']")).toBeInTheDocument();
-    expect(row.querySelector("[title='Delete entry']")).toBeInTheDocument();
+    expect(row.querySelector("button")).toBeInTheDocument();
   });
 
-  it("shows delete confirmation dialog when delete is clicked", async () => {
+  it("shows delete confirmation dialog when delete is clicked via dropdown", async () => {
     const user = userEvent.setup();
     renderInTable(<BudgetSection {...defaultProps} />);
-    const deleteBtn = screen.getAllByTitle("Delete entry")[0];
-    await user.click(deleteBtn);
+    // Open the dropdown on the first category row
+    const row = screen.getByText("Salary").closest("tr")!;
+    const menuBtn = row.querySelector("button")!;
+    await user.click(menuBtn);
+    const deleteItem = await screen.findByText("Delete");
+    await user.click(deleteItem);
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
@@ -125,6 +129,6 @@ describe("BudgetSection", () => {
     );
     // Section still renders with header and total row (shows all dashes)
     expect(screen.getByText("Savings")).toBeInTheDocument();
-    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("Total Savings")).toBeInTheDocument();
   });
 });
