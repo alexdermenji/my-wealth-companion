@@ -36,7 +36,8 @@ describe("BudgetCell", () => {
   it("displays '-' when value is 0", () => {
     renderCell({ value: 0, onChange: vi.fn() });
     expect(screen.getByText("-")).toBeInTheDocument();
-    expect(screen.queryByRole("textbox")).not.toBeVisible();
+    // Input is in DOM but hidden via opacity-0 (not editing)
+    expect(screen.getByRole("textbox")).toHaveClass("opacity-0");
   });
 
   it("switches to input on click and calls onChange on blur", async () => {
@@ -80,10 +81,10 @@ describe("BudgetCell", () => {
     renderCell({ value: 100, onChange: vi.fn() });
 
     await user.click(screen.getByText("100"));
-    expect(screen.getByRole("textbox")).toBeVisible();
+    expect(screen.getByRole("textbox")).not.toHaveClass("opacity-0");
 
     await user.tab();
-    expect(screen.getByRole("textbox")).not.toBeVisible();
+    expect(screen.getByRole("textbox")).toHaveClass("opacity-0");
     expect(screen.getByText("100")).toBeInTheDocument();
   });
 
@@ -127,7 +128,7 @@ describe("BudgetCell", () => {
       await user.keyboard("{Escape}");
 
       expect(onChange).not.toHaveBeenCalled();
-      expect(screen.getByRole("textbox")).not.toBeVisible();
+      expect(screen.getByRole("textbox")).toHaveClass("opacity-0");
     });
   });
 });

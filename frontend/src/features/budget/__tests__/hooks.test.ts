@@ -75,14 +75,14 @@ describe("useSetBudgetAmount", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["dashboard"] });
   });
 
-  it("shows success toast on update", async () => {
+  it("does not show success toast on update", async () => {
     const { result } = renderHook(() => useSetBudgetAmount(), {
       wrapper: createHookWrapper(),
     });
 
     result.current.mutate({ categoryId: "c1", year: 2026, month: 1, amount: 2000 });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(toast.success).toHaveBeenCalledWith("Budget updated", { id: "budget-saved" });
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("shows error toast on update failure", async () => {

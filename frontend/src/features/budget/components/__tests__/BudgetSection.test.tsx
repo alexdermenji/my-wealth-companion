@@ -61,8 +61,8 @@ describe("BudgetSection", () => {
 
   it("shows monthly totals in the Total row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    // Month 1 total: 4000 + 1000 = 5,000.00
-    expect(screen.getByText("5,000.00")).toBeInTheDocument();
+    // Month 1 total: 4000 + 1000 = 5,000
+    expect(screen.getByText("$5,000")).toBeInTheDocument();
   });
 
   it("displays Liabilities label for Debt type", () => {
@@ -88,13 +88,13 @@ describe("BudgetSection", () => {
 
   it("shows add entry button", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    expect(screen.getByText("Add entry")).toBeInTheDocument();
+    expect(screen.getByText("+ Add category")).toBeInTheDocument();
   });
 
-  it("opens add dialog when Add entry is clicked", async () => {
+  it("opens add dialog when Add category is clicked", async () => {
     const user = userEvent.setup();
     renderInTable(<BudgetSection {...defaultProps} />);
-    await user.click(screen.getByText("Add entry"));
+    await user.click(screen.getByText("+ Add category"));
     expect(screen.getByTestId("category-dialog")).toBeInTheDocument();
   });
 
