@@ -7,4 +7,5 @@ export const categoriesApi = {
   delete: vi.fn(),
   forceDelete: vi.fn(),
   getUsage: vi.fn(),
+  reorder: vi.fn(),
 };

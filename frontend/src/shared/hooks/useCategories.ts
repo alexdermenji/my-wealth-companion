@@ -12,7 +12,7 @@ export function useCategories(type?: string) {
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<BudgetCategory, "id">) =>
+    mutationFn: (data: Omit<BudgetCategory, "id" | "order">) =>
       categoriesApi.create(data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["categories"] }),
@@ -27,7 +27,7 @@ export function useUpdateCategory() {
       data,
     }: {
       id: string;
-      data: Omit<BudgetCategory, "id">;
+      data: Omit<BudgetCategory, "id" | "order">;
     }) => categoriesApi.update(id, data),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["categories"] }),
@@ -47,6 +47,16 @@ export function useForceDeleteCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => categoriesApi.forceDelete(id),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["categories"] }),
+  });
+}
+
+export function useReorderCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, newOrder }: { id: string; newOrder: number }) =>
+      categoriesApi.reorder(id, newOrder),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["categories"] }),
   });

@@ -1,3 +1,4 @@
+import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 const meta: Meta = {
@@ -35,14 +36,14 @@ function StatusBarDemo({ items, net }: StatusBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-5 rounded-xl border border-[#dde3f0] bg-white px-5 py-3.5 shadow-sm">
       {items.map(({ label, amount, color }, i) => (
-        <>
-          {i > 0 && <Divider key={`div-${i}`} />}
-          <div key={label} className="flex items-center gap-2">
+        <React.Fragment key={label}>
+          {i > 0 && <Divider />}
+          <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
             <span className="text-xs text-[#7a849e]">{label}</span>
             <span className="font-display text-sm font-bold" style={{ color }}>{amount}</span>
           </div>
-        </>
+        </React.Fragment>
       ))}
       <Divider />
       <div className="ml-auto flex items-center gap-2">

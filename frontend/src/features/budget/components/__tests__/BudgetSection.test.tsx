@@ -12,9 +12,9 @@ vi.mock("@/features/settings/components/CategoryFormDialog", () => ({
 }));
 
 const categories: BudgetCategory[] = [
-  { id: "c1", name: "Salary", type: "Income", group: "Employment" },
-  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle" },
-  { id: "c3", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c1", name: "Salary", type: "Income", group: "Employment", order: 0 },
+  { id: "c2", name: "Freelance", type: "Income", group: "Side Hustle", order: 1 },
+  { id: "c3", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
 ];
 
 const budgetPlans: BudgetPlan[] = [
@@ -57,13 +57,13 @@ describe("BudgetSection", () => {
 
   it("shows monthly totals in the Total row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    // Month 1 total: 4000 + 1000 = 5,000.00
-    expect(screen.getByText("5,000.00")).toBeInTheDocument();
+    // Month 1 total: 4000 + 1000 = £5,000
+    expect(screen.getByText("£5,000")).toBeInTheDocument();
   });
 
   it("displays Liabilities label for Debt type", () => {
     const debtCategories: BudgetCategory[] = [
-      { id: "d1", name: "Loan", type: "Debt", group: "Loans" },
+      { id: "d1", name: "Loan", type: "Debt", group: "Loans", order: 0 },
     ];
     renderInTable(
       <BudgetSection
@@ -84,30 +84,32 @@ describe("BudgetSection", () => {
 
   it("shows add entry button", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    expect(screen.getByText("Add entry")).toBeInTheDocument();
+    expect(screen.getByText("Add category")).toBeInTheDocument();
   });
 
-  it("opens add dialog when Add entry is clicked", async () => {
+  it("opens add dialog when Add category is clicked", async () => {
     const user = userEvent.setup();
     renderInTable(<BudgetSection {...defaultProps} />);
-    await user.click(screen.getByText("Add entry"));
+    await user.click(screen.getByText("Add category"));
     expect(screen.getByTestId("category-dialog")).toBeInTheDocument();
   });
 
-  it("shows edit and delete buttons on hover", async () => {
-    const user = userEvent.setup();
+  it("shows three-dot menu button on each category row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
+    // At minimum, the salary row should have a dropdown trigger rendered
     const row = screen.getByText("Salary").closest("tr")!;
-    await user.hover(row);
-    expect(row.querySelector("[title='Edit entry']")).toBeInTheDocument();
-    expect(row.querySelector("[title='Delete entry']")).toBeInTheDocument();
+    expect(row.querySelector("button")).toBeInTheDocument();
   });
 
-  it("shows delete confirmation dialog when delete is clicked", async () => {
+  it("shows delete confirmation dialog when delete is clicked via dropdown", async () => {
     const user = userEvent.setup();
     renderInTable(<BudgetSection {...defaultProps} />);
-    const deleteBtn = screen.getAllByTitle("Delete entry")[0];
-    await user.click(deleteBtn);
+    // Open the dropdown on the first category row
+    const row = screen.getByText("Salary").closest("tr")!;
+    const menuBtn = row.querySelector("button")!;
+    await user.click(menuBtn);
+    const deleteItem = await screen.findByText("Delete");
+    await user.click(deleteItem);
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();
   });
 
@@ -116,7 +118,7 @@ describe("BudgetSection", () => {
       { categoryId: "c1", year: 2026, months: { 1: 10000 } },
     ];
     renderInTable(<BudgetSection {...defaultProps} budgetPlans={plans} />);
-    expect(screen.getAllByText("10,000.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("£10,000").length).toBeGreaterThan(0);
   });
 
   it("renders header and total even when no categories match the type", () => {
@@ -125,6 +127,6 @@ describe("BudgetSection", () => {
     );
     // Section still renders with header and total row (shows all dashes)
     expect(screen.getByText("Savings")).toBeInTheDocument();
-    expect(screen.getByText("Total")).toBeInTheDocument();
+    expect(screen.getByText("Total Savings")).toBeInTheDocument();
   });
 });

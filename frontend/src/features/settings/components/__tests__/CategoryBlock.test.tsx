@@ -5,8 +5,8 @@ import { CategoryBlock } from "../CategoryBlock";
 import type { BudgetCategory } from "@/shared/types";
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
-  { id: "c2", name: "Groceries", type: "Expenses", group: "Food" },
+  { id: "c1", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
+  { id: "c2", name: "Groceries", type: "Expenses", group: "Food", order: 1 },
 ];
 
 const defaultProps = {

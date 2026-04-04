@@ -14,20 +14,20 @@ export class BudgetPlanPage {
   }
 
   async selectYear(year: string) {
-    // Year nav is now arrow buttons: < 2026 >
-    // Read current year then click left or right arrows accordingly
-    const yearText = this.page.locator('span.font-bold').filter({ hasText: /^\d{4}$/ });
-    const current = parseInt(await yearText.textContent() ?? '2026', 10);
+    // Year nav pill: < 2026 >  — target the pill container's buttons specifically
+    const yearPill = this.page.locator('div.rounded-full').filter({ has: this.page.locator('span').filter({ hasText: /^\d{4}$/ }) });
+    const current = parseInt(await yearPill.locator('span').textContent() ?? '2026', 10);
     const target = parseInt(year, 10);
     const diff = target - current;
-    const buttons = this.page.getByRole('button');
     if (diff < 0) {
+      const prevBtn = yearPill.locator('button').first();
       for (let i = 0; i < Math.abs(diff); i++) {
-        await buttons.first().click();
+        await prevBtn.click();
       }
     } else {
+      const nextBtn = yearPill.locator('button').last();
       for (let i = 0; i < diff; i++) {
-        await buttons.nth(1).click();
+        await nextBtn.click();
       }
     }
   }
@@ -46,19 +46,18 @@ export class BudgetPlanPage {
 
   async setCategoryAmount(categoryName: string, monthIndex: number, value: string) {
     const row = this.getCategoryRow(categoryName);
-    // Budget cells are td > span.cursor-pointer elements (one per month column)
-    const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
-    await cell.click();
-    const input = row.locator('input[type="number"]').first();
+    // Budget cells are text inputs, one per month column (after the 2-col category cell)
+    const input = row.locator('input[type="text"]').nth(monthIndex);
+    await input.click();
+    await input.selectText();
     await input.fill(value);
     await input.press('Tab');
   }
 
   async getCategoryInput(categoryName: string, monthIndex: number): Promise<string> {
     const row = this.getCategoryRow(categoryName);
-    const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
-    await cell.click();
-    const input = row.locator('input[type="number"]').first();
+    const input = row.locator('input[type="text"]').nth(monthIndex);
+    await input.click();
     const val = await input.inputValue();
     await input.press('Escape');
     return val;

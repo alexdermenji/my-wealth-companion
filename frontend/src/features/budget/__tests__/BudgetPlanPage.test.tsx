@@ -13,8 +13,8 @@ vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Salary", type: "Income", group: "Employment" },
-  { id: "c2", name: "Rent", type: "Expenses", group: "Housing" },
+  { id: "c1", name: "Salary", type: "Income", group: "Employment", order: 0 },
+  { id: "c2", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
 ];
 
 const mockPlans: BudgetPlan[] = [
@@ -62,20 +62,20 @@ describe("BudgetPlanPage", () => {
   it("computes remaining values (income - expenses) in Remaining row", () => {
     renderWithProviders(<BudgetPlanPage />);
     // Month 1 & 2: 4000 - 1200 = 2800 each
-    const cells = screen.getAllByText("2,800.00");
+    const cells = screen.getAllByText("£2,800.00");
     expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows '-' when there are no values", () => {
+  it("shows '—' when there are no values", () => {
     mockBudgetPlans([]);
     renderWithProviders(<BudgetPlanPage />);
-    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("displays Liabilities label for Debt type", () => {
     const catsWithDebt: BudgetCategory[] = [
       ...mockCategories,
-      { id: "c3", name: "Loan", type: "Debt", group: "Loans" },
+      { id: "c3", name: "Loan", type: "Debt", group: "Loans", order: 0 },
     ];
     vi.mocked(useCategories).mockReturnValue({
       data: catsWithDebt,

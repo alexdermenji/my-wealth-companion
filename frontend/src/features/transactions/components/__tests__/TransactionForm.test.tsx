@@ -25,7 +25,7 @@ const defaultProps = {
     { id: "a2", name: "Bank", type: "Bank" as const },
   ],
   filteredCategories: [
-    { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing" },
+    { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing", order: 0 },
   ],
 };
 

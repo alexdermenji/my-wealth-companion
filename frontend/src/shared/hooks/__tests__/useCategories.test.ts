@@ -15,8 +15,8 @@ import type { BudgetCategory } from "@/shared/types";
 vi.mock("@/shared/api/categoriesApi");
 
 const mockCategories: BudgetCategory[] = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
-  { id: "c2", name: "Salary", type: "Income", group: "Employment" },
+  { id: "c1", name: "Rent", type: "Expenses", group: "Housing", order: 0 },
+  { id: "c2", name: "Salary", type: "Income", group: "Employment", order: 1 },
 ];
 
 describe("useCategories", () => {
@@ -63,6 +63,7 @@ describe("useCreateCategory", () => {
       name: "Gym",
       type: "Expenses",
       group: "Health",
+      order: 0,
     });
   });
 
@@ -89,6 +90,7 @@ describe("useUpdateCategory", () => {
       name: "Updated",
       type: "Expenses",
       group: "Housing",
+      order: 0,
     });
   });
 
