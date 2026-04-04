@@ -57,8 +57,8 @@ describe("BudgetSection", () => {
 
   it("shows monthly totals in the Total row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    // Month 1 total: 4000 + 1000 = 5,000.00
-    expect(screen.getByText("5,000.00")).toBeInTheDocument();
+    // Month 1 total: 4000 + 1000 = £5,000
+    expect(screen.getByText("£5,000")).toBeInTheDocument();
   });
 
   it("displays Liabilities label for Debt type", () => {
@@ -118,7 +118,7 @@ describe("BudgetSection", () => {
       { categoryId: "c1", year: 2026, months: { 1: 10000 } },
     ];
     renderInTable(<BudgetSection {...defaultProps} budgetPlans={plans} />);
-    expect(screen.getAllByText("10,000.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("£10,000").length).toBeGreaterThan(0);
   });
 
   it("renders header and total even when no categories match the type", () => {

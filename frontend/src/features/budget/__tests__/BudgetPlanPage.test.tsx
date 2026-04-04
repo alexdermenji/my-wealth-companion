@@ -62,14 +62,14 @@ describe("BudgetPlanPage", () => {
   it("computes remaining values (income - expenses) in Remaining row", () => {
     renderWithProviders(<BudgetPlanPage />);
     // Month 1 & 2: 4000 - 1200 = 2800 each
-    const cells = screen.getAllByText("2,800.00");
+    const cells = screen.getAllByText("£2,800.00");
     expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows '-' when there are no values", () => {
+  it("shows '—' when there are no values", () => {
     mockBudgetPlans([]);
     renderWithProviders(<BudgetPlanPage />);
-    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
   it("displays Liabilities label for Debt type", () => {
