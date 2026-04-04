@@ -81,8 +81,8 @@ describe("SettingsPage — currency selector", () => {
   const mutate = vi.fn();
 
   beforeEach(() => {
-    vi.mocked(useAccounts).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useAccounts>);
-    vi.mocked(useCategories).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useCategories>);
+    vi.mocked(useAccounts).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useAccounts>);
+    vi.mocked(useCategories).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useCategories>);
     vi.mocked(useUpdateSettings).mockReturnValue({
       mutate,
       isPending: false,

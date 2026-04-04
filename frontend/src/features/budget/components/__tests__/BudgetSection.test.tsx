@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BudgetSection } from "../BudgetSection";
+import { BudgetNavProvider } from "../BudgetNavContext";
 import type { BudgetCategory } from "@/shared/types";
 import type { BudgetPlan } from "../../types";
 
@@ -27,14 +28,17 @@ const defaultProps = {
   categories,
   budgetPlans,
   onAmountChange: vi.fn(),
+  currency: '$',
 };
 
 // Wrap in table context since BudgetSection renders TableRows
 function renderInTable(ui: React.ReactElement) {
   return render(
-    <table>
-      <tbody>{ui}</tbody>
-    </table>
+    <BudgetNavProvider>
+      <table>
+        <tbody>{ui}</tbody>
+      </table>
+    </BudgetNavProvider>
   );
 }
 

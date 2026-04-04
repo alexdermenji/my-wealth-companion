@@ -91,7 +91,6 @@ describe("BudgetCell", () => {
   describe("keyboard navigation", () => {
     it("Tab navigates right", async () => {
       const user = userEvent.setup();
-      const navigate = vi.fn();
       // Render two cells so Tab can activate the next one
       render(
         <BudgetNavProvider>
