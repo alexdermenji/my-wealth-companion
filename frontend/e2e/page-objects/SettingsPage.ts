@@ -32,6 +32,16 @@ export class SettingsPage {
     await input.press('Tab');
   }
 
+  getCurrencyTrigger(): Locator {
+    const generalCard = this.page.locator('.rounded-lg').filter({ hasText: 'General' }).first();
+    return generalCard.getByRole('combobox');
+  }
+
+  async selectCurrency(isoCode: string) {
+    await this.getCurrencyTrigger().click();
+    await this.page.getByRole('option', { name: new RegExp(isoCode) }).click();
+  }
+
   // --- Accounts ---
 
   getAccountsTable(): Locator {

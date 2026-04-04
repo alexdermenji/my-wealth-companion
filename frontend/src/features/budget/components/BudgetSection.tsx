@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
+import { useBudgetNav } from './BudgetNavContext';
 import type { BudgetPlan } from '../types';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { BudgetCell } from './BudgetCell';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
 import { useForceDeleteCategory } from '@/shared/hooks/useCategories';
 
@@ -50,6 +51,7 @@ interface BudgetSectionProps {
   categories: BudgetCategory[];
   budgetPlans: BudgetPlan[];
   onAmountChange: (catId: string, month: number, value: string) => void;
+  currency: string;
 }
 
 export function BudgetSection({
@@ -57,11 +59,17 @@ export function BudgetSection({
   categories,
   budgetPlans,
   onAmountChange,
+  currency,
 }: BudgetSectionProps) {
   const style = SECTION_STYLES[type];
   const displayLabel = DISPLAY_LABELS[type] ?? type;
   const typeCats = categories.filter(c => c.type === type);
+  const { registerRows } = useBudgetNav();
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    registerRows(type, typeCats.map(c => `${type}-${c.id}`));
+  }, [type, typeCats, registerRows]);
   const [editingCat, setEditingCat] = useState<BudgetCategory | null>(null);
   const [deletingCat, setDeletingCat] = useState<BudgetCategory | null>(null);
   const forceDeleteMutation = useForceDeleteCategory();
@@ -79,7 +87,7 @@ export function BudgetSection({
   const getMonthTotal = (month: number) =>
     typeCats.reduce((s, c) => s + getBudget(c.id, month), 0);
 
-  const fmt = (v: number) => v > 0 ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) : '-';
+  const fmt = (v: number) => v > 0 ? currency + new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(v) : '-';
 
   const handleDelete = () => {
     if (!deletingCat) return;
@@ -95,7 +103,7 @@ export function BudgetSection({
 
       {/* Section header */}
       <TableRow className={cn(style.bg, 'border-none')}>
-        <TableCell className={cn('sticky left-0 z-10 font-bold text-xs py-1.5', style.bg, style.text)} colSpan={2}>
+        <TableCell className={cn('sticky left-0 z-10 font-bold text-xs py-1.5', style.bg, style.text)} colSpan={1}>
           {displayLabel}
         </TableCell>
         {MONTHS.map((m, i) => (
@@ -109,7 +117,7 @@ export function BudgetSection({
         <TableRow key={cat.id} className={cn('group/row border-b', style.rowBg)}>
           <TableCell
             className={cn('sticky left-0 z-10 w-[150px] min-w-[150px] max-w-[150px] sticky-border-r pl-0', style.rowBg)}
-            colSpan={2}
+            colSpan={1}
           >
             <div className="flex items-center h-full pl-3">
               <div className="flex flex-col min-w-0">
@@ -135,10 +143,12 @@ export function BudgetSection({
             </div>
           </TableCell>
           {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (
-            <TableCell key={mo}>
+            <TableCell key={mo} className="border-r border-gray-100 dark:border-gray-800 p-1">
               <BudgetCell
                 value={getBudget(cat.id, mo)}
                 onChange={v => onAmountChange(cat.id, mo, v)}
+                rowKey={`${type}-${cat.id}`}
+                colIndex={mo}
               />
             </TableCell>
           ))}
@@ -148,7 +158,7 @@ export function BudgetSection({
 
       {/* Section total */}
       <TableRow className={style.totalBg}>
-        <TableCell colSpan={2} className={cn('sticky left-0 z-10 sticky-border-r text-sm font-bold', style.totalBg)}>Total</TableCell>
+        <TableCell colSpan={1} className={cn('sticky left-0 z-10 sticky-border-r text-sm font-bold', style.totalBg)}>Total</TableCell>
         {Array.from({ length: 12 }, (_, i) => i + 1).map(mo => (
           <TableCell key={mo} className={cn('text-center text-sm font-bold', style.totalBg)}>
             {fmt(getMonthTotal(mo))}
@@ -190,7 +200,7 @@ export function BudgetSection({
 
       {/* Add entry button */}
       <TableRow className="border-none">
-        <TableCell className="py-2 border-none sticky left-0 bg-white dark:bg-gray-900" colSpan={2}>
+        <TableCell className="py-2 border-none sticky left-0 bg-white dark:bg-gray-900" colSpan={1}>
           <button
             className={cn(
               'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all',
@@ -199,10 +209,7 @@ export function BudgetSection({
             )}
             onClick={() => setAdding(true)}
           >
-            <span className="flex items-center justify-center h-4 w-4 rounded-full bg-muted-foreground/15">
-              <Plus className="h-2.5 w-2.5" />
-            </span>
-            Add entry
+            + Add category
           </button>
         </TableCell>
       </TableRow>

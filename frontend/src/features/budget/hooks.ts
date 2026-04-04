@@ -21,7 +21,6 @@ export function useSetBudgetAmount() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["budgetPlans"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast.success("Budget updated", { id: "budget-saved" });
     },
     onError: () => {
       toast.error("Failed to update budget", { id: "budget-saved" });

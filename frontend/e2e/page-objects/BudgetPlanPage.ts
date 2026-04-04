@@ -46,10 +46,9 @@ export class BudgetPlanPage {
 
   async setCategoryAmount(categoryName: string, monthIndex: number, value: string) {
     const row = this.getCategoryRow(categoryName);
-    // Budget cells are td > span.cursor-pointer elements (one per month column)
     const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
     await cell.click();
-    const input = row.locator('input[type="number"]').first();
+    const input = row.locator('input[type="text"]').first();
     await input.fill(value);
     await input.press('Tab');
   }
@@ -58,7 +57,7 @@ export class BudgetPlanPage {
     const row = this.getCategoryRow(categoryName);
     const cell = row.locator('td span.cursor-pointer').nth(monthIndex);
     await cell.click();
-    const input = row.locator('input[type="number"]').first();
+    const input = row.locator('input[type="text"]').first();
     const val = await input.inputValue();
     await input.press('Escape');
     return val;

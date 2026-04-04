@@ -5,12 +5,14 @@ import BudgetPlanPage from "../BudgetPlanPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useBudgetPlans } from "../hooks";
 import { useCategories } from "@/shared/hooks/useCategories";
+import { useSettings } from "@/features/settings/hooks";
 
 import type { BudgetCategory } from "@/shared/types";
 import type { BudgetPlan } from "../types";
 
 vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
+vi.mock("@/features/settings/hooks");
 
 const mockCategories: BudgetCategory[] = [
   { id: "c1", name: "Salary", type: "Income", group: "Employment" },
@@ -29,6 +31,13 @@ const mockBudgetPlans = (data: BudgetPlan[]) => {
   } as unknown as ReturnType<typeof useBudgetPlans>);
 };
 
+const mockSettingsData = (currency: string) => {
+  vi.mocked(useSettings).mockReturnValue({
+    data: { startYear: 2026, startMonth: 1, currency },
+    isLoading: false,
+  } as ReturnType<typeof useSettings>);
+};
+
 describe("BudgetPlanPage", () => {
   beforeEach(() => {
     vi.mocked(useCategories).mockReturnValue({
@@ -36,6 +45,7 @@ describe("BudgetPlanPage", () => {
       isLoading: false,
     } as ReturnType<typeof useCategories>);
     mockBudgetPlans(mockPlans);
+    mockSettingsData("$");
   });
 
   it("renders the year in the header", () => {
@@ -57,13 +67,6 @@ describe("BudgetPlanPage", () => {
     renderWithProviders(<BudgetPlanPage />);
     expect(screen.getByText("Salary")).toBeInTheDocument();
     expect(screen.getByText("Rent")).toBeInTheDocument();
-  });
-
-  it("computes remaining values (income - expenses) in Remaining row", () => {
-    renderWithProviders(<BudgetPlanPage />);
-    // Month 1 & 2: 4000 - 1200 = 2800 each
-    const cells = screen.getAllByText("2,800.00");
-    expect(cells.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows '-' when there are no values", () => {
@@ -91,10 +94,72 @@ describe("BudgetPlanPage", () => {
     const currentYear = new Date().getFullYear();
     expect(screen.getByText(currentYear.toString())).toBeInTheDocument();
 
-    // Click right arrow to go to next year
     const buttons = screen.getAllByRole("button");
-    const rightArrow = buttons[1]; // second button is right arrow
+    const rightArrow = buttons[1];
     await user.click(rightArrow);
     expect(screen.getByText((currentYear + 1).toString())).toBeInTheDocument();
+  });
+});
+
+describe("BudgetPlanPage — currency display", () => {
+  beforeEach(() => {
+    vi.mocked(useCategories).mockReturnValue({
+      data: mockCategories,
+      isLoading: false,
+    } as ReturnType<typeof useCategories>);
+    mockBudgetPlans(mockPlans);
+  });
+
+  it("shows £ symbol in Remaining row when currency is £", () => {
+    mockSettingsData("£");
+    renderWithProviders(<BudgetPlanPage />);
+    // Remaining = 4000 - 1200 = 2800
+    expect(screen.getAllByText("£2,800").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows $ symbol in Remaining row when currency is $", () => {
+    mockSettingsData("$");
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("$2,800").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows € symbol in Remaining row when currency is €", () => {
+    mockSettingsData("€");
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("€2,800").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("resolves CA$ code to $ symbol in Remaining row", () => {
+    mockSettingsData("CA$");
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("$2,800").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("resolves kr-sek code to kr symbol in Remaining row", () => {
+    mockSettingsData("kr-sek");
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("kr2,800").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows $ symbol in section totals when currency is $", () => {
+    mockSettingsData("$");
+    renderWithProviders(<BudgetPlanPage />);
+    // Income total = 4000 for month 1
+    expect(screen.getAllByText("$4,000").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows £ symbol in section totals when currency is £", () => {
+    mockSettingsData("£");
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("£4,000").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("falls back to $ when settings not loaded", () => {
+    vi.mocked(useSettings).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<BudgetPlanPage />);
+    expect(screen.getAllByText("$2,800").length).toBeGreaterThanOrEqual(1);
   });
 });

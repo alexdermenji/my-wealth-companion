@@ -20,6 +20,8 @@ import { categoriesApi } from '@/shared/api/categoriesApi';
 import { CategoryBlock } from './components/CategoryBlock';
 
 const ACCOUNT_TYPES = ['Cash', 'Bank', 'Credit Card', 'Investment', 'Retirement', 'Loan', 'Other'] as const;
+
+import { CURRENCIES } from './types';
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 export default function SettingsPage() {
@@ -133,7 +135,21 @@ export default function SettingsPage() {
             </div>
             <div>
               <Label>Currency</Label>
-              <Input value={settings?.currency ?? ''} onChange={e => handleSettingsChange({ currency: e.target.value })} />
+              {(() => {
+                const selected = CURRENCIES.find(c => c.code === (settings?.currency ?? '$'));
+                return (
+                  <Select value={settings?.currency ?? '$'} onValueChange={v => handleSettingsChange({ currency: v })}>
+                    <SelectTrigger>
+                      <span>{selected ? `${selected.flag} ${selected.iso}` : (settings?.currency ?? '$')}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map(c => (
+                        <SelectItem key={c.code} value={c.code}>{c.flag} {c.iso} — {c.symbol}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                );
+              })()}
             </div>
           </div>
         </CardContent>

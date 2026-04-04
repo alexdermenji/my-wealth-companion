@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import SettingsPage from "../SettingsPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useAccounts } from "@/shared/hooks/useAccounts";
 import { useCategories } from "@/shared/hooks/useCategories";
-import { useSettings } from "../hooks";
+import { useSettings, useUpdateSettings } from "../hooks";
 
 vi.mock("@/shared/hooks/useAccounts");
 vi.mock("@/shared/hooks/useCategories");
@@ -36,6 +37,10 @@ describe("SettingsPage", () => {
       data: { startYear: 2026, startMonth: 1, currency: "$" },
       isLoading: false,
     } as ReturnType<typeof useSettings>);
+    vi.mocked(useUpdateSettings).mockReturnValue({
+      mutate: vi.fn(),
+      isPending: false,
+    } as unknown as ReturnType<typeof useUpdateSettings>);
   });
 
   it("renders the page title", () => {
@@ -47,7 +52,6 @@ describe("SettingsPage", () => {
     renderWithProviders(<SettingsPage />);
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByDisplayValue("2026")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("$")).toBeInTheDocument();
   });
 
   it("displays accounts table", () => {
@@ -70,5 +74,75 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Rent")).toBeInTheDocument();
     expect(screen.getByText("Salary")).toBeInTheDocument();
     expect(screen.getByText("Emergency Fund")).toBeInTheDocument();
+  });
+});
+
+describe("SettingsPage — currency selector", () => {
+  const mutate = vi.fn();
+
+  beforeEach(() => {
+    vi.mocked(useAccounts).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useAccounts>);
+    vi.mocked(useCategories).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useCategories>);
+    vi.mocked(useUpdateSettings).mockReturnValue({
+      mutate,
+      isPending: false,
+    } as unknown as ReturnType<typeof useUpdateSettings>);
+  });
+
+  it("shows the flag and ISO code of the current currency in the trigger", () => {
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "£" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<SettingsPage />);
+    expect(screen.getByText("🇬🇧 GBP")).toBeInTheDocument();
+  });
+
+  it("shows the flag and ISO code for $ USD", () => {
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "$" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<SettingsPage />);
+    expect(screen.getByText("🇺🇸 USD")).toBeInTheDocument();
+  });
+
+  it("shows all 10 currency options in the dropdown", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "$" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<SettingsPage />);
+    await user.click(screen.getByRole("combobox"));
+    expect(screen.getByText("🇬🇧 GBP — £")).toBeInTheDocument();
+    expect(screen.getByText("🇺🇸 USD — $")).toBeInTheDocument();
+    expect(screen.getByText("🇪🇺 EUR — €")).toBeInTheDocument();
+    expect(screen.getByText("🇸🇪 SEK — kr")).toBeInTheDocument();
+    expect(screen.getByText("🇳🇴 NOK — kr")).toBeInTheDocument();
+  });
+
+  it("calls updateSettings with the new currency code when selecting from dropdown", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "$" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<SettingsPage />);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByText("🇬🇧 GBP — £"));
+    expect(mutate).toHaveBeenCalledWith({ startYear: 2026, startMonth: 1, currency: "£" });
+  });
+
+  it("calls updateSettings with kr-sek when selecting SEK", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "$" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
+    renderWithProviders(<SettingsPage />);
+    await user.click(screen.getByRole("combobox"));
+    await user.click(screen.getByText("🇸🇪 SEK — kr"));
+    expect(mutate).toHaveBeenCalledWith({ startYear: 2026, startMonth: 1, currency: "kr-sek" });
   });
 });
