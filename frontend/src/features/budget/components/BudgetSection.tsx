@@ -111,26 +111,26 @@ export function BudgetSection({
             className={cn('sticky left-0 z-10 w-[150px] min-w-[150px] max-w-[150px] sticky-border-r pl-0', style.rowBg)}
             colSpan={2}
           >
-            <div className="flex items-center h-full pl-3">
-              <div className="flex flex-col min-w-0">
+            <div className="relative flex items-center h-full pl-3 pr-14">
+              <div className="flex flex-col min-w-0 overflow-hidden">
                 <span className="text-[10px] text-muted-foreground italic leading-tight truncate">{cat.group || cat.name}</span>
-                <div className="flex items-center gap-1 min-w-0">
-                  <span className="text-sm font-medium truncate" title={cat.name}>{cat.name}</span>
-                  <button
-                    className="opacity-0 group-hover/row:opacity-100 transition-opacity text-muted-foreground hover:text-foreground p-0.5"
-                    onClick={() => setEditingCat(cat)}
-                    title="Edit entry"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    className="opacity-0 group-hover/row:opacity-100 transition-opacity text-red-400 hover:text-red-600 p-0.5"
-                    onClick={() => setDeletingCat(cat)}
-                    title="Delete entry"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                <span className="text-sm font-medium truncate" title={cat.name}>{cat.name}</span>
+              </div>
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                <button
+                  className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  onClick={() => setEditingCat(cat)}
+                  title="Edit entry"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  className="flex items-center justify-center h-6 w-6 rounded text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                  onClick={() => setDeletingCat(cat)}
+                  title="Delete entry"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           </TableCell>
