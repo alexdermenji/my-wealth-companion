@@ -96,8 +96,6 @@ describe("BudgetSection", () => {
 
   it("shows three-dot menu button on each category row", () => {
     renderInTable(<BudgetSection {...defaultProps} />);
-    // Each row has a MoreVertical trigger button
-    const menuButtons = document.querySelectorAll('[data-radix-collection-item]');
     // At minimum, the salary row should have a dropdown trigger rendered
     const row = screen.getByText("Salary").closest("tr")!;
     expect(row.querySelector("button")).toBeInTheDocument();
