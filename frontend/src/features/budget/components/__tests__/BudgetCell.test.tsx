@@ -15,7 +15,7 @@ function renderCell(props: Parameters<typeof BudgetCell>[0]) {
 describe("BudgetCell", () => {
   it("displays formatted value as text when not editing", () => {
     renderCell({ value: 500, onChange: vi.fn() });
-    expect(screen.getByText("500.00")).toBeInTheDocument();
+    expect(screen.getByText("500")).toBeInTheDocument();
   });
 
   it("formats large numbers with thousand separators", () => {
@@ -26,17 +26,17 @@ describe("BudgetCell", () => {
   it("does not shift layout when switching to input — span stays in DOM", async () => {
     const user = userEvent.setup();
     renderCell({ value: 100, onChange: vi.fn() });
-    const span = screen.getByText("100.00");
+    const span = screen.getByText("100");
     await user.click(span);
     // Span still in DOM (invisible), input overlays it
     expect(span).toBeInTheDocument();
-    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 
   it("displays '-' when value is 0", () => {
     renderCell({ value: 0, onChange: vi.fn() });
     expect(screen.getByText("-")).toBeInTheDocument();
-    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeVisible();
   });
 
   it("switches to input on click and calls onChange on blur", async () => {
@@ -44,9 +44,8 @@ describe("BudgetCell", () => {
     const onChange = vi.fn();
     renderCell({ value: 100, onChange });
 
-    // Click the span to start editing
-    await user.click(screen.getByText("100.00"));
-    const input = screen.getByRole("spinbutton");
+    await user.click(screen.getByText("100"));
+    const input = screen.getByRole("textbox");
     expect(input).toBeInTheDocument();
 
     await user.clear(input);
@@ -60,45 +59,44 @@ describe("BudgetCell", () => {
     const onChange = vi.fn();
     renderCell({ value: 100, onChange });
 
-    await user.click(screen.getByText("100.00"));
+    await user.click(screen.getByText("100"));
     await user.tab();
     expect(onChange).not.toHaveBeenCalled();
   });
 
   it("syncs display when prop value changes", () => {
     const { rerender } = renderCell({ value: 100, onChange: vi.fn() });
-    expect(screen.getByText("100.00")).toBeInTheDocument();
+    expect(screen.getByText("100")).toBeInTheDocument();
     rerender(
       <BudgetNavProvider>
         <BudgetCell value={200} onChange={vi.fn()} />
       </BudgetNavProvider>
     );
-    expect(screen.getByText("200.00")).toBeInTheDocument();
+    expect(screen.getByText("200")).toBeInTheDocument();
   });
 
   it("reverts to span after blur", async () => {
     const user = userEvent.setup();
     renderCell({ value: 100, onChange: vi.fn() });
 
-    await user.click(screen.getByText("100.00"));
-    expect(screen.getByRole("spinbutton")).toBeInTheDocument();
+    await user.click(screen.getByText("100"));
+    expect(screen.getByRole("textbox")).toBeVisible();
 
     await user.tab();
-    expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
-    expect(screen.getByText("100.00")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).not.toBeVisible();
+    expect(screen.getByText("100")).toBeInTheDocument();
   });
 
   describe("keyboard navigation", () => {
     it("Tab navigates right", async () => {
       const user = userEvent.setup();
-      // Render two cells so Tab can activate the next one
       render(
         <BudgetNavProvider>
           <BudgetCell value={100} onChange={vi.fn()} rowKey="Income-cat1" colIndex={1} />
           <BudgetCell value={200} onChange={vi.fn()} rowKey="Income-cat1" colIndex={2} />
         </BudgetNavProvider>
       );
-      await user.click(screen.getByText("100.00"));
+      await user.click(screen.getByText("100"));
       await user.keyboard("{Tab}");
       // After Tab, second cell should be in edit mode
       expect(screen.getByDisplayValue("200")).toBeInTheDocument();
@@ -112,7 +110,7 @@ describe("BudgetCell", () => {
           <BudgetCell value={200} onChange={vi.fn()} rowKey="Income-cat1" colIndex={2} />
         </BudgetNavProvider>
       );
-      await user.click(screen.getByText("200.00"));
+      await user.click(screen.getByText("200"));
       await user.keyboard("{Shift>}{Tab}{/Shift}");
       expect(screen.getByDisplayValue("100")).toBeInTheDocument();
     });
@@ -122,14 +120,14 @@ describe("BudgetCell", () => {
       const onChange = vi.fn();
       renderCell({ value: 100, onChange });
 
-      await user.click(screen.getByText("100.00"));
-      const input = screen.getByRole("spinbutton");
+      await user.click(screen.getByText("100"));
+      const input = screen.getByRole("textbox");
       await user.clear(input);
       await user.type(input, "999");
       await user.keyboard("{Escape}");
 
       expect(onChange).not.toHaveBeenCalled();
-      expect(screen.queryByRole("spinbutton")).not.toBeInTheDocument();
+      expect(screen.getByRole("textbox")).not.toBeVisible();
     });
   });
 });
