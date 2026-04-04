@@ -73,16 +73,16 @@ test.describe('Budget Plan - Allocation indicators', () => {
     },
   });
 
-  test('shows "-" when there are no values', async ({ budgetPlanPage }) => {
+  test('shows "—" when there are no values', async ({ budgetPlanPage }) => {
     const row = budgetPlanPage.getRemainingRow();
-    await expect(row).toContainText('-');
+    await expect(row).toContainText('—');
   });
 
   test('shows allocation value when totals do not match', async ({ budgetPlanPage }) => {
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '1000');
 
     const row = budgetPlanPage.getRemainingRow();
-    await expect(row).toContainText('1,000.00');
+    await expect(row).toContainText('£1,000.00');
   });
 
   test('shows zero remaining when income equals outflow', async ({ budgetPlanPage }) => {
@@ -92,7 +92,7 @@ test.describe('Budget Plan - Allocation indicators', () => {
     await budgetPlanPage.setCategoryAmount('Credit Card Debt', 0, '100');
 
     const row = budgetPlanPage.getRemainingRow();
-    // 1000 - 600 - 300 - 100 = 0, shows '-'
-    await expect(row).toContainText('-');
+    // 1000 - 600 - 300 - 100 = 0, shows '—'
+    await expect(row).toContainText('—');
   });
 });
