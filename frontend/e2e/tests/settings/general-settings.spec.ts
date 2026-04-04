@@ -4,10 +4,11 @@ test.describe('General Settings', () => {
   test('should display current values', async ({ settingsPage }) => {
     await expect(settingsPage.getGeneralInput('Start Year')).toHaveValue('2026');
     await expect(settingsPage.getGeneralInput('Start Month')).toHaveValue('1');
-    await expect(settingsPage.getGeneralInput('Currency')).toHaveValue('$');
+    // Currency is now a select — check the trigger shows the current currency
+    await expect(settingsPage.getCurrencyTrigger()).toContainText('USD');
   });
 
-  test('should update currency', async ({ settingsPage }) => {
+  test('should update currency via dropdown', async ({ settingsPage }) => {
     let putBody: Record<string, unknown> | null = null;
     await settingsPage.page.route(
       (url) => url.pathname === '/api/settings',
@@ -19,14 +20,14 @@ test.describe('General Settings', () => {
       }
     );
 
-    await settingsPage.setGeneralValue('Currency', '€');
+    await settingsPage.selectCurrency('EUR');
     await settingsPage.page.waitForTimeout(500);
     expect(putBody).toBeTruthy();
     expect((putBody as Record<string, unknown>).currency).toBe('€');
   });
 
   test('should show success toast after saving', async ({ settingsPage }) => {
-    await settingsPage.setGeneralValue('Currency', '€');
+    await settingsPage.setGeneralValue('Start Year', '2025');
     const toast = settingsPage.page.locator('[data-sonner-toast]', { hasText: 'Settings saved' });
     await expect(toast).toBeVisible();
   });
