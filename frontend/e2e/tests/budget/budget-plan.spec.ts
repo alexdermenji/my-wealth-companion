@@ -12,7 +12,7 @@ test.describe('Budget Plan', () => {
     const row = budgetPlanPage.getRemainingRow();
     await expect(row).toBeVisible();
     // Jan: Income(5000) - Expenses(2000) - Savings(500) - Debt(300) = 2200
-    await expect(row).toContainText('2,200.00');
+    await expect(row).toContainText('$2,200');
   });
 
   test('should display 4 budget sections', async ({ budgetPlanPage }) => {
@@ -26,7 +26,7 @@ test.describe('Budget Plan', () => {
   test('should display category amounts', async ({ budgetPlanPage }) => {
     const row = budgetPlanPage.getCategoryRow('Employment (Net)');
     // Cell shows formatted value as span text
-    await expect(row).toContainText('4,000.00');
+    await expect(row).toContainText('4,000');
   });
 
   test('should edit a budget cell', async ({ budgetPlanPage }) => {
@@ -46,16 +46,17 @@ test.describe('Budget Plan', () => {
     expect(putCalled).toBe(true);
   });
 
-  test('should show success toast after editing a budget cell', async ({ budgetPlanPage }) => {
+  test('should save cell value silently without a toast', async ({ budgetPlanPage }) => {
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '5000');
+    await budgetPlanPage.page.waitForTimeout(500);
     const toast = budgetPlanPage.page.locator('[data-sonner-toast]', { hasText: 'Budget updated' });
-    await expect(toast).toBeVisible();
+    await expect(toast).not.toBeVisible();
   });
 
   test('should display section totals', async ({ budgetPlanPage }) => {
     // Income total for Jan = 4000 + 1000 = 5000
     const totalRow = budgetPlanPage.page.locator('tr').filter({ hasText: /Total/ }).first();
-    await expect(totalRow).toContainText('5,000.00');
+    await expect(totalRow).toContainText('$5,000');
   });
 
   test('should switch year', async ({ budgetPlanPage }) => {
@@ -82,7 +83,7 @@ test.describe('Budget Plan - Allocation indicators', () => {
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '1000');
 
     const row = budgetPlanPage.getRemainingRow();
-    await expect(row).toContainText('1,000.00');
+    await expect(row).toContainText('$1,000');
   });
 
   test('shows zero remaining when income equals outflow', async ({ budgetPlanPage }) => {
