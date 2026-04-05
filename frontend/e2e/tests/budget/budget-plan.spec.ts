@@ -68,6 +68,91 @@ test.describe('Budget Plan', () => {
   });
 });
 
+test.describe('Budget Plan - Shift+Tab fill', () => {
+  test.use({
+    mockOptions: {
+      budgetPlans: { initialData: [] },
+    },
+  });
+
+  test('fills next empty month and moves focus there', async ({ budgetPlanPage }) => {
+    await budgetPlanPage.fillAndShiftTab('Employment (Net)', 0, '3000');
+
+    const feb = budgetPlanPage.getCellInput('Employment (Net)', 1);
+    await expect(feb).toHaveValue('3,000.00');
+    await expect(feb).toBeFocused();
+  });
+
+  test('chains fill across months with repeated Shift+Tab', async ({ budgetPlanPage }) => {
+    await budgetPlanPage.fillAndShiftTab('Employment (Net)', 0, '2000');
+
+    const feb = budgetPlanPage.getCellInput('Employment (Net)', 1);
+    await expect(feb).toBeFocused();
+
+    // Press Shift+Tab while focus is on Feb — should fill Mar
+    await budgetPlanPage.page.keyboard.press('Shift+Tab');
+
+    const mar = budgetPlanPage.getCellInput('Employment (Net)', 2);
+    await expect(mar).toHaveValue('2,000.00');
+    await expect(mar).toBeFocused();
+
+    // Feb should also carry the same value
+    await expect(feb).toHaveValue('2,000.00');
+  });
+
+  test('does not overwrite a month that already has a value', async ({ budgetPlanPage }) => {
+    // Seed Jan = 3000 and Feb = 1500
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '3000');
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 1, '1500');
+
+    // Shift+Tab from Jan — Feb already has 1500, should not be overwritten
+    await budgetPlanPage.shiftTabCell('Employment (Net)', 0);
+
+    const feb = budgetPlanPage.getCellInput('Employment (Net)', 1);
+    await expect(feb).toHaveValue('1,500.00');
+    await expect(feb).toBeFocused();
+  });
+
+  test('regular Tab does not fill the next month', async ({ budgetPlanPage }) => {
+    // setCategoryAmount commits via regular Tab — Feb should remain empty
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '2000');
+
+    const feb = budgetPlanPage.getCellInput('Employment (Net)', 1);
+    await expect(feb).toHaveValue('');
+  });
+
+  test('fires a PUT request for the filled month', async ({ budgetPlanPage }) => {
+    const puts: Array<{ categoryId: string; month: number; amount: number }> = [];
+    await budgetPlanPage.page.route(
+      (url) => url.pathname === '/api/budget-plans',
+      async (route, request) => {
+        if (request.method() === 'PUT') puts.push(request.postDataJSON());
+        await route.fallback();
+      },
+    );
+
+    await budgetPlanPage.fillAndShiftTab('Employment (Net)', 0, '1500');
+    await budgetPlanPage.page.waitForTimeout(400);
+
+    const febPut = puts.find(r => r.month === 2);
+    expect(febPut).toBeDefined();
+    expect(febPut?.amount).toBe(1500);
+  });
+
+  test('Shift+Tab from December does not fill a non-existent month', async ({ budgetPlanPage }) => {
+    // Month index 11 = December (the last column)
+    await budgetPlanPage.fillAndShiftTab('Employment (Net)', 11, '1000');
+
+    // Dec should be committed with the typed value
+    const dec = budgetPlanPage.getCellInput('Employment (Net)', 11);
+    await expect(dec).toHaveValue('1,000.00');
+
+    // No "month 13" input should exist
+    const row = budgetPlanPage.getCategoryRow('Employment (Net)');
+    await expect(row.locator('input[type="text"]')).toHaveCount(12);
+  });
+});
+
 test.describe('Budget Plan - Allocation indicators', () => {
   test.use({
     mockOptions: {
