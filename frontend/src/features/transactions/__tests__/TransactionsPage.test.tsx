@@ -7,6 +7,7 @@ import { useTransactions, useCreateTransaction } from "../hooks";
 import { useAccounts } from "@/shared/hooks/useAccounts";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useSettings } from "@/features/settings/hooks";
+import type { FormValues } from "../components/TransactionForm";
 
 vi.mock("../hooks");
 vi.mock("@/shared/hooks/useAccounts");
@@ -14,7 +15,11 @@ vi.mock("@/shared/hooks/useCategories");
 vi.mock("@/features/settings/hooks");
 
 vi.mock("../components/TransactionForm", () => ({
-  TransactionForm: ({ open, onOpenChange, onSubmit }: any) => (
+  TransactionForm: ({ open, onOpenChange, onSubmit }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSubmit: (data: FormValues) => void;
+  }) => (
     <>
       <button onClick={() => onOpenChange(true)}>Add Transaction</button>
       {open && (
