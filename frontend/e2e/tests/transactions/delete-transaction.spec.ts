@@ -20,9 +20,11 @@ test.describe('Delete Transaction', () => {
 
   test('should delete newly added transaction', async ({ transactionsPage }) => {
     await transactionsPage.addTransaction({
-      amount: '-25.00',
+      amount: '25.00',
       details: 'Temp purchase',
       account: 'Bank Account',
+      budgetType: 'Expenses',
+      budgetPosition: 'Groceries',
     });
 
     await transactionsPage.table.expectRowCount(3);

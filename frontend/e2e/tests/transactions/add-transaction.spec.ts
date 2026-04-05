@@ -7,7 +7,7 @@ test.describe('Add Transaction', () => {
 
     await transactionsPage.addTransaction({
       date: '2026-02-14',
-      amount: '-55.00',
+      amount: '55.00',
       details: 'Coffee supplies',
       account: 'Bank Account',
       budgetType: 'Expenses',
@@ -28,16 +28,6 @@ test.describe('Add Transaction', () => {
     });
 
     await transactionsPage.table.expectRowContains('Freelance payment', ['$1,200.00']);
-  });
-
-  test('should add a transaction without budget type/position', async ({ transactionsPage }) => {
-    await transactionsPage.addTransaction({
-      amount: '-20.00',
-      details: 'Miscellaneous purchase',
-      account: 'Cash on Hand',
-    });
-
-    await transactionsPage.table.expectRowContains('Miscellaneous purchase', ['$20.00']);
   });
 
   test('should close dialog without adding when cancelled', async ({ transactionsPage }) => {
@@ -62,7 +52,7 @@ test.describe('Add Transaction', () => {
 
   test('should add to a different account', async ({ transactionsPage }) => {
     await transactionsPage.addTransaction({
-      amount: '-150.00',
+      amount: '150.00',
       details: 'Credit card purchase',
       account: 'Credit Card 1',
       budgetType: 'Expenses',
@@ -76,15 +66,19 @@ test.describe('Add Transaction', () => {
     const initialCount = await transactionsPage.table.getRowCount();
 
     await transactionsPage.addTransaction({
-      amount: '-30.00',
+      amount: '30.00',
       details: 'First purchase',
       account: 'Bank Account',
+      budgetType: 'Expenses',
+      budgetPosition: 'Groceries',
     });
 
     await transactionsPage.addTransaction({
-      amount: '-45.00',
+      amount: '45.00',
       details: 'Second purchase',
       account: 'Bank Account',
+      budgetType: 'Expenses',
+      budgetPosition: 'Groceries',
     });
 
     await transactionsPage.table.expectRowCount(initialCount + 2);
@@ -103,36 +97,16 @@ test.describe('Add Transaction', () => {
     await typeListbox.waitFor({ state: 'visible' });
     await typeListbox.getByRole('option', { name: 'Income', exact: true }).click();
 
-    // Open Budget Position dropdown
+    // Open Budget Position input combobox
     const posLabel = dialog.locator('label', { hasText: 'Budget Position' });
     const posContainer = posLabel.locator('..');
-    await posContainer.locator('button[role="combobox"]').click();
-
-    const posListbox = transactionsPage.page.locator('[role="listbox"]');
-    await posListbox.waitFor({ state: 'visible' });
+    await posContainer.locator('input').click();
 
     // Should see Income categories
-    await expect(posListbox.getByRole('option', { name: 'Employment (Net)' })).toBeVisible();
-    await expect(posListbox.getByRole('option', { name: 'Side Hustle (Net)' })).toBeVisible();
+    await expect(posContainer.getByText('Employment (Net)', { exact: true })).toBeVisible();
+    await expect(posContainer.getByText('Side Hustle (Net)', { exact: true })).toBeVisible();
     // Should NOT see Expenses categories
-    await expect(posListbox.getByRole('option', { name: 'Groceries' })).not.toBeVisible();
-  });
-});
-
-test.describe('Add Transaction - Default Account', () => {
-  test('should submit with the default account without explicitly selecting one', async ({ transactionsPage }) => {
-    const initialCount = await transactionsPage.table.getRowCount();
-
-    await transactionsPage.openAddDialog();
-
-    // Fill only amount and details — do NOT select an account
-    await transactionsPage.form.amountInput.fill('-25.00');
-    await transactionsPage.form.detailsInput.fill('Default account test');
-    await transactionsPage.form.submit();
-    await transactionsPage.form.waitForClosed();
-
-    await transactionsPage.table.expectRowCount(initialCount + 1);
-    await transactionsPage.table.expectRowContains('Default account test', ['$25.00']);
+    await expect(posContainer.getByText('Groceries', { exact: true })).not.toBeVisible();
   });
 });
 

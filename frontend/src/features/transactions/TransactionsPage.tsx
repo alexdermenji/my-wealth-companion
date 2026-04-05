@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
 import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from './hooks';
 import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useSettings } from '@/features/settings/hooks';
-import { TransactionForm } from './components/TransactionForm';
+import { TransactionForm, FormValues } from './components/TransactionForm';
 import { TransactionTable } from './components/TransactionTable';
 
-const BUDGET_TYPES: (BudgetType | '')[] = ['Income', 'Expenses', 'Savings', 'Debt', 'Transfer', ''];
+const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt', 'Transfer'];
+const OUTFLOW_TYPES: (BudgetType | '')[] = ['Expenses', 'Debt'];
 
 export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<string>('all');
@@ -31,68 +31,25 @@ export default function TransactionsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
 
-  const [form, setForm] = useState({
-    date: format(new Date(), 'yyyy-MM-dd'),
-    amount: '',
-    details: '',
-    accountId: accounts[0]?.id ?? '',
-    budgetType: '' as BudgetType | '',
-    budgetPositionId: '',
-  });
+  const handleSubmit = (data: FormValues) => {
+    const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
+      ? -Math.abs(data.amount)
+      : Math.abs(data.amount);
 
-  useEffect(() => {
-    if (accounts.length > 0 && !form.accountId) {
-      setForm(f => ({ ...f, accountId: accounts[0].id }));
+    const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType };
+    if (editing) {
+      updateTransactionMutation.mutate({ id: editing.id, data: payload });
+    } else {
+      createTransaction.mutate(payload);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accounts]);
-
-  const resetForm = () => {
-    setForm({
-      date: format(new Date(), 'yyyy-MM-dd'),
-      amount: '',
-      details: '',
-      accountId: accounts[0]?.id ?? '',
-      budgetType: '',
-      budgetPositionId: '',
-    });
+    setOpen(false);
     setEditing(null);
   };
 
-  const handleSubmit = () => {
-    const amount = parseFloat(form.amount);
-    if (isNaN(amount) || !form.date || !form.accountId) return;
-
-    if (editing) {
-      updateTransactionMutation.mutate({
-        id: editing.id,
-        data: { ...form, amount, budgetType: form.budgetType },
-      });
-    } else {
-      createTransaction.mutate({
-        ...form,
-        amount,
-        budgetType: form.budgetType,
-      });
-    }
-    setOpen(false);
-    resetForm();
-  };
-
   const handleEdit = (tx: Transaction) => {
-    setForm({
-      date: tx.date,
-      amount: tx.amount.toString(),
-      details: tx.details,
-      accountId: tx.accountId,
-      budgetType: tx.budgetType,
-      budgetPositionId: tx.budgetPositionId,
-    });
     setEditing(tx);
     setOpen(true);
   };
-
-  const filteredCategories = categories.filter(c => !form.budgetType || c.type === form.budgetType);
 
   const getAccountName = (id: string) => accounts.find(a => a.id === id)?.name ?? 'Unknown';
   const getCategoryName = (id: string) => categories.find(c => c.id === id)?.name ?? '-';
@@ -108,14 +65,19 @@ export default function TransactionsPage() {
         </div>
         <TransactionForm
           open={open}
-          onOpenChange={setOpen}
+          onOpenChange={o => { setOpen(o); if (!o) setEditing(null); }}
           editing={!!editing}
-          form={form}
-          onFormChange={setForm}
+          defaultValues={editing ? {
+            date: editing.date,
+            amount: Math.abs(editing.amount),
+            details: editing.details,
+            accountId: editing.accountId,
+            budgetType: editing.budgetType,
+            budgetPositionId: editing.budgetPositionId,
+          } : undefined}
           onSubmit={handleSubmit}
-          onReset={resetForm}
           accounts={accounts}
-          filteredCategories={filteredCategories}
+          categories={categories}
         />
       </div>
 
@@ -125,7 +87,7 @@ export default function TransactionsPage() {
           <SelectTrigger className="w-36"><SelectValue placeholder="All types" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            {BUDGET_TYPES.filter(Boolean).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+            {BUDGET_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterAccount} onValueChange={setFilterAccount}>
