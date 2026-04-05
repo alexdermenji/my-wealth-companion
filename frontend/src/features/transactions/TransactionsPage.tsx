@@ -36,13 +36,11 @@ export default function TransactionsPage() {
       ? -Math.abs(data.amount)
       : Math.abs(data.amount);
 
+    const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType };
     if (editing) {
-      updateTransactionMutation.mutate({
-        id: editing.id,
-        data: { ...data, amount: signedAmount },
-      });
+      updateTransactionMutation.mutate({ id: editing.id, data: payload });
     } else {
-      createTransaction.mutate({ ...data, amount: signedAmount });
+      createTransaction.mutate(payload);
     }
     setOpen(false);
     setEditing(null);
