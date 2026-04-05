@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { TransactionTable } from "../TransactionTable";
 import type { Transaction } from "../../types";
+import { format, parseISO } from "date-fns";
 
 const mockTransactions: Transaction[] = [
   {
@@ -45,6 +46,10 @@ describe("TransactionTable", () => {
     render(<TransactionTable {...defaultProps} />);
     expect(screen.getByText("15-Jan-26")).toBeInTheDocument();
     expect(screen.getByText("20-Jan-26")).toBeInTheDocument();
+  });
+
+  it("treats API date strings as calendar dates instead of UTC timestamps", () => {
+    expect(format(parseISO("2026-01-15"), "dd-MMM-yy")).toBe("15-Jan-26");
   });
 
   it("formats currency with parentheses for negative amounts", () => {

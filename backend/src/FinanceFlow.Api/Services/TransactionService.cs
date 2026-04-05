@@ -2,6 +2,7 @@ using FinanceFlow.Api.Data;
 using FinanceFlow.Api.Models.Domain;
 using FinanceFlow.Api.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace FinanceFlow.Api.Services;
 
@@ -17,6 +18,13 @@ public class TransactionService : ITransactionService
     // Convert empty string to null for the FK column
     private static string? NormalizeId(string? id) =>
         string.IsNullOrEmpty(id) ? null : id;
+
+    // Transaction dates are calendar dates from the UI, not instants in time.
+    private static DateTime ParseTransactionDate(string value) =>
+        DateTime.SpecifyKind(
+            DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            DateTimeKind.Unspecified
+        );
 
     public async Task<List<TransactionDto>> GetAllAsync(string? budgetType = null, string? accountId = null)
     {
@@ -59,7 +67,7 @@ public class TransactionService : ITransactionService
     {
         var transaction = new Transaction
         {
-            Date = DateTime.Parse(request.Date).ToUniversalTime(),
+            Date = ParseTransactionDate(request.Date),
             Amount = request.Amount,
             Details = request.Details,
             AccountId = request.AccountId,
@@ -79,7 +87,7 @@ public class TransactionService : ITransactionService
         var transaction = await _db.Transactions.FindAsync(id);
         if (transaction is null) return null;
 
-        transaction.Date = DateTime.Parse(request.Date).ToUniversalTime();
+        transaction.Date = ParseTransactionDate(request.Date);
         transaction.Amount = request.Amount;
         transaction.Details = request.Details;
         transaction.AccountId = request.AccountId;
