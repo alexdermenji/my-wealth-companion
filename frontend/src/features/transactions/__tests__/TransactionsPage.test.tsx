@@ -13,6 +13,31 @@ vi.mock("@/shared/hooks/useAccounts");
 vi.mock("@/shared/hooks/useCategories");
 vi.mock("@/features/settings/hooks");
 
+vi.mock("../components/TransactionForm", () => ({
+  TransactionForm: ({ open, onOpenChange, onSubmit }: any) => (
+    <>
+      <button onClick={() => onOpenChange(true)}>Add Transaction</button>
+      {open && (
+        <button
+          data-testid="mock-submit"
+          onClick={() =>
+            onSubmit({
+              date: "2026-01-15",
+              amount: 50,
+              details: "Groceries",
+              accountId: "a1",
+              budgetType: "Expenses",
+              budgetPositionId: "c2",
+            })
+          }
+        >
+          Submit Form
+        </button>
+      )}
+    </>
+  ),
+}));
+
 const mockTransactions = [
   {
     id: "t1",
@@ -98,7 +123,7 @@ describe("TransactionsPage", () => {
     expect(screen.getByText("($85.50)")).toBeInTheDocument();
   });
 
-  it("calls createTransaction.mutate when submitting with default account", async () => {
+  it("applies negative sign for Expenses and calls createTransaction.mutate", async () => {
     const mutateFn = vi.fn();
     vi.mocked(useCreateTransaction).mockReturnValue({
       mutate: mutateFn,
@@ -107,22 +132,15 @@ describe("TransactionsPage", () => {
     renderWithProviders(<TransactionsPage />);
     const user = userEvent.setup();
 
-    // Open dialog
     await user.click(screen.getByRole("button", { name: /add transaction/i }));
-
-    // Fill amount (the only required field besides accountId and date which have defaults)
-    const amountInput = screen.getByPlaceholderText("-100.00");
-    await user.clear(amountInput);
-    await user.type(amountInput, "-50");
-
-    // Submit without explicitly selecting an account — should use the default
-    await user.click(screen.getByRole("button", { name: /add transaction$/i }));
+    await user.click(screen.getByTestId("mock-submit"));
 
     expect(mutateFn).toHaveBeenCalledTimes(1);
     expect(mutateFn).toHaveBeenCalledWith(
       expect.objectContaining({
-        accountId: "a1",
         amount: -50,
+        accountId: "a1",
+        budgetType: "Expenses",
       })
     );
   });
