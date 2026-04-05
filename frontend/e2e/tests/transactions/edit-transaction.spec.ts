@@ -23,6 +23,17 @@ test.describe('Edit Transaction', () => {
     await transactionsPage.table.expectRowContains('Updated salary', ['$4,000.00']);
   });
 
+  test('should edit transaction date and show the updated date in the table', async ({ transactionsPage }) => {
+    await transactionsPage.table.clickEdit('Monthly salary');
+    await transactionsPage.form.waitForOpen();
+
+    await transactionsPage.form.dateInput.fill('2026-02-10');
+    await transactionsPage.form.submit();
+    await transactionsPage.form.waitForClosed();
+
+    await transactionsPage.table.expectRowDate('Monthly salary', '10-Feb-26');
+  });
+
   test('should edit transaction account', async ({ transactionsPage }) => {
     await transactionsPage.table.clickEdit('Walmart groceries');
     await transactionsPage.form.waitForOpen();

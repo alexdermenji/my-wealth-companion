@@ -61,6 +61,10 @@ public class FinanceDbContext : DbContext
             .Property(t => t.Amount)
             .HasColumnType("REAL");
 
+        modelBuilder.Entity<Transaction>()
+            .Property(t => t.Date)
+            .HasColumnType("date");
+
         modelBuilder.Entity<BudgetPlan>()
             .Property(bp => bp.Amount)
             .HasColumnType("REAL");

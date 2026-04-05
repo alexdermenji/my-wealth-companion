@@ -39,6 +39,11 @@ export class TransactionTable {
     }
   }
 
+  async expectRowDate(details: string, expectedDate: string) {
+    const row = this.getRowByDetails(details);
+    await expect(row.locator('td').first()).toHaveText(expectedDate);
+  }
+
   async clickEdit(details: string) {
     const row = this.getRowByDetails(details);
     await row.locator('button').first().click();

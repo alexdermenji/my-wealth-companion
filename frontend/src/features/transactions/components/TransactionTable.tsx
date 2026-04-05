@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2, Pencil } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 interface TransactionTableProps {
@@ -48,7 +48,7 @@ export function TransactionTable({
             ) : (
               transactions.map(tx => (
                 <TableRow key={tx.id}>
-                  <TableCell className="text-sm">{format(new Date(tx.date), 'dd-MMM-yy')}</TableCell>
+                  <TableCell className="text-sm">{format(parseISO(tx.date), 'dd-MMM-yy')}</TableCell>
                   <TableCell className={cn('font-medium', tx.amount >= 0 ? 'amount-positive' : 'amount-negative')}>
                     {tx.amount < 0 ? `(${formatCurrency(tx.amount)})` : formatCurrency(tx.amount)}
                   </TableCell>
