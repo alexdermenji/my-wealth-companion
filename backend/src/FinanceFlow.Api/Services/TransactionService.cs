@@ -23,7 +23,7 @@ public class TransactionService : ITransactionService
     private static DateTime ParseTransactionDate(string value) =>
         DateTime.SpecifyKind(
             DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture),
-            DateTimeKind.Unspecified
+            DateTimeKind.Utc
         );
 
     public async Task<List<TransactionDto>> GetAllAsync(string? budgetType = null, string? accountId = null)
