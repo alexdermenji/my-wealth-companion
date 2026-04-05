@@ -32,6 +32,14 @@ function ProgressRing({ pct, accentVar }: { pct: number; accentVar: string }) {
   );
 }
 
+function pctColorClass(pct: number): string {
+  if (pct === 0)   return 'text-muted-foreground';
+  if (pct > 100)   return 'text-expense font-semibold';
+  if (pct === 100) return 'text-emerald-500 font-medium';
+  if (pct >= 75)   return 'text-amber-500 font-medium';
+  return 'text-foreground';
+}
+
 interface Props {
   breakdown: BudgetTypeBreakdown[];
   formatCurrency: (v: number) => string;
@@ -136,7 +144,7 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
               </tr>
             </thead>
             <tbody>
-              {selected?.items.filter(i => i.budget > 0 || i.tracked > 0).map(item => {
+              {selected?.items.filter(i => i.budget > 0 || i.tracked > 0).slice().sort((a, b) => b.percentage - a.percentage || b.tracked - a.tracked).map(item => {
                 const remaining = item.budget > item.tracked ? item.budget - item.tracked : 0;
                 const excess = item.tracked > item.budget && item.budget > 0 ? item.tracked - item.budget : 0;
                 return (
@@ -151,7 +159,7 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
                         <Progress value={Math.min(item.percentage, 100)} className="h-1.5 flex-1" />
-                        <span className="text-xs tabular-nums text-muted-foreground w-9 text-right">
+                        <span className={`text-xs tabular-nums w-9 text-right ${pctColorClass(item.percentage)}`}>
                           {item.percentage}%
                         </span>
                       </div>
@@ -195,7 +203,7 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                           : 0}
                         className="h-1.5 flex-1"
                       />
-                      <span className="text-xs tabular-nums text-muted-foreground w-9 text-right">
+                      <span className={`text-xs tabular-nums w-9 text-right ${pctColorClass(selected && selected.totalBudget > 0 ? Math.floor(selected.totalTracked / selected.totalBudget * 100) : 0)}`}>
                         {selected && selected.totalBudget > 0
                           ? `${Math.floor(selected.totalTracked / selected.totalBudget * 100)}%`
                           : '0%'}
