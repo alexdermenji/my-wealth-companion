@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../types';
 import { TableCell, TableRow } from '@/components/ui/table';
@@ -57,6 +57,31 @@ export function BudgetSection({
   const forceDeleteMutation = useForceDeleteCategory();
   const reorderMutation = useReorderCategory();
 
+  // Refs to every BudgetCell input, keyed by `${catId}|${month}`
+  const cellRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Optimistic values applied by Tab-fill before the mutation round-trips.
+  // Key: `${catId}|${month}`, value: raw numeric string (no commas).
+  const [tabFills, setTabFills] = useState<Record<string, string>>({});
+
+  // Once React Query returns real data for a tab-filled cell, drop the optimistic entry.
+  useEffect(() => {
+    if (Object.keys(tabFills).length === 0) return;
+    setTabFills(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const key of Object.keys(next)) {
+        const [catId, monthStr] = key.split('|');
+        const plan = budgetPlans.find(bp => bp.categoryId === catId);
+        if ((plan?.months[parseInt(monthStr, 10)] ?? 0) > 0) {
+          delete next[key];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [budgetPlans]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const typeCats = useMemo(
     () => categories.filter(c => c.type === type).sort((a, b) => a.order - b.order),
     [categories, type],
@@ -78,8 +103,28 @@ export function BudgetSection({
   );
 
   const getBudget = (catId: string, month: number): number => {
+    const fill = tabFills[`${catId}|${month}`];
+    if (fill !== undefined) return parseFloat(fill) || 0;
     const plan = budgetPlans.find(bp => bp.categoryId === catId);
     return plan?.months[month] ?? 0;
+  };
+
+  // Shift+Tab: fill the next empty month with the current value and advance focus.
+  // Regular Tab is left to the browser (no interception).
+  const handleTab = (catId: string, month: number, value: string) => {
+    if (month >= 12) return; // Dec — end of year
+
+    const nextMonth = month + 1;
+    if (value && getBudget(catId, nextMonth) === 0) {
+      // Fill the next empty cell optimistically so onFocus sees the value immediately
+      setTabFills(prev => ({ ...prev, [`${catId}|${nextMonth}`]: value }));
+      onAmountChange(catId, nextMonth, value);
+      // Defer focus so React can flush the state update before onFocus reads it
+      setTimeout(() => cellRefs.current[`${catId}|${nextMonth}`]?.focus(), 0);
+    } else {
+      // Next cell already has a value — just move focus, never overwrite
+      cellRefs.current[`${catId}|${nextMonth}`]?.focus();
+    }
   };
 
   const getMonthTotal = (month: number) =>
@@ -271,8 +316,11 @@ export function BudgetSection({
             {visibleMonths.map(mo => (
               <TableCell key={mo} className="border-r border-[#f0f2f8] px-1 py-1 dark:border-border">
                 <BudgetCell
+                  ref={el => { cellRefs.current[`${cat.id}|${mo}`] = el; }}
                   value={getBudget(cat.id, mo)}
                   onChange={v => onAmountChange(cat.id, mo, v)}
+                  onTab={v => handleTab(cat.id, mo, v)}
+                  tabHint={mo < 12 && getBudget(cat.id, mo) > 0 && getBudget(cat.id, mo + 1) === 0}
                   accentColor={accentColor}
                 />
               </TableCell>

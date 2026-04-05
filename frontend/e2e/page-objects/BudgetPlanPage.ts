@@ -44,6 +44,11 @@ export class BudgetPlanPage {
     return this.page.locator('tr').filter({ hasText: categoryName });
   }
 
+  /** Returns the input locator for a month cell without clicking or focusing it. */
+  getCellInput(categoryName: string, monthIndex: number) {
+    return this.getCategoryRow(categoryName).locator('input[type="text"]').nth(monthIndex);
+  }
+
   async setCategoryAmount(categoryName: string, monthIndex: number, value: string) {
     const row = this.getCategoryRow(categoryName);
     // Budget cells are text inputs, one per month column (after the 2-col category cell)
@@ -52,6 +57,22 @@ export class BudgetPlanPage {
     await input.selectText();
     await input.fill(value);
     await input.press('Tab');
+  }
+
+  /** Type a value then press Shift+Tab to trigger the fill-forward behaviour. */
+  async fillAndShiftTab(categoryName: string, monthIndex: number, value: string) {
+    const input = this.getCellInput(categoryName, monthIndex);
+    await input.click();
+    await input.selectText();
+    await input.fill(value);
+    await input.press('Shift+Tab');
+  }
+
+  /** Click a cell and press Shift+Tab without typing (used to test fill from an existing value). */
+  async shiftTabCell(categoryName: string, monthIndex: number) {
+    const input = this.getCellInput(categoryName, monthIndex);
+    await input.click();
+    await input.press('Shift+Tab');
   }
 
   async getCategoryInput(categoryName: string, monthIndex: number): Promise<string> {
