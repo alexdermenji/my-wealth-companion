@@ -21,7 +21,7 @@ export class TransactionFormDialog {
     this.dialog = page.locator('[role="dialog"]');
     this.dateInput = this.dialog.locator('input[type="date"]');
     this.amountInput = this.dialog.locator('input[type="number"]');
-    this.detailsInput = this.dialog.locator('input[placeholder*="Walmart"]');
+    this.detailsInput = this.dialog.locator('input[placeholder*="Tesco"]');
     this.submitButton = this.dialog.getByRole('button', { name: /add|update/i });
   }
 
@@ -53,7 +53,7 @@ export class TransactionFormDialog {
     }
 
     if (data.budgetPosition) {
-      await this.selectByLabel('Budget Position', data.budgetPosition);
+      await this.selectBudgetPosition(data.budgetPosition);
     }
   }
 
@@ -65,6 +65,13 @@ export class TransactionFormDialog {
     await this.fill(data);
     await this.submit();
     await this.waitForClosed();
+  }
+
+  private async selectBudgetPosition(optionText: string) {
+    const posLabel = this.dialog.locator('label', { hasText: 'Budget Position' });
+    const posContainer = posLabel.locator('..');
+    await posContainer.locator('input').click();
+    await posContainer.getByText(optionText, { exact: true }).click();
   }
 
   private async selectByLabel(labelText: string, optionText: string) {
