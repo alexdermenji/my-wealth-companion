@@ -16,35 +16,47 @@ test.describe('Dashboard', () => {
   });
 
   test('should display breakdown section', async ({ dashboardPage }) => {
-    const title = dashboardPage.getBreakdownTitle();
-    await expect(title).toContainText('Breakdown');
+    // Income is selected by default — its categories appear in the detail table
+    await expect(dashboardPage.page.getByText('Employment (Net)', { exact: true })).toBeVisible();
 
-    const breakdownCard = dashboardPage.page.locator('.rounded-lg').filter({ hasText: /Breakdown —/ });
-    await expect(breakdownCard.getByText('Employment (Net)', { exact: true })).toBeVisible();
-    await expect(breakdownCard.getByText('Groceries', { exact: true })).toBeVisible();
+    // Switch to Expenses — Groceries should now appear
+    await dashboardPage.getNavigatorTile('Expenses').click();
+    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).toBeVisible();
   });
 
   test('should change year', async ({ dashboardPage }) => {
+    // Mock returns hasData=false for any year other than 2026, so Income tracked becomes $0
     await dashboardPage.selectYear('2025');
-    const title = dashboardPage.getBreakdownTitle();
-    await expect(title).toContainText('2025');
+    const income = await dashboardPage.getSummaryValue('Income');
+    expect(income).toContain('0');
   });
 
   test('should change month', async ({ dashboardPage }) => {
     await dashboardPage.selectMonth('Jan');
-    const title = dashboardPage.getBreakdownTitle();
-    await expect(title).toContainText('Jan');
+    await expect(dashboardPage.getMonthTrigger()).toContainText('Jan');
   });
 
-  test('should show bar chart', async ({ dashboardPage }) => {
-    const chartCard = dashboardPage.getChartCard('Income vs Expenses');
-    await expect(chartCard).toBeVisible();
-    await expect(chartCard.locator('.recharts-responsive-container')).toBeVisible();
+  test('should update detail panel title when switching tiles', async ({ dashboardPage }) => {
+    // Default: Income detail panel is shown
+    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Income');
+
+    // Click Expenses tile — detail panel title updates
+    await dashboardPage.getNavigatorTile('Expenses').click();
+    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Expenses');
+
+    // Click Savings tile
+    await dashboardPage.getNavigatorTile('Savings').click();
+    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Savings');
   });
 
-  test('should show pie chart empty message when no expenses', async ({ dashboardPage }) => {
-    // Select a month with no expense data
-    await dashboardPage.selectMonth('Dec');
-    await expect(dashboardPage.getPieEmptyMessage()).toBeVisible();
+  test('should show categories for selected tile', async ({ dashboardPage }) => {
+    // Expenses tile → Groceries visible
+    await dashboardPage.getNavigatorTile('Expenses').click();
+    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).toBeVisible();
+
+    // Back to Income → Employment (Net) visible, Groceries gone
+    await dashboardPage.getNavigatorTile('Income').click();
+    await expect(dashboardPage.page.getByText('Employment (Net)', { exact: true })).toBeVisible();
+    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).not.toBeVisible();
   });
 });

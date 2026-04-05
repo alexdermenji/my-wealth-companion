@@ -1,4 +1,4 @@
-import { Page, Locator, expect } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 import { RadixSelect } from './components/RadixSelect';
 
 export class DashboardPage {
@@ -25,20 +25,27 @@ export class DashboardPage {
     await monthSelect.selectOption(month);
   }
 
+  /** Returns the tracked-amount text from a navigator tile (e.g. "$3,500"). */
   async getSummaryValue(label: string): Promise<string> {
-    const card = this.page.locator('.rounded-lg').filter({ hasText: label });
-    return card.locator('.stat-value').first().innerText();
+    const tile = this.page.getByRole('button', { name: new RegExp(label, 'i') });
+    return tile.locator('.text-lg').innerText();
   }
 
-  getBreakdownTitle(): Locator {
-    return this.page.locator('h2, h3').filter({ hasText: /Breakdown —/ });
+  /** The navigator tile button for a given budget type. */
+  getNavigatorTile(type: string): Locator {
+    return this.page.getByRole('button', { name: new RegExp(type, 'i') });
   }
 
-  getChartCard(title: string): Locator {
-    return this.page.locator('.rounded-lg').filter({ hasText: title });
+  /** The h3 CardTitle inside the detail panel showing the active type name. */
+  getDetailPanelTitle(): Locator {
+    return this.page.getByRole('heading', { level: 3 });
   }
 
-  getPieEmptyMessage(): Locator {
-    return this.page.getByText('No expense data for this period');
+  getYearTrigger(): Locator {
+    return this.page.locator('.flex.gap-2 button[role="combobox"]').first();
+  }
+
+  getMonthTrigger(): Locator {
+    return this.page.locator('.flex.gap-2 button[role="combobox"]').nth(1);
   }
 }
