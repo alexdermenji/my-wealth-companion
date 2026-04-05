@@ -141,8 +141,7 @@ describe("BudgetBreakdown", () => {
   });
 
   describe("Excess column", () => {
-    it("shows excess amount when tracked exceeds budget", async () => {
-      const user = userEvent.setup();
+    it("shows excess amount when tracked exceeds budget", () => {
       const breakdownWithExcess: BudgetTypeBreakdown[] = [
         {
           type: "Expenses",
@@ -260,10 +259,9 @@ describe("BudgetBreakdown", () => {
       expect(totalRow).toHaveTextContent("£1450");
     });
 
-    it("total % uses Math.floor, consistent with category item percentages", async () => {
+    it("total % uses Math.floor, consistent with category item percentages", () => {
       // tracked=100, budget=350 → 28.57 → item.percentage=28 (backend truncates)
       // total % should also be Math.floor(28.57) = 28, not Math.round = 29
-      const user = userEvent.setup();
       const breakdown: BudgetTypeBreakdown[] = [
         {
           type: "Expenses",
