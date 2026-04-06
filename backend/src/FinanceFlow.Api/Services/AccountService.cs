@@ -17,7 +17,7 @@ public class AccountService : IAccountService
     public async Task<List<AccountDto>> GetAllAsync()
     {
         return await _db.Accounts
-            .Select(a => new AccountDto(a.Id, a.Name, a.Type))
+            .Select(a => new AccountDto(a.Id, a.Name, a.Type, a.OpeningBalance))
             .ToListAsync();
     }
 
@@ -25,7 +25,7 @@ public class AccountService : IAccountService
     {
         var account = await _db.Accounts.FindAsync(id);
         if (account is null) return null;
-        return new AccountDto(account.Id, account.Name, account.Type);
+        return new AccountDto(account.Id, account.Name, account.Type, account.OpeningBalance);
     }
 
     public async Task<AccountDto> CreateAsync(CreateAccountRequest request)
@@ -33,11 +33,12 @@ public class AccountService : IAccountService
         var account = new Account
         {
             Name = request.Name,
-            Type = request.Type
+            Type = request.Type,
+            OpeningBalance = request.OpeningBalance
         };
         _db.Accounts.Add(account);
         await _db.SaveChangesAsync();
-        return new AccountDto(account.Id, account.Name, account.Type);
+        return new AccountDto(account.Id, account.Name, account.Type, account.OpeningBalance);
     }
 
     public async Task<AccountDto?> UpdateAsync(string id, UpdateAccountRequest request)
@@ -47,8 +48,9 @@ public class AccountService : IAccountService
 
         account.Name = request.Name;
         account.Type = request.Type;
+        account.OpeningBalance = request.OpeningBalance;
         await _db.SaveChangesAsync();
-        return new AccountDto(account.Id, account.Name, account.Type);
+        return new AccountDto(account.Id, account.Name, account.Type, account.OpeningBalance);
     }
 
     public async Task<bool> DeleteAsync(string id)

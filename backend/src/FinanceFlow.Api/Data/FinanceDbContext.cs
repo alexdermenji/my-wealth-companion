@@ -69,6 +69,10 @@ public class FinanceDbContext : DbContext
             .Property(bp => bp.Amount)
             .HasColumnType("REAL");
 
+        modelBuilder.Entity<Account>()
+            .Property(a => a.OpeningBalance)
+            .HasColumnType("REAL");
+
         // Index on UserId for faster queries
         modelBuilder.Entity<Account>().HasIndex(e => e.UserId);
         modelBuilder.Entity<Transaction>().HasIndex(e => e.UserId);

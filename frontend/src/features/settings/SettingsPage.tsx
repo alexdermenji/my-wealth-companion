@@ -35,7 +35,7 @@ export default function SettingsPage() {
 
   // Account form
   const [accOpen, setAccOpen] = useState(false);
-  const [accForm, setAccForm] = useState({ name: '', type: 'Bank' as typeof ACCOUNT_TYPES[number] });
+  const [accForm, setAccForm] = useState({ name: '', type: 'Bank' as typeof ACCOUNT_TYPES[number], openingBalance: 0 });
   const [editingAcc, setEditingAcc] = useState<string | null>(null);
 
   const handleAccSubmit = () => {
@@ -46,7 +46,7 @@ export default function SettingsPage() {
       createAccount.mutate(accForm);
     }
     setAccOpen(false);
-    setAccForm({ name: '', type: 'Bank' });
+    setAccForm({ name: '', type: 'Bank', openingBalance: 0 });
     setEditingAcc(null);
   };
 
@@ -143,7 +143,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="font-display">Accounts</CardTitle>
-          <Dialog open={accOpen} onOpenChange={(o) => { setAccOpen(o); if (!o) { setEditingAcc(null); setAccForm({ name: '', type: 'Bank' }); } }}>
+          <Dialog open={accOpen} onOpenChange={(o) => { setAccOpen(o); if (!o) { setEditingAcc(null); setAccForm({ name: '', type: 'Bank', openingBalance: 0 }); } }}>
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Add</Button>
             </DialogTrigger>
@@ -162,6 +162,16 @@ export default function SettingsPage() {
                       {ACCOUNT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label>Opening Balance <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 5000"
+                    value={accForm.openingBalance || ''}
+                    onChange={e => setAccForm(f => ({ ...f, openingBalance: parseFloat(e.target.value) || 0 }))}
+                  />
                 </div>
                 <Button className="w-full" onClick={handleAccSubmit}>{editingAcc ? 'Update' : 'Add'}</Button>
               </div>
@@ -184,7 +194,7 @@ export default function SettingsPage() {
                   <TableCell className="text-muted-foreground">{a.type}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setAccForm({ name: a.name, type: a.type }); setEditingAcc(a.id); setAccOpen(true); }}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setAccForm({ name: a.name, type: a.type, openingBalance: a.openingBalance }); setEditingAcc(a.id); setAccOpen(true); }}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteAccountMutation.mutate(a.id)}>

@@ -51,3 +51,15 @@ export function useDeleteTransaction() {
     },
   });
 }
+
+export function useCreateTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { date: string; amount: number; details: string; accountFromId: string; accountToId: string }) =>
+      transactionsApi.createTransfer(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}

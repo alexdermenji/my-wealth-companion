@@ -8,8 +8,8 @@ const defaultProps = {
   onOpenChange: vi.fn(),
   editing: false,
   accounts: [
-    { id: "a1", name: "Cash", type: "Cash" as const },
-    { id: "a2", name: "Bank", type: "Bank" as const },
+    { id: "a1", name: "Cash", type: "Cash" as const, openingBalance: 0 },
+    { id: "a2", name: "Bank", type: "Bank" as const, openingBalance: 0 },
   ],
   categories: [
     { id: "c1", name: "Rent", type: "Expenses" as const, group: "Housing", order: 0 },

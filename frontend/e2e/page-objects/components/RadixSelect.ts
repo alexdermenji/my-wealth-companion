@@ -10,7 +10,10 @@ export class RadixSelect {
     await this.trigger.click();
     const listbox = this.page.locator('[role="listbox"]');
     await listbox.waitFor({ state: 'visible' });
-    await listbox.getByRole('option', { name: optionText, exact: true }).click();
+    const option = listbox.getByRole('option', { name: optionText, exact: true });
+    await option.scrollIntoViewIfNeeded();
+    await option.click();
+    await listbox.waitFor({ state: 'hidden' });
   }
 
   async getValue(): Promise<string> {

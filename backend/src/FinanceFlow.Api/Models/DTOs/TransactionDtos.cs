@@ -7,7 +7,8 @@ public record TransactionDto(
     string Details,
     string AccountId,
     string BudgetType,
-    string BudgetPositionId
+    string BudgetPositionId,
+    string? TransferPairId
 );
 
 public record CreateTransactionRequest(
@@ -26,4 +27,12 @@ public record UpdateTransactionRequest(
     string AccountId,
     string BudgetType,
     string BudgetPositionId
+);
+
+public record CreateTransferRequest(
+    string Date,
+    decimal Amount,
+    string Details,
+    string AccountFromId,
+    string AccountToId
 );

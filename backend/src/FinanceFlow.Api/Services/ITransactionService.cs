@@ -9,4 +9,5 @@ public interface ITransactionService
     Task<TransactionDto> CreateAsync(CreateTransactionRequest request);
     Task<TransactionDto?> UpdateAsync(string id, UpdateTransactionRequest request);
     Task<bool> DeleteAsync(string id);
+    Task<(TransactionDto outflow, TransactionDto inflow)> CreateTransferAsync(CreateTransferRequest request);
 }

@@ -7,8 +7,8 @@ import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 vi.mock("@/shared/api/accountsApi");
 
 const mockAccounts = [
-  { id: "a1", name: "Cash", type: "Cash" as const },
-  { id: "a2", name: "Bank", type: "Bank" as const },
+  { id: "a1", name: "Cash", type: "Cash" as const, openingBalance: 0 },
+  { id: "a2", name: "Bank", type: "Bank" as const, openingBalance: 0 },
 ];
 
 describe("useAccounts", () => {
@@ -38,7 +38,7 @@ describe("useCreateAccount", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(accountsApi.getAll).mockResolvedValue(mockAccounts);
-    vi.mocked(accountsApi.create).mockResolvedValue({ id: "a3", name: "New", type: "Cash" });
+    vi.mocked(accountsApi.create).mockResolvedValue({ id: "a3", name: "New", type: "Cash", openingBalance: 0 });
   });
 
   it("creates an account and invalidates cache", async () => {
@@ -48,9 +48,9 @@ describe("useCreateAccount", () => {
       wrapper: createHookWrapper(queryClient),
     });
 
-    result.current.mutate({ name: "New", type: "Cash" });
+    result.current.mutate({ name: "New", type: "Cash", openingBalance: 0 });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(accountsApi.create).toHaveBeenCalledWith({ name: "New", type: "Cash" });
+    expect(accountsApi.create).toHaveBeenCalledWith({ name: "New", type: "Cash", openingBalance: 0 });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["accounts"] });
   });
 });
@@ -58,7 +58,7 @@ describe("useCreateAccount", () => {
 describe("useUpdateAccount", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(accountsApi.update).mockResolvedValue({ id: "a1", name: "Updated", type: "Bank" });
+    vi.mocked(accountsApi.update).mockResolvedValue({ id: "a1", name: "Updated", type: "Bank", openingBalance: 0 });
   });
 
   it("updates an account and invalidates cache", async () => {
@@ -68,9 +68,9 @@ describe("useUpdateAccount", () => {
       wrapper: createHookWrapper(queryClient),
     });
 
-    result.current.mutate({ id: "a1", data: { name: "Updated", type: "Bank" } });
+    result.current.mutate({ id: "a1", data: { name: "Updated", type: "Bank", openingBalance: 0 } });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(accountsApi.update).toHaveBeenCalledWith("a1", { name: "Updated", type: "Bank" });
+    expect(accountsApi.update).toHaveBeenCalledWith("a1", { name: "Updated", type: "Bank", openingBalance: 0 });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["accounts"] });
   });
 });

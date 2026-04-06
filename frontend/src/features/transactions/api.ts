@@ -16,4 +16,6 @@ export const transactionsApi = {
   update: (id: string, data: Omit<Transaction, "id">) =>
     api.put<Transaction>(`/transactions/${id}`, data),
   delete: (id: string) => api.delete<void>(`/transactions/${id}`),
+  createTransfer: (data: { date: string; amount: number; details: string; accountFromId: string; accountToId: string }) =>
+    api.post<Transaction>("/transactions/transfer", data),
 };

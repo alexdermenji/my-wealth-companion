@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from './hooks';
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateTransfer } from './hooks';
 import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useSettings } from '@/features/settings/hooks';
@@ -25,6 +25,7 @@ export default function TransactionsPage() {
   const { data: categories = [] } = useCategories();
   const { data: settings } = useSettings();
   const createTransaction = useCreateTransaction();
+  const createTransfer = useCreateTransfer();
   const updateTransactionMutation = useUpdateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
 
@@ -32,15 +33,24 @@ export default function TransactionsPage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
 
   const handleSubmit = (data: FormValues) => {
-    const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
-      ? -Math.abs(data.amount)
-      : Math.abs(data.amount);
-
-    const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType };
-    if (editing) {
-      updateTransactionMutation.mutate({ id: editing.id, data: payload });
+    if (data.budgetType === 'Transfer' && !editing) {
+      createTransfer.mutate({
+        date: data.date,
+        amount: data.amount,
+        details: data.details,
+        accountFromId: data.accountId,
+        accountToId: data.accountToId!,
+      });
     } else {
-      createTransaction.mutate(payload);
+      const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
+        ? -Math.abs(data.amount)
+        : Math.abs(data.amount);
+      const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType, budgetPositionId: data.budgetPositionId ?? '' };
+      if (editing) {
+        updateTransactionMutation.mutate({ id: editing.id, data: payload });
+      } else {
+        createTransaction.mutate(payload);
+      }
     }
     setOpen(false);
     setEditing(null);
