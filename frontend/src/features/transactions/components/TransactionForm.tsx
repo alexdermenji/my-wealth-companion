@@ -113,27 +113,6 @@ export function TransactionForm({
           <DialogTitle className="font-display">{editing ? 'Edit' : 'New'} Transaction</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Date + Amount */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label>Date</Label>
-              <Input type="date" {...register('date')} className={errors.date ? 'border-destructive' : ''} />
-              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Amount</Label>
-              <Input type="number" step="0.01" placeholder="e.g. 100" {...register('amount', { valueAsNumber: true })} className={errors.amount ? 'border-destructive' : ''} />
-              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="flex flex-col gap-2">
-            <Label>Details</Label>
-            <Input placeholder="e.g. Tesco groceries" {...register('details')} className={errors.details ? 'border-destructive' : ''} />
-            {errors.details && <p className="text-xs text-destructive">{errors.details.message}</p>}
-          </div>
-
           {/* Budget Type + Budget Position (or full-width Budget Type when Transfer) */}
           <div className={isTransfer ? undefined : 'grid grid-cols-2 gap-4'}>
             <div className="flex flex-col gap-2">
@@ -204,6 +183,27 @@ export function TransactionForm({
                 {errors.budgetPositionId && <p className="text-xs text-destructive">{errors.budgetPositionId.message}</p>}
               </div>
             )}
+          </div>
+
+          {/* Date + Amount */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label>Date</Label>
+              <Input type="date" {...register('date')} className={errors.date ? 'border-destructive' : ''} />
+              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Amount</Label>
+              <Input type="number" step="0.01" placeholder="e.g. 100" {...register('amount', { valueAsNumber: true })} className={errors.amount ? 'border-destructive' : ''} />
+              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="flex flex-col gap-2">
+            <Label>Details</Label>
+            <Input placeholder="e.g. Tesco groceries" {...register('details')} className={errors.details ? 'border-destructive' : ''} />
+            {errors.details && <p className="text-xs text-destructive">{errors.details.message}</p>}
           </div>
 
           {/* Account (From) */}

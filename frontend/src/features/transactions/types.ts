@@ -8,4 +8,5 @@ export interface Transaction {
   accountId: string;
   budgetType: BudgetType | '';
   budgetPositionId: string; // links to BudgetCategory.id
+  transferPairId?: string;
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from './hooks';
+import { useTransactions, useCreateTransaction, useUpdateTransaction, useDeleteTransaction, useCreateTransfer } from './hooks';
 import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useSettings } from '@/features/settings/hooks';
@@ -25,6 +25,7 @@ export default function TransactionsPage() {
   const { data: categories = [] } = useCategories();
   const { data: settings } = useSettings();
   const createTransaction = useCreateTransaction();
+  const createTransfer = useCreateTransfer();
   const updateTransactionMutation = useUpdateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
 
@@ -33,14 +34,12 @@ export default function TransactionsPage() {
 
   const handleSubmit = (data: FormValues) => {
     if (data.budgetType === 'Transfer' && !editing) {
-      const amt = Math.abs(data.amount);
-      createTransaction.mutate({
-        date: data.date, amount: -amt, details: data.details,
-        accountId: data.accountId, budgetType: 'Transfer', budgetPositionId: '',
-      });
-      createTransaction.mutate({
-        date: data.date, amount: amt, details: data.details,
-        accountId: data.accountToId!, budgetType: 'Transfer', budgetPositionId: '',
+      createTransfer.mutate({
+        date: data.date,
+        amount: data.amount,
+        details: data.details,
+        accountFromId: data.accountId,
+        accountToId: data.accountToId!,
       });
     } else {
       const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')

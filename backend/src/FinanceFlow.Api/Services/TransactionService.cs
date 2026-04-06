@@ -26,29 +26,28 @@ public class TransactionService : ITransactionService
             DateTimeKind.Utc
         );
 
+    private static TransactionDto ToDto(Transaction t) =>
+        new(
+            t.Id, t.Date.ToString("yyyy-MM-dd"), t.Amount,
+            t.Details, t.AccountId, t.BudgetType,
+            t.BudgetPositionId ?? "", t.TransferPairId
+        );
+
     public async Task<List<TransactionDto>> GetAllAsync(string? budgetType = null, string? accountId = null)
     {
         var query = _db.Transactions.AsQueryable();
 
         if (!string.IsNullOrEmpty(budgetType))
-        {
             query = query.Where(t => t.BudgetType == budgetType);
-        }
         if (!string.IsNullOrEmpty(accountId))
-        {
             query = query.Where(t => t.AccountId == accountId);
-        }
 
         return await query
             .OrderByDescending(t => t.Date)
             .Select(t => new TransactionDto(
-                t.Id,
-                t.Date.ToString("yyyy-MM-dd"),
-                t.Amount,
-                t.Details,
-                t.AccountId,
-                t.BudgetType,
-                t.BudgetPositionId ?? ""
+                t.Id, t.Date.ToString("yyyy-MM-dd"), t.Amount,
+                t.Details, t.AccountId, t.BudgetType,
+                t.BudgetPositionId ?? "", t.TransferPairId
             ))
             .ToListAsync();
     }
@@ -57,10 +56,7 @@ public class TransactionService : ITransactionService
     {
         var t = await _db.Transactions.FindAsync(id);
         if (t is null) return null;
-        return new TransactionDto(
-            t.Id, t.Date.ToString("yyyy-MM-dd"), t.Amount,
-            t.Details, t.AccountId, t.BudgetType, t.BudgetPositionId ?? ""
-        );
+        return ToDto(t);
     }
 
     public async Task<TransactionDto> CreateAsync(CreateTransactionRequest request)
@@ -76,10 +72,7 @@ public class TransactionService : ITransactionService
         };
         _db.Transactions.Add(transaction);
         await _db.SaveChangesAsync();
-        return new TransactionDto(
-            transaction.Id, transaction.Date.ToString("yyyy-MM-dd"), transaction.Amount,
-            transaction.Details, transaction.AccountId, transaction.BudgetType, transaction.BudgetPositionId ?? ""
-        );
+        return ToDto(transaction);
     }
 
     public async Task<TransactionDto?> UpdateAsync(string id, UpdateTransactionRequest request)
@@ -95,10 +88,7 @@ public class TransactionService : ITransactionService
         transaction.BudgetPositionId = NormalizeId(request.BudgetPositionId);
         await _db.SaveChangesAsync();
 
-        return new TransactionDto(
-            transaction.Id, transaction.Date.ToString("yyyy-MM-dd"), transaction.Amount,
-            transaction.Details, transaction.AccountId, transaction.BudgetType, transaction.BudgetPositionId ?? ""
-        );
+        return ToDto(transaction);
     }
 
     public async Task<bool> DeleteAsync(string id)
@@ -106,8 +96,39 @@ public class TransactionService : ITransactionService
         var transaction = await _db.Transactions.FindAsync(id);
         if (transaction is null) return false;
 
+        if (transaction.TransferPairId is not null)
+        {
+            var pair = await _db.Transactions
+                .FirstOrDefaultAsync(t => t.TransferPairId == transaction.TransferPairId && t.Id != id);
+            if (pair is not null) _db.Transactions.Remove(pair);
+        }
+
         _db.Transactions.Remove(transaction);
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<(TransactionDto outflow, TransactionDto inflow)> CreateTransferAsync(CreateTransferRequest request)
+    {
+        var pairId = Guid.NewGuid().ToString();
+        var date = ParseTransactionDate(request.Date);
+        var amt = Math.Abs(request.Amount);
+
+        var outflow = new Transaction
+        {
+            Date = date, Amount = -amt, Details = request.Details,
+            AccountId = request.AccountFromId, BudgetType = "Transfer",
+            TransferPairId = pairId
+        };
+        var inflow = new Transaction
+        {
+            Date = date, Amount = amt, Details = request.Details,
+            AccountId = request.AccountToId, BudgetType = "Transfer",
+            TransferPairId = pairId
+        };
+
+        _db.Transactions.AddRange(outflow, inflow);
+        await _db.SaveChangesAsync();
+        return (ToDto(outflow), ToDto(inflow));
     }
 }

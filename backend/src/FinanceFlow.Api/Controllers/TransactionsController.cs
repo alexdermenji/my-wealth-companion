@@ -40,6 +40,13 @@ public class TransactionsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
     }
 
+    [HttpPost("transfer")]
+    public async Task<ActionResult<TransactionDto>> CreateTransfer(CreateTransferRequest request)
+    {
+        var (outflow, _) = await _service.CreateTransferAsync(request);
+        return CreatedAtAction(nameof(GetById), new { id = outflow.Id }, outflow);
+    }
+
     [HttpPut("{id}")]
     public async Task<ActionResult<TransactionDto>> Update(string id, UpdateTransactionRequest request)
     {

@@ -4,3 +4,4 @@ export const useTransactions = vi.fn().mockReturnValue({ data: [], isLoading: fa
 export const useCreateTransaction = vi.fn().mockReturnValue({ mutate: vi.fn() });
 export const useUpdateTransaction = vi.fn().mockReturnValue({ mutate: vi.fn() });
 export const useDeleteTransaction = vi.fn().mockReturnValue({ mutate: vi.fn() });
+export const useCreateTransfer = vi.fn().mockReturnValue({ mutate: vi.fn() });
