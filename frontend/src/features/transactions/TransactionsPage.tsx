@@ -32,15 +32,26 @@ export default function TransactionsPage() {
   const [editing, setEditing] = useState<Transaction | null>(null);
 
   const handleSubmit = (data: FormValues) => {
-    const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
-      ? -Math.abs(data.amount)
-      : Math.abs(data.amount);
-
-    const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType };
-    if (editing) {
-      updateTransactionMutation.mutate({ id: editing.id, data: payload });
+    if (data.budgetType === 'Transfer' && !editing) {
+      const amt = Math.abs(data.amount);
+      createTransaction.mutate({
+        date: data.date, amount: -amt, details: data.details,
+        accountId: data.accountId, budgetType: 'Transfer', budgetPositionId: '',
+      });
+      createTransaction.mutate({
+        date: data.date, amount: amt, details: data.details,
+        accountId: data.accountToId!, budgetType: 'Transfer', budgetPositionId: '',
+      });
     } else {
-      createTransaction.mutate(payload);
+      const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
+        ? -Math.abs(data.amount)
+        : Math.abs(data.amount);
+      const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType, budgetPositionId: data.budgetPositionId ?? '' };
+      if (editing) {
+        updateTransactionMutation.mutate({ id: editing.id, data: payload });
+      } else {
+        createTransaction.mutate(payload);
+      }
     }
     setOpen(false);
     setEditing(null);
