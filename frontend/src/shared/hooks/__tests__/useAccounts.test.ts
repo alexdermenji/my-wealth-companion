@@ -7,8 +7,8 @@ import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 vi.mock("@/shared/api/accountsApi");
 
 const mockAccounts = [
-  { id: "a1", name: "Cash", type: "Cash" as const },
-  { id: "a2", name: "Bank", type: "Bank" as const },
+  { id: "a1", name: "Cash", type: "Cash" as const, openingBalance: 0 },
+  { id: "a2", name: "Bank", type: "Bank" as const, openingBalance: 0 },
 ];
 
 describe("useAccounts", () => {
