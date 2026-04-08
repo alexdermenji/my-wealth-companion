@@ -9,7 +9,7 @@ vi.mock("@/shared/auth/AuthProvider", () => ({
     logout: vi.fn(),
     userName: "test-user",
     authenticated: true,
-    keycloak: {},
+    session: null,
   }),
 }));
 

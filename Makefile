@@ -1,4 +1,4 @@
-.PHONY: help be fe fe-build fe-lint fe-test fe-test-watch fe-e2e keycloak-up keycloak-down keycloak-restart start
+.PHONY: help be fe fe-build fe-lint fe-test fe-test-watch fe-e2e start
 
 start:
 	make be & make fe
@@ -8,12 +8,12 @@ be:
 		echo "Error: port 5062 is already in use. Run: lsof -i :5062"; \
 		exit 1; \
 	fi
-	cd backend && source .env && export DB_PASSWORD KEYCLOAK_AUTHORITY KEYCLOAK_AUDIENCE && \
+	cd backend && source .env && export DB_PASSWORD SUPABASE_JWT_AUTHORITY SUPABASE_JWT_AUDIENCE && \
 	export PATH="/opt/homebrew/opt/dotnet@9/bin:$$PATH" && \
 	export DOTNET_ROOT="/opt/homebrew/opt/dotnet@9/libexec" && \
 	cd src/FinanceFlow.Api && dotnet watch
 
-fe: keycloak-up
+fe:
 	@if lsof -i :8080 -t > /dev/null 2>&1; then \
 		echo "Error: port 8080 is already in use. Run: lsof -i :8080"; \
 		exit 1; \
@@ -35,14 +35,6 @@ fe-test-watch:
 fe-e2e:
 	cd frontend && npm run e2e
 
-keycloak-up:
-	cd frontend && npm run keycloak:up
-
-keycloak-down:
-	cd frontend && npm run keycloak:down
-
-keycloak-restart: keycloak-down keycloak-up
-
 help:
 	@echo "Available commands:"
 	@echo "  make be             - Run backend (dotnet watch)"
@@ -52,5 +44,3 @@ help:
 	@echo "  make fe-test        - Run unit tests"
 	@echo "  make fe-test-watch  - Run unit tests in watch mode"
 	@echo "  make fe-e2e         - Run Playwright e2e tests"
-	@echo "  make keycloak-up    - Start Keycloak via Docker"
-	@echo "  make keycloak-down  - Stop Keycloak via Docker"
