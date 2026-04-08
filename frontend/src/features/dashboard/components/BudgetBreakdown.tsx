@@ -13,6 +13,18 @@ const TYPE_STYLES: Record<string, { accentVar: string; bgClass: string; textClas
   Debt:     { accentVar: 'var(--budget-debt-accent)',     bgClass: 'bg-budget-debt-header',     textClass: 'text-budget-debt-text' },
 };
 
+const PROGRESS_GRADIENT = 'linear-gradient(90deg, #b7abff 0%, #8b78ff 38%, hsl(var(--primary)) 100%)';
+
+function getSectionPercentage(tracked: number, budget: number): number {
+  if (budget <= 0) return 0;
+  return Math.round((tracked / budget * 100) * 10) / 10;
+}
+
+function formatPercentage(pct: number): string {
+  const rounded = Math.round(pct * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
 function ProgressRing({ pct, accentVar }: { pct: number; accentVar: string }) {
   const r = 18;
   const circ = 2 * Math.PI * r;
@@ -25,8 +37,8 @@ function ProgressRing({ pct, accentVar }: { pct: number; accentVar: string }) {
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round" transform="rotate(-90 22 22)"
       />
-      <text x="22" y="26.5" textAnchor="middle" fontSize="10" fontWeight="700" fill={accentVar}>
-        {Math.min(pct, 100)}%
+      <text x="22" y="26.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill={accentVar}>
+        {formatPercentage(Math.min(pct, 100))}
       </text>
     </svg>
   );
@@ -57,9 +69,7 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
       <div className="flex flex-col gap-3">
         {breakdown.map(section => {
           const m = TYPE_STYLES[section.type] ?? TYPE_STYLES['Income'];
-          const pct = section.totalBudget > 0
-            ? Math.floor(section.totalTracked / section.totalBudget * 100)
-            : 0;
+          const pct = getSectionPercentage(section.totalTracked, section.totalBudget);
           const isActive = section.type === selectedType;
 
           return (
@@ -158,7 +168,11 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <Progress value={Math.min(item.percentage, 100)} className="h-1.5 flex-1" />
+                        <Progress
+                          value={Math.min(item.percentage, 100)}
+                          className="h-1.5 flex-1"
+                          indicatorStyle={{ background: PROGRESS_GRADIENT }}
+                        />
                         <span className={`text-xs tabular-nums w-9 text-right ${pctColorClass(item.percentage)}`}>
                           {item.percentage}%
                         </span>
@@ -198,15 +212,12 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <Progress
-                        value={selected && selected.totalBudget > 0
-                          ? Math.min(Math.floor(selected.totalTracked / selected.totalBudget * 100), 100)
-                          : 0}
+                        value={selected ? Math.min(getSectionPercentage(selected.totalTracked, selected.totalBudget), 100) : 0}
                         className="h-1.5 flex-1"
+                        indicatorStyle={{ background: PROGRESS_GRADIENT }}
                       />
-                      <span className={`text-xs tabular-nums w-9 text-right ${pctColorClass(selected && selected.totalBudget > 0 ? Math.floor(selected.totalTracked / selected.totalBudget * 100) : 0)}`}>
-                        {selected && selected.totalBudget > 0
-                          ? `${Math.floor(selected.totalTracked / selected.totalBudget * 100)}%`
-                          : '0%'}
+                      <span className={`text-xs tabular-nums w-12 text-right ${pctColorClass(selected ? getSectionPercentage(selected.totalTracked, selected.totalBudget) : 0)}`}>
+                        {formatPercentage(selected ? getSectionPercentage(selected.totalTracked, selected.totalBudget) : 0)}
                       </span>
                     </div>
                   </td>
