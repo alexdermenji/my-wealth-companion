@@ -59,16 +59,23 @@ describe("BudgetBreakdown", () => {
       expect(screen.getByRole("button", { name: /expenses/i })).toHaveTextContent("£1450");
     });
 
-    it("tile progress ring % uses Math.floor to match backend truncation", () => {
-      // totalTracked=1050, totalBudget=1450 → 1050/1450*100 = 72.41 → floor = 72, not round = 72
-      // Use a case that exposes round vs floor: tracked=100, budget=350 → 28.57 → floor=28, round=29
+    it("tile progress ring % shows one decimal place for section totals", () => {
       const breakdown: BudgetTypeBreakdown[] = [
         { type: "Income", totalTracked: 100, totalBudget: 350, items: [] },
       ];
       render(<BudgetBreakdown breakdown={breakdown} formatCurrency={fmt} />);
       const tile = screen.getByRole("button", { name: /income/i });
-      expect(tile).toHaveTextContent("28%");
-      expect(tile).not.toHaveTextContent("29%");
+      expect(tile).toHaveTextContent("28.6%");
+    });
+
+    it("tile progress ring % omits trailing .0 for whole numbers", () => {
+      const breakdown: BudgetTypeBreakdown[] = [
+        { type: "Income", totalTracked: 681.09, totalBudget: 681.09, items: [] },
+      ];
+      render(<BudgetBreakdown breakdown={breakdown} formatCurrency={fmt} />);
+      const tile = screen.getByRole("button", { name: /income/i });
+      expect(tile).toHaveTextContent("100%");
+      expect(tile).not.toHaveTextContent("100.0%");
     });
   });
 
@@ -259,9 +266,7 @@ describe("BudgetBreakdown", () => {
       expect(totalRow).toHaveTextContent("£1450");
     });
 
-    it("total % uses Math.floor, consistent with category item percentages", () => {
-      // tracked=100, budget=350 → 28.57 → item.percentage=28 (backend truncates)
-      // total % should also be Math.floor(28.57) = 28, not Math.round = 29
+    it("total % shows one decimal place", () => {
       const breakdown: BudgetTypeBreakdown[] = [
         {
           type: "Expenses",
@@ -278,10 +283,47 @@ describe("BudgetBreakdown", () => {
       const gymRow = rows.find(r => r.textContent?.includes("Gym") && !r.textContent?.includes("Total"));
       const totalRow = rows.find(r => r.textContent?.startsWith("Total"));
 
-      // Both should show 28%, not 29%
+      // Item percentages still come from the backend, section totals are computed in the frontend.
       expect(gymRow).toHaveTextContent("28%");
-      expect(totalRow).toHaveTextContent("28%");
-      expect(totalRow).not.toHaveTextContent("29%");
+      expect(totalRow).toHaveTextContent("28.6%");
+    });
+
+    it("total % omits trailing .0 for whole numbers", () => {
+      const breakdown: BudgetTypeBreakdown[] = [
+        {
+          type: "Debt",
+          totalTracked: 681.09,
+          totalBudget: 681.09,
+          items: [
+            { categoryId: "d1", categoryName: "Admiral loan 7yrs", group: "Loans", tracked: 681.09, budget: 681.09, percentage: 100 },
+          ],
+        },
+      ];
+
+      render(<BudgetBreakdown breakdown={breakdown} formatCurrency={fmt} />);
+
+      const totalRow = screen.getAllByRole("row").find(r => r.textContent?.startsWith("Total"));
+      expect(totalRow).toHaveTextContent("100%");
+      expect(totalRow).not.toHaveTextContent("100.0%");
+    });
+
+    it("total % shows small non-zero values instead of flooring to 0%", () => {
+      const breakdown: BudgetTypeBreakdown[] = [
+        {
+          type: "Income",
+          totalTracked: 6.21,
+          totalBudget: 3806.5,
+          items: [
+            { categoryId: "i1", categoryName: "Interest", group: "Income", tracked: 6.21, budget: 6.21, percentage: 100 },
+            { categoryId: "i2", categoryName: "Space", group: "Income", tracked: 0, budget: 3800.29, percentage: 0 },
+          ],
+        },
+      ];
+
+      render(<BudgetBreakdown breakdown={breakdown} formatCurrency={fmt} />);
+
+      const totalRow = screen.getAllByRole("row").find(r => r.textContent?.startsWith("Total"));
+      expect(totalRow).toHaveTextContent("0.2%");
     });
 
     it("does not render total row footer when section is empty", async () => {
