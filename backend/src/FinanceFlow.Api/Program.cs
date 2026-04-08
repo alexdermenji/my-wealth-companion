@@ -15,25 +15,24 @@ connectionString = connectionString.Replace("%DB_PASSWORD%", dbPassword);
 builder.Services.AddDbContext<FinanceDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// Authentication (Keycloak JWT)
-var keycloakAuthority = Environment.GetEnvironmentVariable("KEYCLOAK_AUTHORITY")
-    ?? "http://localhost:8180/realms/financeflow";
-var keycloakAudience = Environment.GetEnvironmentVariable("KEYCLOAK_AUDIENCE")
-    ?? "financeflow-spa";
+// Authentication (Supabase JWT)
+var supabaseAuthority = Environment.GetEnvironmentVariable("SUPABASE_JWT_AUTHORITY")
+    ?? "https://wxkjibwgqeuiijevodka.supabase.co/auth/v1";
+var supabaseAudience = Environment.GetEnvironmentVariable("SUPABASE_JWT_AUDIENCE")
+    ?? "authenticated";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = keycloakAuthority;
-        options.Audience = keycloakAudience;
-        options.RequireHttpsMetadata = false; // dev only — Keycloak runs on HTTP locally
+        options.Authority = supabaseAuthority;
+        options.Audience = supabaseAudience;
 
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
             ValidateLifetime = true,
-            ValidAudiences = new[] { keycloakAudience, "account" },
+            ValidAudiences = new[] { supabaseAudience },
         };
     });
 builder.Services.AddAuthorization();

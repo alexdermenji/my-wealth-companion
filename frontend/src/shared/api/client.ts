@@ -1,28 +1,33 @@
-import keycloak from "@/shared/auth/keycloak";
+import { supabase } from "@/shared/auth/supabase";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
+async function getToken(): Promise<string | null> {
+  if (import.meta.env.VITE_E2E_TEST === "true") return "e2e-mock-token";
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  // Ensure token is fresh before each request
-  try {
-    await keycloak.updateToken(30);
-  } catch {
-    keycloak.login();
-    throw new Error("Session expired. Redirecting to login...");
+  const token = await getToken();
+
+  if (!token) {
+    await supabase.auth.signOut();
+    throw new Error("No active session. Please sign in.");
   }
 
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${keycloak.token}`,
+      Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
   });
 
   if (response.status === 401) {
-    keycloak.login();
-    throw new Error("Unauthorized. Redirecting to login...");
+    await supabase.auth.signOut();
+    throw new Error("Unauthorized. Please sign in again.");
   }
 
   if (!response.ok) {
