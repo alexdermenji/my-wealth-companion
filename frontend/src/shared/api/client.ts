@@ -2,10 +2,16 @@ import { supabase } from "@/shared/auth/supabase";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "/api";
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function getToken(): Promise<string | null> {
+  if (import.meta.env.VITE_E2E_TEST === "true") return "e2e-mock-token";
   const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
 
-  if (!session) {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = await getToken();
+
+  if (!token) {
     await supabase.auth.signOut();
     throw new Error("No active session. Please sign in.");
   }
@@ -14,7 +20,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${token}`,
       ...options?.headers,
     },
   });
