@@ -33,9 +33,9 @@ test.describe('Budget Plan', () => {
   test('should edit a budget cell', async ({ budgetPlanPage }) => {
     let putCalled = false;
     await budgetPlanPage.page.route(
-      (url) => url.pathname === '/api/budget-plans',
+      (url) => url.hostname.includes('supabase.co') && url.pathname === '/rest/v1/rpc/set_budget_amount',
       async (route, request) => {
-        if (request.method() === 'PUT') {
+        if (request.method() === 'POST') {
           putCalled = true;
         }
         await route.fallback();
@@ -122,11 +122,11 @@ test.describe('Budget Plan - Shift+Tab fill', () => {
   });
 
   test('fires a PUT request for the filled month', async ({ budgetPlanPage }) => {
-    const puts: Array<{ categoryId: string; month: number; amount: number }> = [];
+    const puts: Array<{ p_category_id: string; p_month: number; p_amount: number }> = [];
     await budgetPlanPage.page.route(
-      (url) => url.pathname === '/api/budget-plans',
+      (url) => url.hostname.includes('supabase.co') && url.pathname === '/rest/v1/rpc/set_budget_amount',
       async (route, request) => {
-        if (request.method() === 'PUT') puts.push(request.postDataJSON());
+        if (request.method() === 'POST') puts.push(request.postDataJSON());
         await route.fallback();
       },
     );
@@ -134,9 +134,9 @@ test.describe('Budget Plan - Shift+Tab fill', () => {
     await budgetPlanPage.fillAndShiftTab('Employment (Net)', 0, '1500');
     await budgetPlanPage.page.waitForTimeout(400);
 
-    const febPut = puts.find(r => r.month === 2);
+    const febPut = puts.find(r => r.p_month === 2);
     expect(febPut).toBeDefined();
-    expect(febPut?.amount).toBe(1500);
+    expect(febPut?.p_amount).toBe(1500);
   });
 
   test('Shift+Tab from December does not fill a non-existent month', async ({ budgetPlanPage }) => {
