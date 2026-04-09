@@ -44,6 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
+      // Seed for returning users (page refresh with existing session)
+      if (session) supabase.rpc("ensure_user_seeded");
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -56,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setNeedsPasswordReset(false);
         setSession(session);
+        // Seed for new users on first sign-in (fire-and-forget — no await to avoid deadlock)
+        if (event === "SIGNED_IN" && session) supabase.rpc("ensure_user_seeded");
       }
     });
 

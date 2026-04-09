@@ -5,4 +5,5 @@ export const transactionsApi = {
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+  createTransfer: vi.fn(),
 };

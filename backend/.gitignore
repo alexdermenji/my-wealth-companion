@@ -1,9 +1,0 @@
-bin/
-obj/
-*.db
-*.db-shm
-*.db-wal
-.vs/
-*.user
-.env
-appsettings.Development.json

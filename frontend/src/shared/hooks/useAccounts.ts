@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { accountsApi } from "@/shared/api/accountsApi";
+import { useToast } from "@/shared/hooks/use-toast";
 import type { Account } from "@/shared/types";
 
 export function useAccounts() {
@@ -28,8 +29,16 @@ export function useUpdateAccount() {
 
 export function useDeleteAccount() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   return useMutation({
     mutationFn: (id: string) => accountsApi.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Cannot delete account",
+        description: "This account has transactions linked to it. Remove the transactions first.",
+      });
+    },
   });
 }

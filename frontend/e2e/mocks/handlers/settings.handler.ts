@@ -1,15 +1,25 @@
 import { Page } from '@playwright/test';
 import { mockSettings } from '../data/settings';
 
+const isSupabase = (url: URL) => url.hostname.includes('supabase.co');
+
 export async function setupSettingsMock(page: Page) {
-  const store = { ...mockSettings };
+  // DB PascalCase format
+  const store = {
+    StartYear: mockSettings.startYear,
+    StartMonth: mockSettings.startMonth,
+    Currency: mockSettings.currency,
+    UserId: 'e2e-user-id',
+  };
 
   await page.route(
-    (url) => url.pathname === '/api/settings',
+    (url) => isSupabase(url) && url.pathname === '/rest/v1/Settings',
     async (route, request) => {
-      if (request.method() === 'GET') {
+      const method = request.method();
+
+      if (method === 'GET') {
         await route.fulfill({ json: { ...store } });
-      } else if (request.method() === 'PUT') {
+      } else if (method === 'PATCH') {
         const body = request.postDataJSON();
         Object.assign(store, body);
         await route.fulfill({ json: { ...store } });

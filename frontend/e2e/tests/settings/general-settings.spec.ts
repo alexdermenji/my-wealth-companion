@@ -10,9 +10,9 @@ test.describe('General Settings', () => {
   test('should update currency', async ({ settingsPage }) => {
     let putBody: Record<string, unknown> | null = null;
     await settingsPage.page.route(
-      (url) => url.pathname === '/api/settings',
+      (url) => url.hostname.includes('supabase.co') && url.pathname === '/rest/v1/Settings',
       async (route, request) => {
-        if (request.method() === 'PUT') {
+        if (request.method() === 'PATCH') {
           putBody = request.postDataJSON();
         }
         await route.fallback();
@@ -22,7 +22,7 @@ test.describe('General Settings', () => {
     await settingsPage.setGeneralValue('Currency', '€');
     await settingsPage.page.waitForTimeout(500);
     expect(putBody).toBeTruthy();
-    expect((putBody as Record<string, unknown>).currency).toBe('€');
+    expect((putBody as Record<string, unknown>).Currency).toBe('€');
   });
 
   test('should show success toast after saving', async ({ settingsPage }) => {
