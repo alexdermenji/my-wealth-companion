@@ -29,6 +29,8 @@ export default defineConfig({
     timeout: 30_000,
     env: {
       VITE_E2E_TEST: 'true',
+      VITE_SUPABASE_URL: 'https://e2e-mock.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'e2e-anon-key',
     },
   },
 });
