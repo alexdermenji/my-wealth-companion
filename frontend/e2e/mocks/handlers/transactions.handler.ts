@@ -1,6 +1,6 @@
 import { Page } from '@playwright/test';
 import type { Transaction } from '../../../src/features/transactions/types';
-import { mockTransactions, createMockTransaction } from '../data/transactions';
+import { mockTransactions } from '../data/transactions';
 
 export interface TransactionsMockOptions {
   initialData?: Transaction[];
@@ -63,13 +63,13 @@ export async function setupTransactionsMock(page: Page, options: TransactionsMoc
       const absAmt = Math.abs(p_amount);
 
       const outflow = {
-        Id: `tx-${nextId++}`, Date: p_date, Amount: -absAmt, Details: p_details,
-        AccountId: p_from_account_id, BudgetType: 'Transfer', TransferPairId: pairId,
+        Id: `tx-${nextId++}`, Date: p_date as string, Amount: -absAmt, Details: p_details as string,
+        AccountId: p_from_account_id as string, BudgetType: 'Transfer' as const, TransferPairId: pairId,
         BudgetPositionId: null, UserId: 'e2e-user-id',
       };
       const inflow = {
-        Id: `tx-${nextId++}`, Date: p_date, Amount: absAmt, Details: p_details,
-        AccountId: p_to_account_id, BudgetType: 'Transfer', TransferPairId: pairId,
+        Id: `tx-${nextId++}`, Date: p_date as string, Amount: absAmt, Details: p_details as string,
+        AccountId: p_to_account_id as string, BudgetType: 'Transfer' as const, TransferPairId: pairId,
         BudgetPositionId: null, UserId: 'e2e-user-id',
       };
       store.push(outflow, inflow);
