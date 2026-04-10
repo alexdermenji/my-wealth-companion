@@ -220,12 +220,10 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
               </p>
               <p className="text-xs text-muted-foreground tabular-nums">
                 of {formatCurrency(selected?.totalBudget ?? 0)}
-                {' · '}
-                {selectedPct}%
               </p>
             </div>
           </div>
-          {/* Overall progress bar — same grid as category rows so track widths match */}
+          {/* Overall progress bar — keep the percentage here, not in the summary text above */}
           <div className="grid gap-x-3" style={{ gridTemplateColumns: '1fr 80px' }}>
             <div className="flex items-center gap-1.5">
               <div className="h-1.5 rounded-full overflow-hidden bg-black/10 flex-1">
@@ -282,11 +280,11 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
 
                   {/* Right: fixed 80px — keeps every bar track the same width */}
                   <div className="text-right">
-                    <p className={cn('text-sm font-semibold tabular-nums', isOver ? 'text-expense' : 'text-foreground')}>
-                      {item.tracked > 0 ? formatCurrency(item.tracked) : '—'}
+                    <p className={cn('text-base font-bold leading-none tabular-nums', isOver ? 'text-expense' : 'text-foreground')}>
+                      {item.tracked > 0 ? formatCurrency(item.tracked) : formatCurrency(0)}
                     </p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      / {formatCurrency(item.budget)}
+                    <p className="mt-1 text-[11px] leading-none text-muted-foreground/85 tabular-nums">
+                      of {formatCurrency(item.budget)}
                     </p>
                   </div>
                 </div>
@@ -294,20 +292,6 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
             })
           )}
 
-          {/* Footer total */}
-          {visibleItems.length > 0 && (
-            <div className="px-4 py-3 bg-secondary border-t-2 flex items-center justify-between">
-              <span className="text-sm font-bold text-foreground">Total</span>
-              <div className="text-right">
-                <p className="text-sm font-bold tabular-nums text-foreground">
-                  {formatCurrency(selected?.totalTracked ?? 0)}
-                </p>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  / {formatCurrency(selected?.totalBudget ?? 0)}
-                </p>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
