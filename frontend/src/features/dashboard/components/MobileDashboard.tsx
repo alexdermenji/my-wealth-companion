@@ -103,37 +103,80 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
           </div>
         </div>
 
-        {/* Net number */}
-        <div className="relative mb-4">
+        {/* Gauge + metrics */}
+        {(() => {
+          const incomeVal   = income?.totalTracked   ?? 0;
+          const expensesVal = expenses?.totalTracked ?? 0;
+          const savingsVal  = savings?.totalTracked  ?? 0;
+          const debtVal     = debt?.totalTracked     ?? 0;
+          const totalOut    = expensesVal + savingsVal + debtVal;
+          const usedPct     = incomeVal > 0 ? Math.round(totalOut / incomeVal * 100) : 0;
+          const isOver      = usedPct > 100;
+          const isEmpty     = incomeVal === 0 && totalOut === 0;
+
+          // Arc parameters: semicircle from left to right, r=45, centre (55,65)
+          const ARC_LEN = 141; // circumference of the half-circle path
+          const fillLen = isEmpty ? 0 : Math.min(usedPct / 100, 1) * ARC_LEN;
+          const dashOffset = ARC_LEN - fillLen;
+
+          const arcColor = isEmpty  ? 'rgba(255,255,255,0.25)'
+                         : isOver   ? '#f9a8d4'  // pink-300
+                         : usedPct >= 80 ? '#fbbf24'  // amber-400
+                         : '#6ee7b7'; // emerald-300
+
+          return (
+            <div className="relative flex items-center gap-4 mb-4">
+              {/* Gauge SVG */}
+              <svg width="110" height="70" viewBox="0 0 110 70" className="flex-shrink-0">
+                {/* Track */}
+                <path d="M 10 65 A 45 45 0 0 1 100 65" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" strokeLinecap="round" />
+                {/* Fill */}
+                {!isEmpty && (
+                  <path
+                    d="M 10 65 A 45 45 0 0 1 100 65"
+                    fill="none"
+                    stroke={arcColor}
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={ARC_LEN}
+                    strokeDashoffset={dashOffset}
+                  />
+                )}
+                {/* Label */}
+                <text x="55" y="48" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" opacity={isEmpty ? 0.4 : 0.8}>
+                  {isOver ? 'OVER' : 'USED'}
+                </text>
+                <text x="55" y="62" textAnchor="middle" fill="white" fontSize="14" fontWeight="800" opacity={isEmpty ? 0.4 : 1}>
+                  {isEmpty ? '0%' : `${usedPct}%`}
+                </text>
+              </svg>
+
+              {/* Metrics list */}
+              <div className="flex-1 space-y-1.5" style={{ opacity: isEmpty ? 0.4 : 1 }}>
+                {[
+                  { label: 'Income',   value: incomeVal,   color: '#6ee7b7' },
+                  { label: 'Expenses', value: expensesVal, color: '#f9a8d4' },
+                  { label: 'Savings',  value: savingsVal,  color: '#c4b5fd' },
+                  { label: 'Debt',     value: debtVal,     color: '#38bdf8' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: color }} />
+                    <span className="text-white/70 w-14 flex-shrink-0">{label}</span>
+                    <span>{formatCurrency(value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Net balance */}
+        <div className="relative pt-3 border-t border-white/15 flex items-baseline justify-between">
+          <span className="text-sm text-white/70">Net balance</span>
           <p className="font-display font-extrabold tracking-tight leading-none whitespace-nowrap"
-             style={{ fontSize: 'clamp(24px, 8vw, 34px)' }}>
+             style={{ fontSize: 'clamp(20px, 6vw, 28px)' }}>
             {netDisplay}
           </p>
-          <p className="text-sm text-white/70 mt-1.5">
-            {net >= 0 ? 'net positive this month' : 'overspent this month'}
-          </p>
-        </div>
-
-        {/* Summary chips */}
-        <div className="relative flex flex-wrap gap-2">
-          {income && (
-            <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 flex-shrink-0" />
-              {formatCurrency(income.totalTracked)} in
-            </div>
-          )}
-          {expenses && (
-            <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-pink-300 flex-shrink-0" />
-              {formatCurrency(expenses.totalTracked)} out
-            </div>
-          )}
-          {savings && savings.totalTracked > 0 && (
-            <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-violet-300 flex-shrink-0" />
-              {formatCurrency(savings.totalTracked)} saved
-            </div>
-          )}
         </div>
       </div>
 
