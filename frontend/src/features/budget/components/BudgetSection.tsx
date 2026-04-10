@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../types';
 import { TableCell, TableRow } from '@/components/ui/table';
@@ -7,30 +7,9 @@ import { BudgetCell } from './BudgetCell';
 import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
-import { useForceDeleteCategory, useReorderCategory } from '@/shared/hooks/useCategories';
-
-const DISPLAY_LABELS: Partial<Record<BudgetType, string>> = {
-  Debt: 'Liabilities',
-};
-
-// Raw accent hex values — must be hex (not CSS vars) so they can be used
-// in inline style gradients and opacity suffixes (e.g. `${color}80`)
-const SECTION_ACCENT: Record<string, string> = {
-  Income:   '#10b981',
-  Expenses: '#ec4899',
-  Savings:  '#6c5ce7',
-  Debt:     '#0ea5e9',
-};
-
-// Distinct lighter bg for total row (matches Storybook totalBg per section)
-const TOTAL_BG: Record<string, string> = {
-  Income:   '#f0fdf8',
-  Expenses: '#fdf2f8',
-  Savings:  '#f5f3ff',
-  Debt:     '#f0f9ff',
-};
-
-const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+import { useForceDeleteCategory } from '@/shared/hooks/useCategories';
+import { ALL_MONTHS, DISPLAY_LABELS, SECTION_ACCENT, SECTION_CSS_KEY } from '../constants';
+import { useDragReorder, useHeatMap, useTabFill } from '../hooks';
 
 interface BudgetSectionProps {
   type: BudgetType;
@@ -47,88 +26,34 @@ export function BudgetSection({
   onAmountChange,
   currency = '£',
 }: BudgetSectionProps) {
-  const visibleMonths = ALL_MONTHS;
-  const accentColor = SECTION_ACCENT[type];
-  const totalBg = TOTAL_BG[type];
+  const accentColor  = SECTION_ACCENT[type];
+  const cssKey       = SECTION_CSS_KEY[type];
   const displayLabel = DISPLAY_LABELS[type] ?? type;
-  const [adding, setAdding] = useState(false);
-  const [editingCat, setEditingCat] = useState<BudgetCategory | null>(null);
+  const totalBg      = `var(--budget-${cssKey}-header-bg)`;
+  const totalText    = `var(--budget-${cssKey}-header-text)`;
+
+  const [adding, setAdding]           = useState(false);
+  const [editingCat, setEditingCat]   = useState<BudgetCategory | null>(null);
   const [deletingCat, setDeletingCat] = useState<BudgetCategory | null>(null);
+
   const forceDeleteMutation = useForceDeleteCategory();
-  const reorderMutation = useReorderCategory();
-
-  // Refs to every BudgetCell input, keyed by `${catId}|${month}`
-  const cellRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  // Optimistic values applied by Tab-fill before the mutation round-trips.
-  // Key: `${catId}|${month}`, value: raw numeric string (no commas).
-  const [tabFills, setTabFills] = useState<Record<string, string>>({});
-
-  // Once React Query returns real data for a tab-filled cell, drop the optimistic entry.
-  useEffect(() => {
-    if (Object.keys(tabFills).length === 0) return;
-    setTabFills(prev => {
-      const next = { ...prev };
-      let changed = false;
-      for (const key of Object.keys(next)) {
-        const [catId, monthStr] = key.split('|');
-        const plan = budgetPlans.find(bp => bp.categoryId === catId);
-        if ((plan?.months[parseInt(monthStr, 10)] ?? 0) > 0) {
-          delete next[key];
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [budgetPlans]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const typeCats = useMemo(
     () => categories.filter(c => c.type === type).sort((a, b) => a.order - b.order),
     [categories, type],
   );
 
-  // Optimistic local order — set on drop, cleared once server data syncs back
-  const [optimisticCats, setOptimisticCats] = useState<BudgetCategory[] | null>(null);
-  const displayCats = optimisticCats ?? typeCats;
-
-  // Drag state — dropLineIndex is the gap index (0 = before first row, n = after last)
-  const dragIndexRef = useRef<number | null>(null);
-  const [dropLineIndex, setDropLineIndex] = useState<number | null>(null);
-
-  const colSpan = visibleMonths.length + 2;
-
   const existingGroups = useMemo(
     () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
     [categories],
   );
 
-  const getBudget = (catId: string, month: number): number => {
-    const fill = tabFills[`${catId}|${month}`];
-    if (fill !== undefined) return parseFloat(fill) || 0;
-    const plan = budgetPlans.find(bp => bp.categoryId === catId);
-    return plan?.months[month] ?? 0;
-  };
+  const { tabFills, getBudget, handleTab, cellRefs } = useTabFill({ budgetPlans, onAmountChange });
 
-  // Shift+Tab: fill the next empty month with the current value and advance focus.
-  // Regular Tab is left to the browser (no interception).
-  const handleTab = (catId: string, month: number, value: string) => {
-    if (month >= 12) return; // Dec — end of year
+  const { displayCats, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
+    useDragReorder(typeCats);
 
-    const nextMonth = month + 1;
-    if (value && getBudget(catId, nextMonth) === 0) {
-      // Fill the next empty cell optimistically so onFocus sees the value immediately
-      setTabFills(prev => ({ ...prev, [`${catId}|${nextMonth}`]: value }));
-      onAmountChange(catId, nextMonth, value);
-      // Defer focus so React can flush the state update before onFocus reads it
-      setTimeout(() => cellRefs.current[`${catId}|${nextMonth}`]?.focus(), 0);
-    } else {
-      // Next cell already has a value — just move focus, never overwrite
-      cellRefs.current[`${catId}|${nextMonth}`]?.focus();
-    }
-  };
-
-  const getMonthTotal = (month: number) =>
-    typeCats.reduce((s, c) => s + getBudget(c.id, month), 0);
+  const { monthTotals, getHeatBg } = useHeatMap({ typeCats, budgetPlans, tabFills, cssKey });
 
   const fmt = (v: number) => v > 0 ? `${currency}${new Intl.NumberFormat('en-US').format(v)}` : '—';
 
@@ -137,57 +62,7 @@ export function BudgetSection({
     forceDeleteMutation.mutate(deletingCat.id, { onSuccess: () => setDeletingCat(null) });
   };
 
-  const handleDragStart = (index: number) => {
-    dragIndexRef.current = index;
-  };
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
-    e.preventDefault();
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    // Gap before this row if cursor is in top half, gap after if in bottom half
-    setDropLineIndex(e.clientY < midY ? index : index + 1);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const dragIndex = dragIndexRef.current;
-    if (dragIndex === null || dropLineIndex === null) {
-      dragIndexRef.current = null;
-      setDropLineIndex(null);
-      return;
-    }
-
-    // Compute destination index after removing the dragged item
-    let dest = dropLineIndex > dragIndex ? dropLineIndex - 1 : dropLineIndex;
-    dest = Math.max(0, Math.min(dest, displayCats.length - 1));
-
-    if (dest === dragIndex) {
-      dragIndexRef.current = null;
-      setDropLineIndex(null);
-      return;
-    }
-
-    // Optimistic reorder
-    const reordered = [...displayCats];
-    const [moved] = reordered.splice(dragIndex, 1);
-    reordered.splice(dest, 0, moved);
-    setOptimisticCats(reordered);
-
-    dragIndexRef.current = null;
-    setDropLineIndex(null);
-
-    // Persist to backend; clear optimistic state once server data arrives
-    reorderMutation.mutate(
-      { id: moved.id, newOrder: dest },
-      { onSuccess: () => setOptimisticCats(null) },
-    );
-  };
-
-  const handleDragEnd = () => {
-    dragIndexRef.current = null;
-    setDropLineIndex(null);
-  };
+  const colSpan = ALL_MONTHS.length + 2;
 
   return (
     <>
@@ -201,15 +76,13 @@ export function BudgetSection({
         <td
           colSpan={colSpan}
           style={{
-            padding: 0,
-            height: '1px',
-            border: 'none',
+            padding: 0, height: '1px', border: 'none',
             background: `linear-gradient(to right, ${accentColor}80, ${accentColor}40 30%, transparent 70%)`,
           }}
         />
       </tr>
 
-      {/* Section header — bg is secondary (#f8faff), left border is accent color */}
+      {/* Section header */}
       <TableRow className="bg-secondary border-none">
         <TableCell
           className="sticky left-0 z-10 w-[200px] py-2.5 pl-4 bg-secondary sticky-border-r"
@@ -218,15 +91,12 @@ export function BudgetSection({
         >
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: accentColor }} />
-            <span
-              className="font-display text-[11px] font-bold uppercase tracking-widest"
-              style={{ color: accentColor }}
-            >
+            <span className="font-display text-[11px] font-bold uppercase tracking-widest" style={{ color: accentColor }}>
               {displayLabel}
             </span>
           </div>
         </TableCell>
-        {visibleMonths.map(mo => (
+        {ALL_MONTHS.map(mo => (
           <TableCell key={mo} className="text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary border-r border-[#f0f2f8] dark:border-border">
             {MONTHS[mo - 1]}
           </TableCell>
@@ -238,9 +108,7 @@ export function BudgetSection({
         <td
           colSpan={colSpan}
           style={{
-            padding: 0,
-            height: '1px',
-            border: 'none',
+            padding: 0, height: '1px', border: 'none',
             background: `linear-gradient(to right, ${accentColor}, ${accentColor}80 30%, transparent 70%)`,
           }}
         />
@@ -254,10 +122,7 @@ export function BudgetSection({
             <tr aria-hidden>
               <td colSpan={colSpan} style={{ padding: 0, border: 'none' }}>
                 <div style={{ position: 'relative', height: '3px', background: accentColor }}>
-                  <div style={{
-                    position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)',
-                    width: '8px', height: '8px', borderRadius: '50%', background: accentColor,
-                  }} />
+                  <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: accentColor }} />
                 </div>
               </td>
             </tr>
@@ -278,7 +143,6 @@ export function BudgetSection({
               onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderLeftColor = 'transparent'; }}
             >
               <div className="relative flex items-center h-full pl-0 pr-6">
-                {/* Drag handle */}
                 <div
                   className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors mr-2"
                   onMouseDown={e => e.stopPropagation()}
@@ -313,7 +177,7 @@ export function BudgetSection({
                 </div>
               </div>
             </TableCell>
-            {visibleMonths.map(mo => (
+            {ALL_MONTHS.map(mo => (
               <TableCell key={mo} className="border-r border-[#f0f2f8] px-1 py-1 dark:border-border">
                 <BudgetCell
                   ref={el => { cellRefs.current[`${cat.id}|${mo}`] = el; }}
@@ -328,38 +192,33 @@ export function BudgetSection({
           </TableRow>
         </React.Fragment>
       ))}
+
       {/* Drop indicator after the last row */}
       {dropLineIndex === displayCats.length && dragIndexRef.current !== displayCats.length - 1 && (
         <tr aria-hidden>
           <td colSpan={colSpan} style={{ padding: 0, border: 'none' }}>
             <div style={{ position: 'relative', height: '3px', background: accentColor }}>
-              <div style={{
-                position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)',
-                width: '8px', height: '8px', borderRadius: '50%', background: accentColor,
-              }} />
+              <div style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', width: '8px', height: '8px', borderRadius: '50%', background: accentColor }} />
             </div>
           </td>
         </tr>
       )}
 
-      {/* Section total */}
+      {/* Section total row with heat map */}
       <TableRow className="border-t border-[#f0f2f8] dark:border-border" style={{ background: totalBg }}>
-        <TableCell
-          colSpan={2}
-          className="sticky left-0 z-10 py-2.5 pl-4 sticky-border-r"
-          style={{ background: totalBg }}
-        >
-          <span
-            className="font-display text-[11px] font-bold uppercase tracking-wider"
-            style={{ color: accentColor }}
-          >
+        <TableCell colSpan={2} className="sticky left-0 z-10 py-2.5 pl-4 sticky-border-r" style={{ background: totalBg }}>
+          <span className="font-display text-[11px] font-bold uppercase tracking-wider" style={{ color: totalText }}>
             Total {displayLabel}
           </span>
         </TableCell>
-        {visibleMonths.map(mo => (
-          <TableCell key={mo} className="px-1 py-2 text-right border-r border-[#f0f2f8] dark:border-border" style={{ background: totalBg }}>
-            <span className="font-display text-xs font-bold pr-1" style={{ color: accentColor }}>
-              {fmt(getMonthTotal(mo))}
+        {ALL_MONTHS.map(mo => (
+          <TableCell
+            key={mo}
+            className="px-1 py-2 text-right border-r border-[#f0f2f8] dark:border-border"
+            style={{ background: getHeatBg(mo, totalBg) }}
+          >
+            <span className="font-display text-xs font-bold pr-1" style={{ color: totalText }}>
+              {fmt(monthTotals[mo] ?? 0)}
             </span>
           </TableCell>
         ))}
@@ -384,12 +243,7 @@ export function BudgetSection({
       </AlertDialog>
 
       {/* Add / Edit dialogs */}
-      <CategoryFormDialog
-        open={adding}
-        onOpenChange={setAdding}
-        defaultType={type}
-        existingGroups={existingGroups}
-      />
+      <CategoryFormDialog open={adding} onOpenChange={setAdding} defaultType={type} existingGroups={existingGroups} />
       <CategoryFormDialog
         open={!!editingCat}
         onOpenChange={o => { if (!o) setEditingCat(null); }}

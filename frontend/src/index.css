@@ -41,7 +41,7 @@
     --income:   160 84% 39%;         /* #10b981 green  */
     --expense:  330 81% 60%;         /* #ec4899 pink   */
     --savings:  249 76% 63%;         /* #6c5ce7 violet */
-    --debt:     199 89% 48%;         /* #0ea5e9 sky    */
+    --debt:     199 91% 60%;         /* #38bdf8 sky-400 */
     --transfer: 221 15% 55%;
 
     --border: 221 33% 90%;           /* #dde3f0 */
@@ -80,7 +80,13 @@
     --budget-savings-accent:      #6c5ce7;
     --budget-debt-header-bg:      #e0f2fe;
     --budget-debt-header-text:    #0c4a6e;
-    --budget-debt-accent:         #0ea5e9;
+    --budget-debt-accent:         #38bdf8;
+
+    /* RGB channels for rgba() heat map — same values as accents, reusable in rgba() calls */
+    --budget-income-rgb:   16, 185, 129;
+    --budget-expenses-rgb: 236, 72, 153;
+    --budget-savings-rgb:  108, 92, 231;
+    --budget-debt-rgb:     56, 189, 248;
   }
 }
 
@@ -151,6 +157,6 @@
   --budget-savings-accent:      #6c5ce7;
   --budget-debt-header-bg:      rgba(14, 165, 233, 0.12);
   --budget-debt-header-text:    #7dd3fc;
-  --budget-debt-accent:         #0ea5e9;
+  --budget-debt-accent:         #38bdf8;
 }
 }
