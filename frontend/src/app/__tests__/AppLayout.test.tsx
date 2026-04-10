@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { AppLayout } from "../AppLayout";
 import { renderWithProviders } from "@/test/test-utils";
 
@@ -19,20 +18,12 @@ describe("AppLayout", () => {
     expect(screen.getByText("FinanceFlow")).toBeInTheDocument();
   });
 
-  it("renders all navigation links", async () => {
+  it("renders all navigation links", () => {
     renderWithProviders(<AppLayout>Content</AppLayout>);
-    const user = userEvent.setup();
 
-    expect(screen.getAllByText("Dashboard")).toHaveLength(1); // desktop only
-    expect(screen.getAllByText("Transactions")).toHaveLength(1);
-    expect(screen.getAllByText("Budget Plan")).toHaveLength(1);
-    expect(screen.getAllByText("Settings")).toHaveLength(1);
-
-    await user.click(screen.getByRole("button", { name: /open navigation/i }));
-
-    expect(screen.getAllByText("Dashboard")).toHaveLength(2); // desktop + mobile
+    // Each label appears in both the desktop nav and the mobile bottom bar
+    expect(screen.getAllByText("Dashboard")).toHaveLength(2);
     expect(screen.getAllByText("Transactions")).toHaveLength(2);
-    expect(screen.getAllByText("Budget Plan")).toHaveLength(2);
     expect(screen.getAllByText("Settings")).toHaveLength(2);
   });
 

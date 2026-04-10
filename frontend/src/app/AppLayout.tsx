@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
+import { MobileBottomBar } from './MobileBottomBar';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -47,11 +48,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Top header */}
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center px-4 md:px-6">
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger — hidden on mobile, bottom bar handles navigation */}
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden mr-2 h-8 w-8"
+            className="hidden mr-2 h-8 w-8"
             onClick={() => setMobileOpen(true)}
             aria-label="Open navigation"
           >
@@ -156,10 +157,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </SheetContent>
       </Sheet>
 
-      {/* Main content */}
-      <main className={cn('mx-auto px-4 md:px-6 py-6', !fullWidth && 'max-w-7xl')}>
+      {/* Main content — extra bottom padding on mobile so content clears the bottom bar */}
+      <main className={cn('mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6', !fullWidth && 'max-w-7xl')}>
         {children}
       </main>
+
+      <MobileBottomBar />
     </div>
     </FullWidthContext.Provider>
   );
