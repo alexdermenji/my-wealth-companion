@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { AppLayout } from "../AppLayout";
 import { renderWithProviders } from "@/test/test-utils";
 
