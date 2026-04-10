@@ -5,12 +5,14 @@ import BudgetPlanPage from "../BudgetPlanPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useBudgetPlans } from "../hooks";
 import { useCategories } from "@/shared/hooks/useCategories";
+import { useSettings } from "@/features/settings/hooks";
 
 import type { BudgetCategory } from "@/shared/types";
 import type { BudgetPlan } from "../types";
 
 vi.mock("../hooks");
 vi.mock("@/shared/hooks/useCategories");
+vi.mock("@/features/settings/hooks");
 
 const mockCategories: BudgetCategory[] = [
   { id: "c1", name: "Salary", type: "Income", group: "Employment", order: 0 },
@@ -31,6 +33,10 @@ const mockBudgetPlans = (data: BudgetPlan[]) => {
 
 describe("BudgetPlanPage", () => {
   beforeEach(() => {
+    vi.mocked(useSettings).mockReturnValue({
+      data: { startYear: 2026, startMonth: 1, currency: "£" },
+      isLoading: false,
+    } as ReturnType<typeof useSettings>);
     vi.mocked(useCategories).mockReturnValue({
       data: mockCategories,
       isLoading: false,
