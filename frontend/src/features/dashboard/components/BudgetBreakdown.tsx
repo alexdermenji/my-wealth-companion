@@ -213,10 +213,10 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                     <div className="flex items-center gap-2">
                       <Progress
                         value={selected ? Math.min(getSectionPercentage(selected.totalTracked, selected.totalBudget), 100) : 0}
-                        className="h-1.5 flex-1"
+                        className="h-1.5 flex-1 bg-border"
                         indicatorStyle={{ background: PROGRESS_GRADIENT }}
                       />
-                      <span className={`text-xs tabular-nums w-12 text-right ${pctColorClass(selected ? getSectionPercentage(selected.totalTracked, selected.totalBudget) : 0)}`}>
+                      <span className={`text-xs tabular-nums w-9 text-right ${pctColorClass(selected ? getSectionPercentage(selected.totalTracked, selected.totalBudget) : 0)}`}>
                         {formatPercentage(selected ? getSectionPercentage(selected.totalTracked, selected.totalBudget) : 0)}
                       </span>
                     </div>
