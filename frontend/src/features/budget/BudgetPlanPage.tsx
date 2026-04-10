@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFullWidth } from '@/app/AppLayout';
 import { BudgetSection } from './components/BudgetSection';
 import { useSettings } from '@/features/settings/hooks';
+import { BudgetPlanSkeleton } from './components/BudgetPlanSkeleton';
 
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
@@ -21,9 +22,9 @@ export default function BudgetPlanPage() {
     return () => setFullWidth(false);
   }, [setFullWidth]);
 
-  const { data: settings } = useSettings();
-  const { data: allCategories = [] } = useCategories();
-  const { data: budgetPlans = [] } = useBudgetPlans(year);
+  const { data: settings, isLoading: settingsLoading } = useSettings();
+  const { data: allCategories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: budgetPlans = [], isLoading: plansLoading } = useBudgetPlans(year);
   const setBudgetAmountMutation = useSetBudgetAmount();
 
   const handleChange = (catId: string, month: number, value: string) => {
@@ -64,6 +65,8 @@ export default function BudgetPlanPage() {
     if (v > 0) return 'text-[hsl(var(--warning))] font-semibold';
     return 'text-[hsl(var(--success))] font-semibold';
   };
+
+  if (settingsLoading || categoriesLoading || plansLoading) return <BudgetPlanSkeleton />;
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in max-w-[90%] mx-auto">

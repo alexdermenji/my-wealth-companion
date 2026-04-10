@@ -41,6 +41,15 @@ export class DashboardPage {
     return this.page.getByRole('heading', { level: 3 });
   }
 
+  /**
+   * A category row in the desktop detail table.
+   * Uses getByRole('cell') which excludes display:none elements, so it only
+   * matches the visible desktop table — not the hidden mobile layout spans.
+   */
+  getDetailPanelCategory(name: string): Locator {
+    return this.page.getByRole('cell', { name, exact: true });
+  }
+
   getYearTrigger(): Locator {
     return this.page.locator('.flex.gap-2 button[role="combobox"]').first();
   }

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BudgetType, BudgetCategory } from '@/shared/types';
+import { SettingsSkeleton } from './components/SettingsSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,9 +24,9 @@ const ACCOUNT_TYPES = ['Cash', 'Bank', 'Credit Card', 'Investment', 'Retirement'
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 export default function SettingsPage() {
-  const { data: accounts = [] } = useAccounts();
-  const { data: categories = [] } = useCategories();
-  const { data: settings } = useSettings();
+  const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
+  const { data: settings, isLoading: settingsLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
   const createAccount = useCreateAccount();
   const updateAccountMutation = useUpdateAccount();
@@ -67,6 +68,8 @@ export default function SettingsPage() {
     transactionCount: number;
     budgetPlanCount: number;
   } | null>(null);
+
+  if (accountsLoading || categoriesLoading || settingsLoading) return <SettingsSkeleton />;
 
   const handleDeleteCategory = async (cat: BudgetCategory) => {
     try {

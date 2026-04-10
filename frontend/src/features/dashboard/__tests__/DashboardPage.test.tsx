@@ -57,7 +57,9 @@ describe("DashboardPage", () => {
 
   it("renders the page title", () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByText("Budget Dashboard")).toBeInTheDocument();
+    // Both mobile hero and desktop <h1> render in jsdom (no CSS breakpoints);
+    // target the heading role to specifically verify the desktop h1.
+    expect(screen.getByRole("heading", { name: "Budget Dashboard" })).toBeInTheDocument();
   });
 
   it("renders year and month selectors", () => {
@@ -70,19 +72,23 @@ describe("DashboardPage", () => {
 
   it("passes breakdown data to BudgetBreakdown — section tiles visible", () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByRole("button", { name: /income/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /expenses/i })).toBeInTheDocument();
+    // Mobile tabs + desktop nav both render in jsdom; use getAllByRole.
+    expect(screen.getAllByRole("button", { name: /income/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("button", { name: /expenses/i }).length).toBeGreaterThanOrEqual(1);
   });
 
   it("passes breakdown data to BudgetBreakdown — first section categories visible", () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByText("Space (Net)")).toBeInTheDocument();
+    // Category name renders in both mobile and desktop layouts in jsdom.
+    expect(screen.getAllByText("Space (Net)").length).toBeGreaterThanOrEqual(1);
   });
 
   it("uses currency from settings for formatting", () => {
     renderWithProviders(<DashboardPage />);
-    // Income tile shows £0 tracked — formatted with £ from settings
-    expect(screen.getByRole("button", { name: /income/i })).toHaveTextContent("£0");
+    // The desktop Income nav button includes the tracked amount formatted with £.
+    const incomeButtons = screen.getAllByRole("button", { name: /income/i });
+    const desktopNavButton = incomeButtons.find(b => b.textContent?.includes("£0"));
+    expect(desktopNavButton).toBeTruthy();
   });
 
   it("renders correctly with no breakdown data", () => {
@@ -91,6 +97,6 @@ describe("DashboardPage", () => {
       isLoading: false,
     } as ReturnType<typeof useDashboardSummary>);
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByText("Budget Dashboard")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Budget Dashboard" })).toBeInTheDocument();
   });
 });

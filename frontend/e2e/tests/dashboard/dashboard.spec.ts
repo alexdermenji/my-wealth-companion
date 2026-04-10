@@ -17,11 +17,11 @@ test.describe('Dashboard', () => {
 
   test('should display breakdown section', async ({ dashboardPage }) => {
     // Income is selected by default — its categories appear in the detail table
-    await expect(dashboardPage.page.getByText('Employment (Net)', { exact: true })).toBeVisible();
+    await expect(dashboardPage.getDetailPanelCategory('Employment (Net)')).toBeVisible();
 
     // Switch to Expenses — Groceries should now appear
     await dashboardPage.getNavigatorTile('Expenses').click();
-    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).toBeVisible();
+    await expect(dashboardPage.getDetailPanelCategory('Groceries')).toBeVisible();
   });
 
   test('should change year', async ({ dashboardPage }) => {
@@ -52,11 +52,11 @@ test.describe('Dashboard', () => {
   test('should show categories for selected tile', async ({ dashboardPage }) => {
     // Expenses tile → Groceries visible
     await dashboardPage.getNavigatorTile('Expenses').click();
-    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).toBeVisible();
+    await expect(dashboardPage.getDetailPanelCategory('Groceries')).toBeVisible();
 
     // Back to Income → Employment (Net) visible, Groceries gone
     await dashboardPage.getNavigatorTile('Income').click();
-    await expect(dashboardPage.page.getByText('Employment (Net)', { exact: true })).toBeVisible();
-    await expect(dashboardPage.page.getByText('Groceries', { exact: true })).not.toBeVisible();
+    await expect(dashboardPage.getDetailPanelCategory('Employment (Net)')).toBeVisible();
+    await expect(dashboardPage.getDetailPanelCategory('Groceries')).not.toBeVisible();
   });
 });
