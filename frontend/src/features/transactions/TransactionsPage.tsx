@@ -8,6 +8,7 @@ import { useCategories } from '@/shared/hooks/useCategories';
 import { useSettings } from '@/features/settings/hooks';
 import { TransactionForm, FormValues } from './components/TransactionForm';
 import { TransactionTable } from './components/TransactionTable';
+import { TransactionsSkeleton } from './components/TransactionsSkeleton';
 
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt', 'Transfer'];
 const OUTFLOW_TYPES: (BudgetType | '')[] = ['Expenses', 'Debt'];
@@ -16,13 +17,13 @@ export default function TransactionsPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterAccount, setFilterAccount] = useState<string>('all');
 
-  const { data: transactions = [] } = useTransactions(
+  const { data: transactions = [], isLoading: txLoading } = useTransactions(
     filterType !== 'all' || filterAccount !== 'all'
       ? { budgetType: filterType !== 'all' ? filterType : undefined, accountId: filterAccount !== 'all' ? filterAccount : undefined }
       : undefined
   );
-  const { data: accounts = [] } = useAccounts();
-  const { data: categories = [] } = useCategories();
+  const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
+  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const { data: settings } = useSettings();
   const createTransaction = useCreateTransaction();
   const createTransfer = useCreateTransfer();
@@ -31,6 +32,8 @@ export default function TransactionsPage() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+
+  if (txLoading || accountsLoading || categoriesLoading) return <TransactionsSkeleton />;
 
   const handleSubmit = (data: FormValues) => {
     if (data.budgetType === 'Transfer' && !editing) {
