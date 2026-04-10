@@ -52,6 +52,7 @@ interface TransactionFormProps {
   onSubmit: (data: FormValues) => void;
   accounts: Account[];
   categories: BudgetCategory[];
+  hideTrigger?: boolean;
 }
 
 export function TransactionForm({
@@ -62,6 +63,7 @@ export function TransactionForm({
   onSubmit,
   accounts,
   categories,
+  hideTrigger = false,
 }: TransactionFormProps) {
   const { register, handleSubmit, control, watch, reset, formState: { errors } } = useForm<FormValues>({
     resolver: yupResolver(schema),
@@ -105,9 +107,11 @@ export function TransactionForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Transaction</Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button><Plus className="h-4 w-4 mr-2" /> Add Transaction</Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-display">{editing ? 'Edit' : 'New'} Transaction</DialogTitle>

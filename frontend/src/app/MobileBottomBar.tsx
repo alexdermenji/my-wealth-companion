@@ -6,6 +6,7 @@ import { TransactionForm, FormValues } from '@/features/transactions/components/
 import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useCreateTransaction, useCreateTransfer } from '@/features/transactions/hooks';
+import { BudgetType } from '@/shared/types';
 
 const OUTFLOW_TYPES = ['Expenses', 'Debt'];
 
@@ -41,6 +42,7 @@ export function MobileBottomBar() {
       createTransaction.mutate({
         ...data,
         amount:           signedAmount,
+        budgetType:       data.budgetType as BudgetType,
         budgetPositionId: data.budgetPositionId ?? '',
       });
     }
@@ -92,6 +94,7 @@ export function MobileBottomBar() {
         onSubmit={handleSubmit}
         accounts={accounts}
         categories={categories}
+        hideTrigger
       />
     </>
   );
