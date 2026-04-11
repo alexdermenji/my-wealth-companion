@@ -23,3 +23,8 @@ export const SECTION_CSS_KEY: Record<string, string> = {
 };
 
 export const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
+
+export function getCurrentBudgetMonth(year: number) {
+  const now = new Date();
+  return now.getFullYear() === year ? now.getMonth() + 1 : null;
+}

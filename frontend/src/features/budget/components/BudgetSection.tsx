@@ -8,6 +8,7 @@ import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
 import { useForceDeleteCategory } from '@/shared/hooks/useCategories';
+import { cn } from '@/lib/utils';
 import { ALL_MONTHS, DISPLAY_LABELS, SECTION_ACCENT, SECTION_CSS_KEY } from '../constants';
 import { useDragReorder, useHeatMap, useTabFill } from '../hooks';
 
@@ -17,6 +18,7 @@ interface BudgetSectionProps {
   budgetPlans: BudgetPlan[];
   onAmountChange: (catId: string, month: number, value: string) => void;
   currency?: string;
+  currentMonth?: number | null;
 }
 
 export function BudgetSection({
@@ -25,6 +27,7 @@ export function BudgetSection({
   budgetPlans,
   onAmountChange,
   currency = '£',
+  currentMonth = null,
 }: BudgetSectionProps) {
   const accentColor  = SECTION_ACCENT[type];
   const cssKey       = SECTION_CSS_KEY[type];
@@ -97,7 +100,14 @@ export function BudgetSection({
           </div>
         </TableCell>
         {ALL_MONTHS.map(mo => (
-          <TableCell key={mo} className="text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary border-r border-[#f0f2f8] dark:border-border">
+          <TableCell
+            key={mo}
+            data-current-month={currentMonth === mo ? 'true' : undefined}
+            className={cn(
+              'text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary border-r border-[#f0f2f8] dark:border-border',
+              currentMonth === mo && 'bg-[hsl(var(--warning)/0.14)] text-foreground shadow-[inset_0_1px_0_hsl(var(--warning)/0.45),inset_0_-1px_0_hsl(var(--warning)/0.45)]',
+            )}
+          >
             {MONTHS[mo - 1]}
           </TableCell>
         ))}
@@ -178,7 +188,14 @@ export function BudgetSection({
               </div>
             </TableCell>
             {ALL_MONTHS.map(mo => (
-              <TableCell key={mo} className="border-r border-[#f0f2f8] px-1 py-1 dark:border-border">
+              <TableCell
+                key={mo}
+                data-current-month={currentMonth === mo ? 'true' : undefined}
+                className={cn(
+                  'border-r border-[#f0f2f8] px-1 py-1 dark:border-border',
+                  currentMonth === mo && 'bg-[hsl(var(--warning)/0.06)]',
+                )}
+              >
                 <BudgetCell
                   ref={el => { cellRefs.current[`${cat.id}|${mo}`] = el; }}
                   value={getBudget(cat.id, mo)}
@@ -214,10 +231,14 @@ export function BudgetSection({
         {ALL_MONTHS.map(mo => (
           <TableCell
             key={mo}
-            className="px-1 py-2 text-right border-r border-[#f0f2f8] dark:border-border"
+            data-current-month={currentMonth === mo ? 'true' : undefined}
+            className={cn(
+              'px-1 py-2 text-right border-r border-[#f0f2f8] dark:border-border',
+              currentMonth === mo && 'shadow-[inset_0_1px_0_hsl(var(--warning)/0.35),inset_0_-1px_0_hsl(var(--warning)/0.35)]',
+            )}
             style={{ background: getHeatBg(mo, totalBg) }}
           >
-            <span className="font-display text-xs font-bold pr-1" style={{ color: totalText }}>
+            <span className="font-amount text-xs font-bold pr-1" style={{ color: totalText }}>
               {fmt(monthTotals[mo] ?? 0)}
             </span>
           </TableCell>

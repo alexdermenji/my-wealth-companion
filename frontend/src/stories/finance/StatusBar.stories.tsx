@@ -41,7 +41,7 @@ function StatusBarDemo({ items, net }: StatusBarProps) {
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
             <span className="text-xs text-[#7a849e]">{label}</span>
-            <span className="font-display text-sm font-bold" style={{ color }}>{amount}</span>
+            <span className="font-amount text-sm font-bold" style={{ color }}>{amount}</span>
           </div>
         </React.Fragment>
       ))}
@@ -49,7 +49,7 @@ function StatusBarDemo({ items, net }: StatusBarProps) {
       <div className="ml-auto flex items-center gap-2">
         <span className="text-xs text-[#7a849e]">{net.label}</span>
         <span
-          className="font-display text-sm font-bold"
+          className="font-amount text-sm font-bold"
           style={{ color: net.positive ? "#10b981" : "#ec4899" }}
         >
           {net.amount} {net.positive ? "↑" : "↓"}
