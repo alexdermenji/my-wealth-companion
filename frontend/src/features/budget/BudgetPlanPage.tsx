@@ -10,6 +10,7 @@ import { useFullWidth } from '@/app/AppLayout';
 import { BudgetSection } from './components/BudgetSection';
 import { useSettings } from '@/features/settings/hooks';
 import { BudgetPlanSkeleton } from './components/BudgetPlanSkeleton';
+import { getCurrentBudgetMonth } from './constants';
 
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
@@ -26,6 +27,7 @@ export default function BudgetPlanPage() {
   const { data: allCategories = [], isLoading: categoriesLoading } = useCategories();
   const { data: budgetPlans = [], isLoading: plansLoading } = useBudgetPlans(year);
   const setBudgetAmountMutation = useSetBudgetAmount();
+  const currentMonth = getCurrentBudgetMonth(year);
 
   const handleChange = (catId: string, month: number, value: string) => {
     const num = parseFloat(value) || 0;
@@ -62,7 +64,7 @@ export default function BudgetPlanPage() {
 
   const allocationColor = (v: number) => {
     if (v < 0) return 'text-[hsl(var(--expense))] font-bold';
-    if (v > 0) return 'text-[hsl(var(--warning))] font-semibold';
+    if (v > 0) return 'text-[hsl(var(--success))] font-semibold';
     return 'text-[hsl(var(--success))] font-semibold';
   };
 
@@ -110,7 +112,14 @@ export default function BudgetPlanPage() {
                   </div>
                 </TableHead>
                 {MONTHS.map((m, i) => (
-                  <TableHead key={i} className="text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary min-w-[50px] border-r border-[#f0f2f8] dark:border-border">
+                  <TableHead
+                    key={i}
+                    data-current-month={currentMonth === i + 1 ? 'true' : undefined}
+                    className={cn(
+                      'text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
+                      currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.14)] text-foreground shadow-[inset_0_1px_0_hsl(var(--warning)/0.45),inset_0_-1px_0_hsl(var(--warning)/0.45)]',
+                    )}
+                  >
                     {m}
                   </TableHead>
                 ))}
@@ -135,7 +144,15 @@ export default function BudgetPlanPage() {
                   Remaining
                 </TableHead>
                 {toBeAllocated.map((val, i) => (
-                  <TableHead key={i} className={cn('text-right pr-2 font-display text-sm font-bold min-w-[50px] border-r border-[#f0f2f8] dark:border-border', allocationColor(val))}>
+                  <TableHead
+                    key={i}
+                    data-current-month={currentMonth === i + 1 ? 'true' : undefined}
+                    className={cn(
+                      'text-right pr-2 font-amount text-sm font-bold min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
+                      allocationColor(val),
+                      currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.1)] shadow-[inset_0_1px_0_hsl(var(--warning)/0.35),inset_0_-1px_0_hsl(var(--warning)/0.35)]',
+                    )}
+                  >
                     {val === 0 ? '—' : `${settings?.currency ?? '£'}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val))}`}
                   </TableHead>
                 ))}
@@ -150,6 +167,7 @@ export default function BudgetPlanPage() {
                   budgetPlans={budgetPlans}
                   onAmountChange={handleChange}
                   currency={settings?.currency}
+                  currentMonth={currentMonth}
                 />
               ))}
             </TableBody>

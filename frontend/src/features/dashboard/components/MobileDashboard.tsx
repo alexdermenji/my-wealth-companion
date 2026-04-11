@@ -162,7 +162,7 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
                   <div key={label} className="flex items-center gap-2 text-xs font-semibold">
                     <span className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: color }} />
                     <span className="text-white/70 w-14 flex-shrink-0">{label}</span>
-                    <span>{formatCurrency(value)}</span>
+                    <span className="font-amount">{formatCurrency(value)}</span>
                   </div>
                 ))}
               </div>
@@ -173,7 +173,7 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
         {/* Net balance */}
         <div className="relative pt-3 border-t border-white/15 flex items-baseline justify-between">
           <span className="text-sm text-white/70">Net balance</span>
-          <p className="font-display font-extrabold tracking-tight leading-none whitespace-nowrap"
+          <p className="font-amount font-extrabold tracking-tight leading-none whitespace-nowrap"
              style={{ fontSize: 'clamp(20px, 6vw, 28px)' }}>
             {netDisplay}
           </p>
@@ -215,10 +215,10 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
               </p>
             </div>
             <div className="text-right">
-              <p className={cn('font-display text-base font-extrabold', meta.textClass)}>
+              <p className={cn('font-amount text-base font-extrabold', meta.textClass)}>
                 {formatCurrency(selected?.totalTracked ?? 0)}
               </p>
-              <p className="text-xs text-muted-foreground tabular-nums">
+              <p className="font-amount text-xs text-muted-foreground tabular-nums">
                 of {formatCurrency(selected?.totalBudget ?? 0)}
               </p>
             </div>
@@ -280,10 +280,10 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
 
                   {/* Right: fixed 80px — keeps every bar track the same width */}
                   <div className="text-right">
-                    <p className={cn('text-base font-bold leading-none tabular-nums', isOver ? 'text-expense' : 'text-foreground')}>
+                    <p className={cn('font-amount text-base font-bold leading-none tabular-nums', isOver ? 'text-expense' : 'text-foreground')}>
                       {item.tracked > 0 ? formatCurrency(item.tracked) : formatCurrency(0)}
                     </p>
-                    <p className="mt-1 text-[11px] leading-none text-muted-foreground/85 tabular-nums">
+                    <p className="font-amount mt-1 text-[11px] leading-none text-muted-foreground/85 tabular-nums">
                       of {formatCurrency(item.budget)}
                     </p>
                   </div>

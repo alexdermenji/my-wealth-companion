@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -112,6 +112,12 @@
 
   .stat-value {
     @apply text-2xl font-bold tracking-tight;
+  }
+
+  .font-amount {
+    font-family: 'Space Grotesk', sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.03em;
   }
 
   .amount-positive {

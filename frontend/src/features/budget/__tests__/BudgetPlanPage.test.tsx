@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { fireEvent, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import BudgetPlanPage from "../BudgetPlanPage";
 import { renderWithProviders } from "@/test/test-utils";
@@ -33,6 +33,8 @@ const mockBudgetPlans = (data: BudgetPlan[]) => {
 
 describe("BudgetPlanPage", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-15T12:00:00Z"));
     vi.mocked(useSettings).mockReturnValue({
       data: { startYear: 2026, startMonth: 1, currency: "£" },
       isLoading: false,
@@ -42,6 +44,10 @@ describe("BudgetPlanPage", () => {
       isLoading: false,
     } as ReturnType<typeof useCategories>);
     mockBudgetPlans(mockPlans);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders the year in the header", () => {
@@ -92,7 +98,6 @@ describe("BudgetPlanPage", () => {
   });
 
   it("navigates year with arrow buttons", async () => {
-    const user = userEvent.setup();
     renderWithProviders(<BudgetPlanPage />);
     const currentYear = new Date().getFullYear();
     expect(screen.getByText(currentYear.toString())).toBeInTheDocument();
@@ -100,7 +105,21 @@ describe("BudgetPlanPage", () => {
     // Click right arrow to go to next year
     const buttons = screen.getAllByRole("button");
     const rightArrow = buttons[1]; // second button is right arrow
-    await user.click(rightArrow);
+    fireEvent.click(rightArrow);
     expect(screen.getByText((currentYear + 1).toString())).toBeInTheDocument();
+  });
+
+  it("highlights the current month for the current year only", () => {
+    const { container } = renderWithProviders(<BudgetPlanPage />);
+
+    expect(container.querySelectorAll('[data-current-month="true"]').length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Apr")[0].closest('[data-current-month="true"]')).not.toBeNull();
+    expect(container.querySelector('[data-current-month="true"]')).toHaveTextContent(/Apr|£2,800.00/);
+
+    const buttons = screen.getAllByRole("button");
+    const rightArrow = buttons[1];
+    fireEvent.click(rightArrow);
+
+    expect(container.querySelector('[data-current-month="true"]')).toBeNull();
   });
 });
