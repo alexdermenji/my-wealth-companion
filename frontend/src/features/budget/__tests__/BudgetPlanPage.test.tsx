@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { fireEvent, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import BudgetPlanPage from "../BudgetPlanPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useBudgetPlans } from "../hooks";
