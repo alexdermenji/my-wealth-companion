@@ -91,7 +91,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           {/* User avatar dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 outline-none">
+              <button aria-label="Open account menu" className="flex items-center gap-2 outline-none">
                 <Avatar className="h-8 w-8 cursor-pointer">
                   <AvatarFallback className="text-xs font-medium bg-primary/10 text-primary">
                     {getInitials(userName)}
