@@ -3,9 +3,10 @@ import { test, expect } from '../../fixtures/base.fixture';
 test.describe('Settings Page', () => {
   test('should show the streamlined settings sections', async ({ settingsPage }) => {
     await expect(settingsPage.heading).toBeVisible();
-    await expect(settingsPage.page.getByText('General')).toBeVisible();
-    await expect(settingsPage.page.getByText('Accounts')).toBeVisible();
-    await expect(settingsPage.page.getByText('Manage accounts and preferences')).toBeVisible();
+    await expect(settingsPage.getGeneralInput('Start Year')).toHaveValue('2026');
+    await expect(settingsPage.getGeneralInput('Start Month')).toHaveValue('1');
+    await expect(settingsPage.getGeneralInput('Currency')).toHaveValue('$');
+    await expect(settingsPage.getAccountRows()).toHaveCount(3);
   });
 
   test('should not display budget category management', async ({ settingsPage }) => {
