@@ -10,18 +10,23 @@ import { useFullWidth } from '@/app/AppLayout';
 import { BudgetSection } from './components/BudgetSection';
 import { useSettings } from '@/features/settings/hooks';
 import { BudgetPlanSkeleton } from './components/BudgetPlanSkeleton';
-import { getCurrentBudgetMonth } from './constants';
+import { BudgetPlanMobileSkeleton } from './components/mobile/BudgetPlanMobileSkeleton';
+import { BudgetPlanMobile } from './components/mobile/BudgetPlanMobile';
+import { allocationColor, getCurrentBudgetMonth } from './constants';
+import { useIsMobile } from '@/shared/hooks/use-mobile';
 
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 export default function BudgetPlanPage() {
   const [year, setYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const isMobile = useIsMobile();
   const { setFullWidth } = useFullWidth();
 
   useEffect(() => {
-    setFullWidth(true);
+    if (!isMobile) setFullWidth(true);
     return () => setFullWidth(false);
-  }, [setFullWidth]);
+  }, [setFullWidth, isMobile]);
 
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const { data: allCategories = [], isLoading: categoriesLoading } = useCategories();
@@ -62,16 +67,17 @@ export default function BudgetPlanPage() {
     });
   }, [typeTotals]);
 
-  const allocationColor = (v: number) => {
-    if (v < 0) return 'text-[hsl(var(--expense))] font-bold';
-    if (v > 0) return 'text-[hsl(var(--success))] font-semibold';
-    return 'text-[hsl(var(--success))] font-semibold';
-  };
+  if (settingsLoading || categoriesLoading || plansLoading) {
+    return isMobile ? <BudgetPlanMobileSkeleton /> : <BudgetPlanSkeleton />;
+  }
 
-  if (settingsLoading || categoriesLoading || plansLoading) return <BudgetPlanSkeleton />;
+  const currency = settings?.currency ?? '£';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in max-w-[90%] mx-auto">
+    <div className={cn(
+      'flex flex-col h-[calc(100vh-80px)] animate-fade-in',
+      isMobile ? 'px-4 w-full' : 'max-w-[90%] mx-auto',
+    )}>
       {/* Year pill */}
       <div className="flex items-center justify-center shrink-0 pb-3">
         <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
@@ -93,88 +99,101 @@ export default function BudgetPlanPage() {
         </div>
       </div>
 
-      <Card className="flex-1 min-h-0 overflow-auto">
-        <CardContent className="p-0">
-          <table className="w-full caption-bottom text-sm">
-            <TableHeader className="sticky top-0 z-20 shadow-sm">
-              {/* Allocations header */}
-              <TableRow className="bg-secondary border-none border-t border-[#f0f2f8] dark:border-border">
-                <TableHead
-                  colSpan={2}
-                  className="sticky left-0 z-30 bg-secondary w-[200px] py-2.5 pl-4 sticky-border-r"
-                  style={{ borderLeft: '3px solid hsl(var(--warning))' }}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: 'hsl(var(--warning))' }} />
-                    <span className="font-display text-[11px] font-bold uppercase tracking-widest" style={{ color: 'hsl(var(--warning))' }}>
-                      Allocations
-                    </span>
-                  </div>
-                </TableHead>
-                {MONTHS.map((m, i) => (
+      {isMobile ? (
+        <BudgetPlanMobile
+          year={year}
+          selectedMonth={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          categories={allCategories}
+          budgetPlans={budgetPlans}
+          typeTotals={typeTotals}
+          toBeAllocated={toBeAllocated}
+          onAmountChange={handleChange}
+          currency={currency}
+        />
+      ) : (
+        <Card className="flex-1 min-h-0 overflow-auto">
+          <CardContent className="p-0">
+            <table className="w-full caption-bottom text-sm">
+              <TableHeader className="sticky top-0 z-20 shadow-sm">
+                {/* Allocations header */}
+                <TableRow className="bg-secondary border-none border-t border-[#f0f2f8] dark:border-border">
                   <TableHead
-                    key={i}
-                    data-current-month={currentMonth === i + 1 ? 'true' : undefined}
-                    className={cn(
-                      'text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
-                      currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.14)] text-foreground shadow-[inset_0_1px_0_hsl(var(--warning)/0.45),inset_0_-1px_0_hsl(var(--warning)/0.45)]',
-                    )}
+                    colSpan={2}
+                    className="sticky left-0 z-30 bg-secondary w-[200px] py-2.5 pl-4 sticky-border-r"
+                    style={{ borderLeft: '3px solid hsl(var(--warning))' }}
                   >
-                    {m}
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: 'hsl(var(--warning))' }} />
+                      <span className="font-display text-[11px] font-bold uppercase tracking-widest" style={{ color: 'hsl(var(--warning))' }}>
+                        Allocations
+                      </span>
+                    </div>
                   </TableHead>
-                ))}
-              </TableRow>
+                  {MONTHS.map((m, i) => (
+                    <TableHead
+                      key={i}
+                      data-current-month={currentMonth === i + 1 ? 'true' : undefined}
+                      className={cn(
+                        'text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
+                        currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.14)] text-foreground shadow-[inset_0_1px_0_hsl(var(--warning)/0.45),inset_0_-1px_0_hsl(var(--warning)/0.45)]',
+                      )}
+                    >
+                      {m}
+                    </TableHead>
+                  ))}
+                </TableRow>
 
-              {/* Gradient accent line */}
-              <tr aria-hidden>
-                <td
-                  colSpan={14}
-                  style={{
-                    padding: 0,
-                    height: '1px',
-                    border: 'none',
-                    background: 'linear-gradient(to right, hsl(var(--warning)), hsl(var(--warning) / 0.5) 30%, transparent 70%)',
-                  }}
-                />
-              </tr>
+                {/* Gradient accent line */}
+                <tr aria-hidden>
+                  <td
+                    colSpan={14}
+                    style={{
+                      padding: 0,
+                      height: '1px',
+                      border: 'none',
+                      background: 'linear-gradient(to right, hsl(var(--warning)), hsl(var(--warning) / 0.5) 30%, transparent 70%)',
+                    }}
+                  />
+                </tr>
 
-              {/* Remaining row */}
-              <TableRow className="bg-card">
-                <TableHead colSpan={2} className="sticky left-0 z-30 bg-card sticky-border-r text-xs font-semibold text-muted-foreground">
-                  Remaining
-                </TableHead>
-                {toBeAllocated.map((val, i) => (
-                  <TableHead
-                    key={i}
-                    data-current-month={currentMonth === i + 1 ? 'true' : undefined}
-                    className={cn(
-                      'text-right pr-2 font-amount text-sm font-bold min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
-                      allocationColor(val),
-                      currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.1)] shadow-[inset_0_1px_0_hsl(var(--warning)/0.35),inset_0_-1px_0_hsl(var(--warning)/0.35)]',
-                    )}
-                  >
-                    {val === 0 ? '—' : `${settings?.currency ?? '£'}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val))}`}
+                {/* Remaining row */}
+                <TableRow className="bg-card">
+                  <TableHead colSpan={2} className="sticky left-0 z-30 bg-card sticky-border-r text-xs font-semibold text-muted-foreground">
+                    Remaining
                   </TableHead>
+                  {toBeAllocated.map((val, i) => (
+                    <TableHead
+                      key={i}
+                      data-current-month={currentMonth === i + 1 ? 'true' : undefined}
+                      className={cn(
+                        'text-right pr-2 font-amount text-sm font-bold min-w-[50px] border-r border-[#f0f2f8] dark:border-border',
+                        allocationColor(val),
+                        currentMonth === i + 1 && 'bg-[hsl(var(--warning)/0.1)] shadow-[inset_0_1px_0_hsl(var(--warning)/0.35),inset_0_-1px_0_hsl(var(--warning)/0.35)]',
+                      )}
+                    >
+                      {val === 0 ? '—' : `${currency}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val))}`}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {BUDGET_TYPES.map(type => (
+                  <BudgetSection
+                    key={type}
+                    type={type}
+                    categories={allCategories}
+                    budgetPlans={budgetPlans}
+                    onAmountChange={handleChange}
+                    currency={currency}
+                    currentMonth={currentMonth}
+                  />
                 ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {BUDGET_TYPES.map(type => (
-                <BudgetSection
-                  key={type}
-                  type={type}
-                  categories={allCategories}
-                  budgetPlans={budgetPlans}
-                  onAmountChange={handleChange}
-                  currency={settings?.currency}
-                  currentMonth={currentMonth}
-                />
-              ))}
-            </TableBody>
-          </table>
-        </CardContent>
-      </Card>
-
+              </TableBody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
