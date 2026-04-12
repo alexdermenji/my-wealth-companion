@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AppLayout } from "../AppLayout";
 import { renderWithProviders } from "@/test/test-utils";
 
@@ -24,7 +25,17 @@ describe("AppLayout", () => {
     // Each label appears in both the desktop nav and the mobile bottom bar
     expect(screen.getAllByText("Dashboard")).toHaveLength(2);
     expect(screen.getAllByText("Transactions")).toHaveLength(2);
-    expect(screen.getAllByText("Settings")).toHaveLength(2);
+    expect(screen.getAllByText("Net Worth")).toHaveLength(2);
+  });
+
+  it("renders settings inside the account menu", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(<AppLayout>Content</AppLayout>);
+
+    await user.click(screen.getByRole("button", { name: "Open account menu" }));
+
+    expect(screen.getByText("Settings")).toBeInTheDocument();
   });
 
   it("renders children content", () => {

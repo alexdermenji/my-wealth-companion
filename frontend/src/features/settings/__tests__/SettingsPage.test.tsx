@@ -3,23 +3,14 @@ import { screen } from "@testing-library/react";
 import SettingsPage from "../SettingsPage";
 import { renderWithProviders } from "@/test/test-utils";
 import { useAccounts } from "@/shared/hooks/useAccounts";
-import { useCategories } from "@/shared/hooks/useCategories";
 import { useSettings } from "../hooks";
 
 vi.mock("@/shared/hooks/useAccounts");
-vi.mock("@/shared/hooks/useCategories");
 vi.mock("../hooks");
-vi.mock("@/shared/api/categoriesApi");
 
 const mockAccounts = [
   { id: "a1", name: "Cash Wallet", type: "Cash" },
   { id: "a2", name: "Chase Bank", type: "Bank" },
-];
-
-const mockCategories = [
-  { id: "c1", name: "Rent", type: "Expenses", group: "Housing" },
-  { id: "c2", name: "Salary", type: "Income", group: "Employment" },
-  { id: "c3", name: "Emergency Fund", type: "Savings", group: "Savings" },
 ];
 
 describe("SettingsPage", () => {
@@ -28,10 +19,6 @@ describe("SettingsPage", () => {
       data: mockAccounts,
       isLoading: false,
     } as ReturnType<typeof useAccounts>);
-    vi.mocked(useCategories).mockReturnValue({
-      data: mockCategories,
-      isLoading: false,
-    } as ReturnType<typeof useCategories>);
     vi.mocked(useSettings).mockReturnValue({
       data: { startYear: 2026, startMonth: 1, currency: "$" },
       isLoading: false,
@@ -57,18 +44,9 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Chase Bank")).toBeInTheDocument();
   });
 
-  it("displays category blocks for all types", () => {
+  it("only shows general and account management sections", () => {
     renderWithProviders(<SettingsPage />);
-    expect(screen.getByText("Income Categories")).toBeInTheDocument();
-    expect(screen.getByText("Expenses Categories")).toBeInTheDocument();
-    expect(screen.getByText("Savings Categories")).toBeInTheDocument();
-    expect(screen.getByText("Debt Categories")).toBeInTheDocument();
-  });
-
-  it("shows categories in correct blocks", () => {
-    renderWithProviders(<SettingsPage />);
-    expect(screen.getByText("Rent")).toBeInTheDocument();
-    expect(screen.getByText("Salary")).toBeInTheDocument();
-    expect(screen.getByText("Emergency Fund")).toBeInTheDocument();
+    expect(screen.getByText("Manage accounts and preferences")).toBeInTheDocument();
+    expect(screen.queryByText("Budget Categories")).not.toBeInTheDocument();
   });
 });

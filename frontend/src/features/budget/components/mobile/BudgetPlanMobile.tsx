@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../../types';
 import { cn } from '@/lib/utils';
@@ -28,6 +29,7 @@ export function BudgetPlanMobile({
   onAmountChange,
   currency,
 }: BudgetPlanMobileProps) {
+  const [selectedType, setSelectedType] = useState<BudgetType>('Income');
   const remaining = toBeAllocated[selectedMonth - 1];
 
   const remainingBg = remaining < 0
@@ -73,18 +75,34 @@ export function BudgetPlanMobile({
         </span>
       </div>
 
-      {/* Section cards */}
-      {BUDGET_TYPES.map(type => (
-        <BudgetSectionMobile
-          key={type}
-          type={type}
-          categories={categories}
-          budgetPlans={budgetPlans}
-          onAmountChange={onAmountChange}
-          currency={currency}
-          month={selectedMonth}
-        />
-      ))}
+      {/* Type tabs */}
+      <div className="flex gap-1.5 bg-card border border-border rounded-full p-1 shadow-sm mb-5">
+        {BUDGET_TYPES.map(type => {
+          const isActive = type === selectedType;
+          return (
+            <button
+              key={type}
+              onClick={() => setSelectedType(type)}
+              className={cn(
+                'flex-1 rounded-full px-2 py-2 text-xs font-semibold whitespace-nowrap transition-all',
+                isActive ? 'text-white shadow-sm' : 'text-muted-foreground hover:text-foreground',
+              )}
+              style={isActive ? { background: `var(--budget-${type.toLowerCase()}-accent)` } : undefined}
+            >
+              {type}
+            </button>
+          );
+        })}
+      </div>
+
+      <BudgetSectionMobile
+        type={selectedType}
+        categories={categories}
+        budgetPlans={budgetPlans}
+        onAmountChange={onAmountChange}
+        currency={currency}
+        month={selectedMonth}
+      />
     </div>
   );
 }

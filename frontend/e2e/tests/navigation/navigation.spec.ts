@@ -22,9 +22,16 @@ test.describe('Navigation', () => {
     await expect(page.getByText('Allocations', { exact: true }).first()).toBeVisible();
   });
 
+  test('should navigate to Net Worth', async ({ page, appNav }) => {
+    await page.goto('/');
+    await appNav.navigateTo('Net Worth');
+    await expect(page).toHaveURL('/net-worth');
+    await expect(page.getByRole('heading', { name: 'Net Worth' })).toBeVisible();
+  });
+
   test('should navigate to Settings', async ({ page, appNav }) => {
     await page.goto('/');
-    await appNav.navigateTo('Settings');
+    await appNav.navigateToSettings();
     await expect(page).toHaveURL('/settings');
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
   });

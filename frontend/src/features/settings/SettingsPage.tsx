@@ -1,5 +1,4 @@
-import { useMemo, useState } from 'react';
-import { BudgetType, BudgetCategory } from '@/shared/types';
+import { useState } from 'react';
 import { SettingsSkeleton } from './components/SettingsSkeleton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,31 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Plus, Trash2, Pencil } from 'lucide-react';
 import { useAccounts, useCreateAccount, useUpdateAccount, useDeleteAccount } from '@/shared/hooks/useAccounts';
-import { useCategories, useDeleteCategory, useForceDeleteCategory } from '@/shared/hooks/useCategories';
-import { CategoryFormDialog } from './components/CategoryFormDialog';
 import { useSettings, useUpdateSettings } from './hooks';
-import { categoriesApi } from '@/shared/api/categoriesApi';
-import { CategoryBlock } from './components/CategoryBlock';
 
 const ACCOUNT_TYPES = ['Cash', 'Bank', 'Credit Card', 'Investment', 'Retirement', 'Loan', 'Other'] as const;
-const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 export default function SettingsPage() {
   const { data: accounts = [], isLoading: accountsLoading } = useAccounts();
-  const { data: categories = [], isLoading: categoriesLoading } = useCategories();
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const updateSettingsMutation = useUpdateSettings();
   const createAccount = useCreateAccount();
   const updateAccountMutation = useUpdateAccount();
   const deleteAccountMutation = useDeleteAccount();
-  const deleteCategoryMutation = useDeleteCategory();
-  const forceDeleteMutation = useForceDeleteCategory();
 
   // Account form
   const [accOpen, setAccOpen] = useState(false);
@@ -51,63 +38,7 @@ export default function SettingsPage() {
     setEditingAcc(null);
   };
 
-  // Category form
-  const [catOpen, setCatOpen] = useState(false);
-  const [addingType, setAddingType] = useState<BudgetType>('Expenses');
-  const [editingCat, setEditingCat] = useState<string | null>(null);
-
-  const existingGroups = useMemo(
-    () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
-    [categories],
-  );
-
-  // Delete confirmation
-  const [deleteConfirm, setDeleteConfirm] = useState<{
-    id: string;
-    name: string;
-    transactionCount: number;
-    budgetPlanCount: number;
-  } | null>(null);
-
-  if (accountsLoading || categoriesLoading || settingsLoading) return <SettingsSkeleton />;
-
-  const handleDeleteCategory = async (cat: BudgetCategory) => {
-    try {
-      // Try normal delete first (will fail with 409 if has dependencies)
-      await deleteCategoryMutation.mutateAsync(cat.id);
-    } catch {
-      // Has dependencies — fetch usage and show confirmation
-      try {
-        const usage = await categoriesApi.getUsage(cat.id);
-        setDeleteConfirm({
-          id: cat.id,
-          name: cat.name,
-          transactionCount: usage.transactionCount,
-          budgetPlanCount: usage.budgetPlanCount,
-        });
-      } catch {
-        // Category not found or other error — ignore
-      }
-    }
-  };
-
-  const handleConfirmDelete = () => {
-    if (deleteConfirm) {
-      forceDeleteMutation.mutate(deleteConfirm.id);
-      setDeleteConfirm(null);
-    }
-  };
-
-  const openCatFormForType = (type: BudgetType) => {
-    setAddingType(type);
-    setEditingCat(null);
-    setCatOpen(true);
-  };
-
-  const openCatFormForEdit = (cat: BudgetCategory) => {
-    setEditingCat(cat.id);
-    setCatOpen(true);
-  };
+  if (accountsLoading || settingsLoading) return <SettingsSkeleton />;
 
   const handleSettingsChange = (updates: Partial<{ startYear: number; startMonth: number; currency: string }>) => {
     if (!settings) return;
@@ -118,7 +49,7 @@ export default function SettingsPage() {
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-2xl font-display font-bold">Settings</h1>
-        <p className="text-muted-foreground text-sm">Manage accounts, categories, and preferences</p>
+        <p className="text-muted-foreground text-sm">Manage accounts and preferences</p>
       </div>
 
       {/* General settings */}
@@ -211,51 +142,6 @@ export default function SettingsPage() {
           </Table>
         </CardContent>
       </Card>
-
-      {/* Budget Categories — 4 blocks */}
-      <div>
-        <h2 className="text-lg font-display font-semibold mb-4">Budget Categories</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {BUDGET_TYPES.map(type => (
-            <CategoryBlock
-              key={type}
-              type={type}
-              categories={categories.filter(c => c.type === type)}
-              onAdd={() => openCatFormForType(type)}
-              onEdit={openCatFormForEdit}
-              onDelete={handleDeleteCategory}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Category Add/Edit Dialog */}
-      <CategoryFormDialog
-        open={catOpen}
-        onOpenChange={(o) => { setCatOpen(o); if (!o) setEditingCat(null); }}
-        defaultType={addingType}
-        editingCategory={editingCat ? categories.find(c => c.id === editingCat) ?? null : null}
-        existingGroups={existingGroups}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete "{deleteConfirm?.name}"?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This category is used by {deleteConfirm?.transactionCount} transaction{deleteConfirm?.transactionCount !== 1 ? 's' : ''} and {deleteConfirm?.budgetPlanCount} budget entr{deleteConfirm?.budgetPlanCount !== 1 ? 'ies' : 'y'}.
-              Deleting it will remove those references.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
