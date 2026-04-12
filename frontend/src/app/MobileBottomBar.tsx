@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, Plus } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, PiggyBank, TrendingUp, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TransactionForm, FormValues } from '@/features/transactions/components/TransactionForm';
 import { useAccounts } from '@/shared/hooks/useAccounts';
@@ -14,7 +14,7 @@ const navItems = [
   { to: '/',             label: 'Dashboard',    icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight  },
   { to: '/budget',       label: 'Budget',       icon: PiggyBank       },
-  { to: '/settings',     label: 'Settings',     icon: Settings        },
+  { to: '/net-worth',    label: 'Net Worth',    icon: TrendingUp      },
 ];
 
 export function MobileBottomBar() {

@@ -23,7 +23,7 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/budget', label: 'Budget Plan', icon: PiggyBank },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/net-worth', label: 'Net Worth', icon: TrendingUp },
 ];
 
 function getInitials(name: string | undefined): string {
@@ -106,6 +106,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator />
                 </>
               )}
+              <DropdownMenuItem asChild>
+                <Link to="/settings" className="cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="cursor-pointer">
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout

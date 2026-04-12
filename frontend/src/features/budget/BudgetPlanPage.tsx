@@ -76,7 +76,7 @@ export default function BudgetPlanPage() {
   return (
     <div className={cn(
       'flex flex-col h-[calc(100vh-80px)] animate-fade-in',
-      isMobile ? 'px-4 w-full' : 'max-w-[90%] mx-auto',
+      isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
     )}>
       {/* Year pill */}
       <div className="flex items-center justify-center shrink-0 pb-3">

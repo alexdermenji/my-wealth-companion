@@ -8,6 +8,7 @@ import { AppLayout } from "./AppLayout";
 import DashboardPage from "@/features/dashboard/DashboardPage";
 import TransactionsPage from "@/features/transactions/TransactionsPage";
 import BudgetPlanPage from "@/features/budget/BudgetPlanPage";
+import NetWorthPage from "@/features/net-worth/NetWorthPage";
 import SettingsPage from "@/features/settings/SettingsPage";
 import NotFound from "@/pages/NotFound";
 
@@ -25,6 +26,7 @@ const App = () => (
               <Route path="/" element={<DashboardPage />} />
               <Route path="/transactions" element={<TransactionsPage />} />
               <Route path="/budget" element={<BudgetPlanPage />} />
+              <Route path="/net-worth" element={<NetWorthPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/auth/callback" element={<Navigate to="/" replace />} />
               <Route path="*" element={<NotFound />} />

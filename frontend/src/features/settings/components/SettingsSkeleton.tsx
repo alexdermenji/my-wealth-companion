@@ -48,32 +48,6 @@ export function SettingsSkeleton() {
           ))}
         </CardContent>
       </Card>
-
-      {/* Budget categories */}
-      <div>
-        <Skeleton className="h-6 w-44 mb-4" />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between pb-3">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-7 w-14" />
-              </CardHeader>
-              <CardContent className="space-y-1 pt-0">
-                {Array.from({ length: 4 }).map((_, j) => (
-                  <div key={j} className="flex items-center justify-between py-1.5">
-                    <Skeleton className="h-3.5 w-28" />
-                    <div className="flex gap-1">
-                      <Skeleton className="h-7 w-7" />
-                      <Skeleton className="h-7 w-7" />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
