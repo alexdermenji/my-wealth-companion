@@ -149,7 +149,9 @@ export default function NetWorthPage() {
         isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
       )}
     >
-      <h1 className="sr-only">Net Worth</h1>
+      <div className={cn('shrink-0', isMobile ? 'text-left' : 'text-center')}>
+        <h1 className="font-display text-2xl font-bold text-foreground">Net Worth</h1>
+      </div>
 
       <div className="flex items-center justify-center shrink-0">
         <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
