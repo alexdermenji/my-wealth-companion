@@ -26,7 +26,8 @@ test.describe('Navigation', () => {
     await page.goto('/');
     await appNav.navigateTo('Net Worth');
     await expect(page).toHaveURL('/net-worth');
-    await expect(page.getByRole('heading', { name: 'Net Worth' })).toBeVisible();
+    await expect(page.getByText('Assets')).toBeVisible();
+    await expect(page.getByText('Liabilities')).toBeVisible();
   });
 
   test('should navigate to Settings', async ({ page, appNav }) => {
