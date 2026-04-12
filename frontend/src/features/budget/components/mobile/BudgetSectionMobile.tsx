@@ -39,7 +39,6 @@ export function BudgetSectionMobile({
   const accentColor  = SECTION_ACCENT[type];
   const cssKey       = SECTION_CSS_KEY[type];
   const displayLabel = DISPLAY_LABELS[type] ?? type;
-  const totalBg      = `var(--budget-${cssKey}-header-bg)`;
   const totalText    = `var(--budget-${cssKey}-header-text)`;
 
   const [adding, setAdding]           = useState(false);
