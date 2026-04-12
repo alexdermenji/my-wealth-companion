@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useRef, useState } from 'react';
+import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BudgetCellProps {
@@ -10,6 +11,7 @@ interface BudgetCellProps {
   tabHint?: boolean;
   accentColor?: string;
   className?: string;
+  trendDirection?: 'up' | 'down' | null;
 }
 
 /** Add thousand-separator commas, preserve a single decimal point */
@@ -31,7 +33,7 @@ function blurDisplay(v: number): string {
 }
 
 export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
-  function BudgetCell({ value, onChange, onTab, tabHint, accentColor, className }, forwardedRef) {
+  function BudgetCell({ value, onChange, onTab, tabHint, accentColor, className, trendDirection = null }, forwardedRef) {
     const [focused, setFocused] = useState(false);
     const [draft, setDraft] = useState('');
     const innerRef = useRef<HTMLInputElement>(null);
@@ -81,6 +83,21 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
 
     return (
       <div className="relative w-full">
+        {!focused && trendDirection && (
+          <span
+            aria-hidden
+            className={cn(
+              'pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 z-10',
+              trendDirection === 'up' ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--expense))]',
+            )}
+          >
+            {trendDirection === 'up' ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+          </span>
+        )}
         <input
           ref={mergedRef}
           type="text"
@@ -116,7 +133,8 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
             }
           }}
           className={cn(
-            'h-8 w-full rounded px-1 text-right text-xs font-medium',
+            'h-8 w-full rounded pl-1 text-right text-xs font-medium',
+            trendDirection ? 'pr-5' : 'px-1',
             'bg-transparent text-foreground',
             'border border-transparent',
             'hover:border-[#dde3f0]',

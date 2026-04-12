@@ -87,6 +87,14 @@
     --budget-expenses-rgb: 236, 72, 153;
     --budget-savings-rgb:  108, 92, 231;
     --budget-debt-rgb:     56, 189, 248;
+
+    /* Net Worth section tokens */
+    --nw-asset-header-bg:       #d1fae5;
+    --nw-asset-header-text:     #065f46;
+    --nw-asset-rgb:             16, 185, 129;
+    --nw-liability-header-bg:   #fce7f3;
+    --nw-liability-header-text: #9d174d;
+    --nw-liability-rgb:         236, 72, 153;
   }
 }
 
@@ -164,5 +172,10 @@
   --budget-debt-header-bg:      rgba(14, 165, 233, 0.12);
   --budget-debt-header-text:    #7dd3fc;
   --budget-debt-accent:         #38bdf8;
+
+  --nw-asset-header-bg:         rgba(16, 185, 129, 0.12);
+  --nw-asset-header-text:       #6ee7b7;
+  --nw-liability-header-bg:     rgba(236, 72, 153, 0.12);
+  --nw-liability-header-text:   #f9a8d4;
 }
 }
