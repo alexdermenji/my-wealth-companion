@@ -1,7 +1,8 @@
-import { addMonths, format } from 'date-fns';
+import { addMonths, format, parseISO } from 'date-fns';
 import type { BudgetPlan } from '@/features/budget/types';
 import type { NetWorthItem, NetWorthValue } from '@/features/net-worth/types';
 import type { BudgetCategory } from '@/shared/types';
+import type { TimelineEvent } from './types';
 
 export interface DebtTimelineForecast {
   kind: 'forecast';
@@ -54,6 +55,54 @@ export interface DebtTimelineModel {
   summary: DebtTimelineSummary;
 }
 
+export interface TimelineCustomEventEntry {
+  kind: 'custom';
+  id: string;
+  event: TimelineEvent;
+  title: string;
+  description: string;
+  amount: number | null;
+  eventDate: string;
+  date: Date;
+  dateLabel: string;
+  type: TimelineEvent['type'];
+}
+
+export interface TimelineDebtEntry {
+  kind: 'debt';
+  forecast: DebtTimelineForecast;
+  date: Date;
+  dateLabel: string;
+}
+
+export type TimelineFeedEntry = TimelineDebtEntry | TimelineCustomEventEntry;
+
+export interface NetWorthTimelinePoint {
+  year: number;
+  month: number;
+  label: string;
+  date: Date;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
+}
+
+export interface NetWorthMilestone {
+  amount: number;
+  label: string;
+  status: 'reached' | 'off-track' | 'projected' | 'unavailable';
+  monthLabel: string | null;
+  monthsAway: number | null;
+  currentNetWorth: number;
+}
+
+export interface NetWorthMilestoneModel {
+  points: NetWorthTimelinePoint[];
+  latestPoint: NetWorthTimelinePoint | null;
+  monthlyGrowth: number | null;
+  milestones: NetWorthMilestone[];
+}
+
 function getLatestSnapshotMonth(
   months: Record<number, number> | undefined,
   monthLimit: number,
@@ -81,6 +130,35 @@ function resolveMonthlyPayment(plan: BudgetPlan | undefined, anchorMonth: number
   }
 
   return 0;
+}
+
+function monthDistance(
+  fromYear: number,
+  fromMonth: number,
+  toYear: number,
+  toMonth: number,
+): number {
+  return ((toYear - fromYear) * 12) + (toMonth - fromMonth);
+}
+
+function formatMilestoneLabel(amount: number): string {
+  if (amount >= 1_000_000) {
+    const millions = amount / 1_000_000;
+    return millions % 1 === 0 ? `${millions.toFixed(0)}M` : `${millions.toFixed(1)}M`;
+  }
+  if (amount >= 1_000) {
+    return `${Math.round(amount / 1_000)}k`;
+  }
+  return `${amount}`;
+}
+
+function getMedian(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
 }
 
 export function buildDebtTimelineModel({
@@ -214,4 +292,156 @@ export function buildDebtTimelineModel({
       debtFreeDate: forecasted[forecasted.length - 1] ?? null,
     },
   };
+}
+
+export function buildNetWorthMilestoneModel({
+  items,
+  values,
+  milestones,
+}: {
+  items: NetWorthItem[];
+  values: NetWorthValue[];
+  milestones: number[];
+}): NetWorthMilestoneModel {
+  const itemTypeMap = new Map(items.map(item => [item.id, item.type]));
+  const pointMap = new Map<string, NetWorthTimelinePoint>();
+
+  for (const value of values) {
+    const type = itemTypeMap.get(value.itemId);
+    if (!type) continue;
+
+    for (let month = 1; month <= 12; month += 1) {
+      if (!Object.prototype.hasOwnProperty.call(value.months, month)) continue;
+
+      const key = `${value.year}-${month}`;
+      if (!pointMap.has(key)) {
+        const date = new Date(value.year, month - 1, 1);
+        pointMap.set(key, {
+          year: value.year,
+          month,
+          label: format(date, 'MMM yyyy'),
+          date,
+          assets: 0,
+          liabilities: 0,
+          netWorth: 0,
+        });
+      }
+
+      const point = pointMap.get(key)!;
+      const amount = value.months[month] ?? 0;
+      if (type === 'Asset') point.assets += amount;
+      else point.liabilities += amount;
+      point.netWorth = point.assets - point.liabilities;
+    }
+  }
+
+  const points = Array.from(pointMap.values()).sort((a, b) => (
+    a.year - b.year || a.month - b.month
+  ));
+  const latestPoint = points.at(-1) ?? null;
+
+  const monthlyizedDeltas: number[] = [];
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const span = monthDistance(previous.year, previous.month, current.year, current.month);
+    if (span <= 0) continue;
+    monthlyizedDeltas.push((current.netWorth - previous.netWorth) / span);
+  }
+
+  const recentTrendWindow = monthlyizedDeltas.slice(-12);
+  const monthlyGrowth = getMedian(recentTrendWindow.length >= 6 ? recentTrendWindow : monthlyizedDeltas);
+
+  const milestoneRows = milestones.map(amount => {
+    const reachedPoint = points.find(point => point.netWorth >= amount) ?? null;
+    if (reachedPoint) {
+      const currentlyHeld = (latestPoint?.netWorth ?? 0) >= amount;
+      return {
+        amount,
+        label: formatMilestoneLabel(amount),
+        status: currentlyHeld ? 'reached' as const : 'off-track' as const,
+        monthLabel: reachedPoint.label,
+        monthsAway: currentlyHeld ? 0 : null,
+        currentNetWorth: latestPoint?.netWorth ?? 0,
+      };
+    }
+
+    if (!latestPoint || monthlyGrowth === null || monthlyGrowth <= 0) {
+      return {
+        amount,
+        label: formatMilestoneLabel(amount),
+        status: 'unavailable' as const,
+        monthLabel: null,
+        monthsAway: null,
+        currentNetWorth: latestPoint?.netWorth ?? 0,
+      };
+    }
+
+    const remaining = amount - latestPoint.netWorth;
+    const monthsAway = Math.ceil(remaining / monthlyGrowth);
+    if (!Number.isFinite(monthsAway) || monthsAway <= 0) {
+      return {
+        amount,
+        label: formatMilestoneLabel(amount),
+        status: 'unavailable' as const,
+        monthLabel: null,
+        monthsAway: null,
+        currentNetWorth: latestPoint.netWorth,
+      };
+    }
+
+    const projectedDate = addMonths(new Date(latestPoint.year, latestPoint.month - 1, 1), monthsAway);
+    return {
+      amount,
+      label: formatMilestoneLabel(amount),
+      status: 'projected' as const,
+      monthLabel: format(projectedDate, 'MMM yyyy'),
+      monthsAway,
+      currentNetWorth: latestPoint.netWorth,
+    };
+  });
+
+  return {
+    points,
+    latestPoint,
+    monthlyGrowth,
+    milestones: milestoneRows,
+  };
+}
+
+export function buildTimelineFeed(
+  forecasted: DebtTimelineForecast[],
+  customEvents: TimelineEvent[],
+): TimelineFeedEntry[] {
+  const debtEntries: TimelineDebtEntry[] = forecasted.map(forecast => ({
+    kind: 'debt',
+    forecast,
+    date: forecast.projectedDate,
+    dateLabel: forecast.projectedLabel,
+  }));
+
+  const customEntries: TimelineCustomEventEntry[] = customEvents.map(event => {
+    const date = parseISO(event.eventDate);
+    return {
+      kind: 'custom',
+      id: event.id,
+      event,
+      title: event.title,
+      description: event.description,
+      amount: event.amount,
+      eventDate: event.eventDate,
+      date,
+      dateLabel: format(date, 'MMM yyyy'),
+      type: event.type,
+    };
+  });
+
+  return [...debtEntries, ...customEntries].sort((a, b) => {
+    const dateDelta = a.date.getTime() - b.date.getTime();
+    if (dateDelta !== 0) return dateDelta;
+    if (a.kind !== b.kind) return a.kind === 'custom' ? -1 : 1;
+    return a.kind === 'custom'
+      ? a.title.localeCompare((b as TimelineCustomEventEntry).title)
+      : a.forecast.name.localeCompare((b as TimelineDebtEntry).forecast.name);
+  });
 }

@@ -111,6 +111,25 @@ export const netWorthApi = {
     return Array.from(map.values());
   },
 
+  getAllValues: async (): Promise<NetWorthValue[]> => {
+    const { data, error } = await supabase
+      .from('NetWorthValues')
+      .select('ItemId, Year, Month, Amount')
+      .order('Year')
+      .order('Month');
+    if (error) throw new Error(error.message);
+
+    const map = new Map<string, NetWorthValue>();
+    for (const row of data as ValueRow[]) {
+      const key = `${row.ItemId}:${row.Year}`;
+      if (!map.has(key)) {
+        map.set(key, { itemId: row.ItemId, year: row.Year, months: {} });
+      }
+      map.get(key)!.months[row.Month] = row.Amount;
+    }
+    return Array.from(map.values());
+  },
+
   setValue: async (payload: {
     itemId: string;
     year: number;
