@@ -9,6 +9,7 @@ type ItemRow = {
   Group: string;
   Type: NetWorthType;
   Order: number;
+  LinkedBudgetCategoryId: string | null;
 };
 
 type ValueRow = {
@@ -19,7 +20,14 @@ type ValueRow = {
 };
 
 function rowToItem(row: ItemRow): NetWorthItem {
-  return { id: row.Id, name: row.Name, group: row.Group, type: row.Type, order: row.Order };
+  return {
+    id: row.Id,
+    name: row.Name,
+    group: row.Group,
+    type: row.Type,
+    order: row.Order,
+    linkedBudgetCategoryId: row.LinkedBudgetCategoryId,
+  };
 }
 
 export const netWorthApi = {
@@ -49,6 +57,7 @@ export const netWorthApi = {
         Group: payload.group,
         Type: payload.type,
         Order: maxOrder + 1,
+        LinkedBudgetCategoryId: payload.linkedBudgetCategoryId ?? null,
       })
       .select('*')
       .single();
@@ -59,7 +68,12 @@ export const netWorthApi = {
   updateItem: async (id: string, payload: Omit<NetWorthItem, 'id' | 'order'>): Promise<NetWorthItem> => {
     const { data, error } = await supabase
       .from('NetWorthItems')
-      .update({ Name: payload.name, Group: payload.group, Type: payload.type })
+      .update({
+        Name: payload.name,
+        Group: payload.group,
+        Type: payload.type,
+        LinkedBudgetCategoryId: payload.linkedBudgetCategoryId ?? null,
+      })
       .eq('Id', id)
       .select('*')
       .single();

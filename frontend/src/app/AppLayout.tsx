@@ -1,6 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, TrendingUp, LogOut, Menu } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, TrendingUp, LogOut, Menu, CalendarClock } from 'lucide-react';
 
 const FullWidthContext = createContext<{ fullWidth: boolean; setFullWidth: React.Dispatch<React.SetStateAction<boolean>> }>({ fullWidth: false, setFullWidth: () => {} });
 export const useFullWidth = () => useContext(FullWidthContext);
@@ -24,6 +24,7 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/budget', label: 'Budget Plan', icon: PiggyBank },
   { to: '/net-worth', label: 'Net Worth', icon: TrendingUp },
+  { to: '/timeline', label: 'Timeline', icon: CalendarClock },
 ];
 
 function getInitials(name: string | undefined): string {
@@ -48,11 +49,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Top header */}
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="flex h-14 items-center px-4 md:px-6">
-          {/* Mobile hamburger — hidden on mobile, bottom bar handles navigation */}
+          {/* Mobile hamburger for secondary destinations not shown in the bottom bar */}
           <Button
             variant="ghost"
             size="icon"
-            className="hidden mr-2 h-8 w-8"
+            className="mr-2 h-8 w-8 md:hidden"
             onClick={() => setMobileOpen(true)}
             aria-label="Open navigation"
           >
@@ -106,6 +107,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <DropdownMenuSeparator />
                 </>
               )}
+              <DropdownMenuItem asChild>
+                <Link to="/transactions" className="cursor-pointer">
+                  <ArrowLeftRight className="h-4 w-4 mr-2" />
+                  Transactions
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/settings" className="cursor-pointer">
                   <Settings className="h-4 w-4 mr-2" />

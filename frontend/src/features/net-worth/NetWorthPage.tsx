@@ -19,16 +19,16 @@ const NET_WORTH_TYPES: NetWorthType[] = ['Asset', 'Liability'];
 function formatGridAmount(value: number, currency: string) {
   if (value === 0) return '—';
   return `${currency}${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
   }).format(Math.abs(value))}`;
 }
 
 function formatStatusAmount(value: number, currency: string) {
   return `${value < 0 ? '-' : ''}${currency}${new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.abs(Math.round(value)))}`;
+    maximumFractionDigits: 6,
+  }).format(Math.abs(value))}`;
 }
 
 export default function NetWorthPage() {
@@ -149,10 +149,6 @@ export default function NetWorthPage() {
         isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
       )}
     >
-      <div className={cn('shrink-0', isMobile ? 'text-left' : 'text-center')}>
-        <h1 className="font-display text-2xl font-bold text-foreground">Net Worth</h1>
-      </div>
-
       <div className="flex items-center justify-center shrink-0">
         <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
           <button

@@ -24,8 +24,9 @@ describe("AppLayout", () => {
 
     // Each label appears in both the desktop nav and the mobile bottom bar
     expect(screen.getAllByText("Dashboard")).toHaveLength(2);
-    expect(screen.getAllByText("Transactions")).toHaveLength(2);
+    expect(screen.getByText("Transactions")).toBeInTheDocument();
     expect(screen.getAllByText("Net Worth")).toHaveLength(2);
+    expect(screen.getAllByText("Timeline")).toHaveLength(2);
   });
 
   it("renders settings inside the account menu", async () => {
@@ -35,7 +36,8 @@ describe("AppLayout", () => {
 
     await user.click(screen.getByRole("button", { name: "Open account menu" }));
 
-    expect(screen.getByText("Settings")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Transactions" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Settings" })).toBeInTheDocument();
   });
 
   it("renders children content", () => {

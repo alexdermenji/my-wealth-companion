@@ -21,6 +21,12 @@ interface BudgetSectionProps {
   currentMonth?: number | null;
 }
 
+function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
+  if (current > previous) return 'up';
+  if (current < previous) return 'down';
+  return null;
+}
+
 export function BudgetSection({
   type,
   categories,
@@ -66,6 +72,7 @@ export function BudgetSection({
   };
 
   const colSpan = ALL_MONTHS.length + 2;
+  const shouldShowTrendForMonth = (month: number) => currentMonth === null || month <= currentMonth;
 
   return (
     <>
@@ -203,6 +210,9 @@ export function BudgetSection({
                   onTab={v => handleTab(cat.id, mo, v)}
                   tabHint={mo < 12 && getBudget(cat.id, mo) > 0 && getBudget(cat.id, mo + 1) === 0}
                   accentColor={accentColor}
+                  trendDirection={mo > 1 && shouldShowTrendForMonth(mo)
+                    ? getTrendDirection(getBudget(cat.id, mo), getBudget(cat.id, mo - 1))
+                    : null}
                 />
               </TableCell>
             ))}

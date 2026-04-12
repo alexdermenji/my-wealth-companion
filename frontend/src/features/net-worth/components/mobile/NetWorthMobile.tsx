@@ -25,8 +25,8 @@ const ARC_LEN = 141;
 function formatAmount(value: number, currency: string) {
   if (value === 0) return '—';
   return `${value < 0 ? '-' : ''}${currency}${new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 6,
   }).format(Math.abs(value))}`;
 }
 

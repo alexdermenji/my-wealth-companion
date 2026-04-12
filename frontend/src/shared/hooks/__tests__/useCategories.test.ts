@@ -53,6 +53,13 @@ describe("useCategories", () => {
       expect(queryClient.getQueryState(["categories", "Expenses"])).toBeDefined()
     );
   });
+
+  it("does not fetch when disabled", async () => {
+    renderHook(() => useCategories("Debt", false), {
+      wrapper: createHookWrapper(),
+    });
+    await waitFor(() => expect(categoriesApi.getAll).not.toHaveBeenCalled());
+  });
 });
 
 describe("useCreateCategory", () => {

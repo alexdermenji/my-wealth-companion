@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, PiggyBank, TrendingUp, Plus } from 'lucide-react';
+import { LayoutDashboard, PiggyBank, TrendingUp, Plus, CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TransactionForm, FormValues } from '@/features/transactions/components/TransactionForm';
 import { useAccounts } from '@/shared/hooks/useAccounts';
@@ -12,7 +12,7 @@ const OUTFLOW_TYPES = ['Expenses', 'Debt'];
 
 const navItems = [
   { to: '/',             label: 'Dashboard',    icon: LayoutDashboard },
-  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight  },
+  { to: '/timeline',     label: 'Timeline',     icon: CalendarClock   },
   { to: '/budget',       label: 'Budget',       icon: PiggyBank       },
   { to: '/net-worth',    label: 'Net Worth',    icon: TrendingUp      },
 ];
