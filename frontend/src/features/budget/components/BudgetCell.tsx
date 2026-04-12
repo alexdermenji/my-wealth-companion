@@ -12,6 +12,7 @@ interface BudgetCellProps {
   accentColor?: string;
   className?: string;
   trendDirection?: 'up' | 'down' | null;
+  displayFormatOptions?: Intl.NumberFormatOptions;
 }
 
 /** Add thousand-separator commas, preserve a single decimal point */
@@ -24,16 +25,26 @@ function applyCommas(raw: string): string {
 }
 
 /** Formatted value shown while the cell is blurred */
-function blurDisplay(v: number): string {
+function blurDisplay(v: number, formatOptions?: Intl.NumberFormatOptions): string {
   if (v === 0) return '';
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+    ...formatOptions,
   }).format(v);
 }
 
 export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
-  function BudgetCell({ value, onChange, onTab, tabHint, accentColor, className, trendDirection = null }, forwardedRef) {
+  function BudgetCell({
+    value,
+    onChange,
+    onTab,
+    tabHint,
+    accentColor,
+    className,
+    trendDirection = null,
+    displayFormatOptions,
+  }, forwardedRef) {
     const [focused, setFocused] = useState(false);
     const [draft, setDraft] = useState('');
     const innerRef = useRef<HTMLInputElement>(null);
@@ -102,13 +113,13 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
           ref={mergedRef}
           type="text"
           inputMode="decimal"
-          value={focused ? draft : blurDisplay(value)}
+          value={focused ? draft : blurDisplay(value, displayFormatOptions)}
           placeholder="—"
           onChange={handleChange}
           onFocus={() => {
             // Initialise draft from the blur display so there's no visual jump on focus.
             // The user can then clear/overwrite the .00 naturally as they type.
-            setDraft(value ? blurDisplay(value) : '');
+            setDraft(value ? blurDisplay(value, displayFormatOptions) : '');
             setFocused(true);
             setTimeout(() => innerRef.current?.select(), 0);
           }}

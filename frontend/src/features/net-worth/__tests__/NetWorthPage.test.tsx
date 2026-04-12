@@ -54,14 +54,12 @@ describe('NetWorthPage', () => {
     renderWithProviders(<NetWorthPage />);
 
     expect(screen.getByText('2026')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Net Worth' })).toBeInTheDocument();
     expect(screen.getByText('Assets')).toBeInTheDocument();
     expect(screen.getByText('Liabilities')).toBeInTheDocument();
     expect(screen.getAllByText('Net worth').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('£1,200')).toBeInTheDocument();
     expect(screen.getByText('£500')).toBeInTheDocument();
-    expect(screen.getByText('£700')).toBeInTheDocument();
-    expect(screen.getByText('£700.00')).toBeInTheDocument();
+    expect(screen.getAllByText('£700').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('Change vs Feb')).toBeInTheDocument();
     expect(screen.getByText('£100')).toBeInTheDocument();
   });

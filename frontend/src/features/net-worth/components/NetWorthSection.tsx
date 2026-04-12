@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +14,7 @@ import {
 import { BudgetCell } from '@/features/budget/components/BudgetCell';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, GripVertical, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ALL_MONTHS, SECTION_ACCENT, SECTION_CSS_KEY } from '../constants';
 import { useDeleteNetWorthItem, useNetWorthDragReorder, useNetWorthHeatMap, useNetWorthTabFill } from '../hooks';
 import type { NetWorthItem, NetWorthType, NetWorthValue } from '../types';
@@ -35,10 +36,45 @@ const DISPLAY_LABELS: Record<NetWorthType, string> = {
   Liability: 'Liabilities',
 };
 
+const NET_WORTH_DISPLAY_FORMAT = {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 6,
+} satisfies Intl.NumberFormatOptions;
+
 function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
   if (current > previous) return 'up';
   if (current < previous) return 'down';
   return null;
+}
+
+function getLatestTrackedBalance(
+  itemId: string,
+  values: NetWorthValue[],
+  monthLimit: number,
+) {
+  const itemValue = values.find(value => value.itemId === itemId);
+  if (!itemValue) return null;
+
+  for (let month = monthLimit; month >= 1; month -= 1) {
+    if (Object.prototype.hasOwnProperty.call(itemValue.months, month)) {
+      return itemValue.months[month] ?? 0;
+    }
+  }
+
+  return null;
+}
+
+function getLinkStatus(item: NetWorthItem, values: NetWorthValue[], monthLimit: number) {
+  if (item.type !== 'Liability') return null;
+
+  const latestTrackedBalance = getLatestTrackedBalance(item.id, values, monthLimit);
+  if (latestTrackedBalance !== null && latestTrackedBalance <= 0) {
+    return { label: 'Paid off', linked: false, closed: true };
+  }
+
+  return item.linkedBudgetCategoryId
+    ? { label: '', linked: true, closed: false }
+    : { label: 'Link payment', linked: false, closed: false };
 }
 
 export function NetWorthSection({
@@ -77,6 +113,10 @@ export function NetWorthSection({
     deleteItemMutation.mutate(deletingItem.id, { onSuccess: () => setDeletingItem(null) });
   };
 
+  const handleMarkAsPaidOff = (item: NetWorthItem) => {
+    onAmountChange(item.id, statusMonthLimit, '0');
+  };
+
   const fmt = (value: number) => (
     value > 0
       ? `${currency}${new Intl.NumberFormat('en-US').format(value)}`
@@ -85,6 +125,7 @@ export function NetWorthSection({
 
   const colSpan = ALL_MONTHS.length + 2;
   const shouldShowTrendForMonth = (month: number) => currentMonth === null || month <= currentMonth;
+  const statusMonthLimit = currentMonth ?? 12;
 
   return (
     <>
@@ -143,7 +184,10 @@ export function NetWorthSection({
         />
       </tr>
 
-      {displayItems.map((item, index) => (
+      {displayItems.map((item, index) => {
+        const linkStatus = getLinkStatus(item, values, statusMonthLimit);
+
+        return (
         <React.Fragment key={item.id}>
           {dropLineIndex === index && dragIndexRef.current !== index && dragIndexRef.current !== index - 1 && (
             <tr aria-hidden>
@@ -191,15 +235,48 @@ export function NetWorthSection({
                 <div className="flex flex-col min-w-0 overflow-hidden">
                   <span className="text-[10px] italic text-muted-foreground leading-tight truncate">{item.group || item.name}</span>
                   <span className="text-sm font-medium text-foreground truncate" title={item.name}>{item.name}</span>
+                  {linkStatus && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {linkStatus.closed ? (
+                        <Badge
+                          variant="outline"
+                          className="h-5 px-1.5 text-[9px] uppercase tracking-wide border-emerald-300 text-emerald-800 bg-emerald-100 shadow-[0_8px_18px_rgba(16,185,129,0.14)] dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-200"
+                        >
+                          {linkStatus.label}
+                        </Badge>
+                      ) : null}
+                      {!linkStatus.linked && !linkStatus.closed && (
+                        <button
+                          className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/45"
+                          onClick={event => {
+                            event.stopPropagation();
+                            setEditingItem(item);
+                          }}
+                        >
+                          <Link2 className="h-3 w-3" />
+                          {linkStatus.label}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                      <button
+                        aria-label={`Open actions for ${item.name}`}
+                        className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      >
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {item.type === 'Liability' && !linkStatus?.closed && (
+                        <DropdownMenuItem onClick={() => handleMarkAsPaidOff(item)}>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                          Mark as paid off
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => setEditingItem(item)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" />
                         Edit
@@ -233,6 +310,7 @@ export function NetWorthSection({
                   onTab={value => handleTab(item.id, month, value)}
                   tabHint={month < 12 && getValue(item.id, month) > 0 && getValue(item.id, month + 1) === 0}
                   accentColor={accentColor}
+                  displayFormatOptions={NET_WORTH_DISPLAY_FORMAT}
                   trendDirection={month > 1 && shouldShowTrendForMonth(month)
                     ? getTrendDirection(getValue(item.id, month), getValue(item.id, month - 1))
                     : null}
@@ -241,7 +319,8 @@ export function NetWorthSection({
             ))}
           </TableRow>
         </React.Fragment>
-      ))}
+        );
+      })}
 
       {dropLineIndex === displayItems.length && dragIndexRef.current !== displayItems.length - 1 && displayItems.length > 0 && (
         <tr aria-hidden>

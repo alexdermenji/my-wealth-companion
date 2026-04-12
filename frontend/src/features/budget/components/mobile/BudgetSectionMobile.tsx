@@ -28,6 +28,12 @@ interface BudgetSectionMobileProps {
   month: number;
 }
 
+function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
+  if (current > previous) return 'up';
+  if (current < previous) return 'down';
+  return null;
+}
+
 export function BudgetSectionMobile({
   type,
   categories,
@@ -116,6 +122,9 @@ export function BudgetSectionMobile({
                     onChange={v => onAmountChange(cat.id, month, v)}
                     tabHint={false}
                     accentColor={accentColor}
+                    trendDirection={month > 1
+                      ? getTrendDirection(getBudget(cat.id, month), getBudget(cat.id, month - 1))
+                      : null}
                   />
                 </div>
                 <DropdownMenu>

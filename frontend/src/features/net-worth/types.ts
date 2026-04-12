@@ -6,6 +6,7 @@ export interface NetWorthItem {
   group: string;
   type: NetWorthType;
   order: number;
+  linkedBudgetCategoryId?: string | null;
 }
 
 export interface NetWorthValue {

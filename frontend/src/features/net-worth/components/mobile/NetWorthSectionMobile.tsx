@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -12,7 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { BudgetCell } from '@/features/budget/components/BudgetCell';
-import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,10 +41,45 @@ const DISPLAY_LABELS: Record<NetWorthType, string> = {
   Liability: 'Liabilities',
 };
 
+const NET_WORTH_DISPLAY_FORMAT = {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 6,
+} satisfies Intl.NumberFormatOptions;
+
 function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
   if (current > previous) return 'up';
   if (current < previous) return 'down';
   return null;
+}
+
+function getLatestTrackedBalance(
+  itemId: string,
+  values: NetWorthValue[],
+  monthLimit: number,
+) {
+  const itemValue = values.find(value => value.itemId === itemId);
+  if (!itemValue) return null;
+
+  for (let month = monthLimit; month >= 1; month -= 1) {
+    if (Object.prototype.hasOwnProperty.call(itemValue.months, month)) {
+      return itemValue.months[month] ?? 0;
+    }
+  }
+
+  return null;
+}
+
+function getLinkStatus(item: NetWorthItem, values: NetWorthValue[], monthLimit: number) {
+  if (item.type !== 'Liability') return null;
+
+  const latestTrackedBalance = getLatestTrackedBalance(item.id, values, monthLimit);
+  if (latestTrackedBalance !== null && latestTrackedBalance <= 0) {
+    return { label: 'Paid off', linked: false, closed: true };
+  }
+
+  return item.linkedBudgetCategoryId
+    ? { label: '', linked: true, closed: false }
+    : { label: 'Link payment', linked: false, closed: false };
 }
 
 export function NetWorthSectionMobile({
@@ -87,6 +123,10 @@ export function NetWorthSectionMobile({
     deleteItemMutation.mutate(deletingItem.id, { onSuccess: () => setDeletingItem(null) });
   };
 
+  const handleMarkAsPaidOff = (item: NetWorthItem) => {
+    onAmountChange(item.id, currentMonth ?? month, '0');
+  };
+
   return (
     <>
       <div className="mb-5">
@@ -106,7 +146,10 @@ export function NetWorthSectionMobile({
         </div>
 
         <Card className="overflow-hidden" style={{ borderLeft: `3px solid ${accentColor}` }}>
-          {typeItems.map((item, index) => (
+          {typeItems.map((item, index) => {
+            const linkStatus = getLinkStatus(item, values, currentMonth ?? 12);
+
+            return (
             <div
               key={item.id}
               className={cn(
@@ -121,6 +164,27 @@ export function NetWorthSectionMobile({
                 <span className="text-sm font-medium text-foreground truncate">
                   {item.name}
                 </span>
+                {linkStatus && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {linkStatus.closed ? (
+                      <Badge
+                        variant="outline"
+                        className="h-5 px-1.5 text-[9px] uppercase tracking-wide border-emerald-300 text-emerald-800 bg-emerald-100 shadow-[0_8px_18px_rgba(16,185,129,0.14)] dark:border-emerald-800 dark:bg-emerald-950/45 dark:text-emerald-200"
+                      >
+                        {linkStatus.label}
+                      </Badge>
+                    ) : null}
+                    {!linkStatus.linked && !linkStatus.closed && (
+                      <button
+                        className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/45"
+                        onClick={() => setEditingItem(item)}
+                      >
+                        <Link2 className="h-3 w-3" />
+                        {linkStatus.label}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -130,6 +194,7 @@ export function NetWorthSectionMobile({
                     onChange={value => onAmountChange(item.id, month, value)}
                     tabHint={false}
                     accentColor={accentColor}
+                    displayFormatOptions={NET_WORTH_DISPLAY_FORMAT}
                     trendDirection={month > 1 && shouldShowTrend
                       ? getTrendDirection(getValue(item.id, month), getValue(item.id, month - 1))
                       : null}
@@ -137,11 +202,20 @@ export function NetWorthSectionMobile({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center justify-center min-h-[44px] min-w-[36px] rounded text-muted-foreground/50">
+                    <button
+                      aria-label={`Open actions for ${item.name}`}
+                      className="flex items-center justify-center min-h-[44px] min-w-[36px] rounded text-muted-foreground/50"
+                    >
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {item.type === 'Liability' && !linkStatus?.closed && (
+                      <DropdownMenuItem onClick={() => handleMarkAsPaidOff(item)}>
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-2" />
+                        Mark as paid off
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => setEditingItem(item)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" />
                       Edit
@@ -157,7 +231,8 @@ export function NetWorthSectionMobile({
                 </DropdownMenu>
               </div>
             </div>
-          ))}
+            );
+          })}
 
           <div className={cn('px-4 py-3', typeItems.length > 0 && 'border-t border-border/40')}>
             <button
