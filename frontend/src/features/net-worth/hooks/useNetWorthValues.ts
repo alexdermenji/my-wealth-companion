@@ -7,3 +7,10 @@ export function useNetWorthValues(year: number) {
     queryFn: () => netWorthApi.getValuesByYear(year),
   });
 }
+
+export function useAllNetWorthValues() {
+  return useQuery({
+    queryKey: ['netWorthValues', 'all'],
+    queryFn: () => netWorthApi.getAllValues(),
+  });
+}

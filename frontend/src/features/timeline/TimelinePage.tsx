@@ -1,15 +1,36 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, Flag, Link2, Sparkles, WalletCards } from 'lucide-react';
+import { ArrowRight, CalendarClock, Flag, Link2, MoreVertical, PartyPopper, Pencil, Plus, Sparkles, Trash2, WalletCards } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useSettings } from '@/features/settings/hooks';
 import { useCategories } from '@/shared/hooks/useCategories';
-import { useNetWorthItems, useNetWorthValues } from '@/features/net-worth/hooks';
+import { useAllNetWorthValues, useNetWorthItems, useNetWorthValues } from '@/features/net-worth/hooks';
 import { useBudgetPlans } from '@/features/budget/hooks';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
-import { buildDebtTimelineModel } from './utils';
+import { EventFormDialog } from './components/EventFormDialog';
+import { useDeleteTimelineEvent, useTimelineEvents } from './hooks';
+import type { TimelineEvent } from './types';
+import { buildDebtTimelineModel, buildNetWorthMilestoneModel, buildTimelineFeed } from './utils';
+
+const NET_WORTH_MILESTONES = [100_000, 200_000, 1_000_000];
 
 function formatMoney(value: number, currency: string, digits = 0) {
   return `${currency}${new Intl.NumberFormat('en-US', {
@@ -22,22 +43,52 @@ function monthsLabel(months: number) {
   return months === 1 ? '1 month left' : `${months} months left`;
 }
 
+function customEventMonthsLabel(eventDate: string) {
+  const now = new Date();
+  const event = new Date(`${eventDate}T00:00:00`);
+  const monthDelta = ((event.getFullYear() - now.getFullYear()) * 12) + (event.getMonth() - now.getMonth());
+
+  if (monthDelta <= 0) return 'This month';
+  return monthsLabel(monthDelta);
+}
+
+function milestoneStatusLabel(status: 'reached' | 'off-track' | 'projected' | 'unavailable') {
+  if (status === 'reached') return 'Reached';
+  if (status === 'off-track') return 'Off track';
+  if (status === 'projected') return 'Projected';
+  return 'Waiting';
+}
+
 function unforecastedLabel(reason: 'unlinked' | 'no-payment' | 'no-snapshot') {
   if (reason === 'unlinked') return 'No payment link yet';
   if (reason === 'no-payment') return 'No budget payment found';
   return 'No balance snapshot this year';
 }
 
+function formatDateLabel(date: string) {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(new Date(`${date}T00:00:00`));
+}
+
 export default function TimelinePage() {
   const now = new Date();
   const year = now.getFullYear();
   const isMobile = useIsMobile();
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
+  const [deletingEvent, setDeletingEvent] = useState<TimelineEvent | null>(null);
 
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const { data: items = [], isLoading: itemsLoading } = useNetWorthItems();
   const { data: values = [], isLoading: valuesLoading } = useNetWorthValues(year);
+  const { data: allNetWorthValues = [], isLoading: allNetWorthValuesLoading } = useAllNetWorthValues();
   const { data: budgetPlans = [], isLoading: budgetPlansLoading } = useBudgetPlans(year);
   const { data: debtCategories = [], isLoading: debtCategoriesLoading } = useCategories('Debt');
+  const { data: timelineEvents = [], isLoading: timelineEventsLoading } = useTimelineEvents();
+  const deleteTimelineEventMutation = useDeleteTimelineEvent();
 
   const monthLimit = year === now.getFullYear() ? now.getMonth() + 1 : 12;
   const currency = settings?.currency ?? '£';
@@ -50,8 +101,18 @@ export default function TimelinePage() {
     budgetPlans,
     debtCategories,
   }), [budgetPlans, debtCategories, items, monthLimit, values, year]);
+  const timelineFeed = useMemo(
+    () => buildTimelineFeed(model.forecasted, timelineEvents),
+    [model.forecasted, timelineEvents],
+  );
+  const milestoneModel = useMemo(() => buildNetWorthMilestoneModel({
+    items,
+    values: allNetWorthValues,
+    milestones: NET_WORTH_MILESTONES,
+  }), [allNetWorthValues, items]);
+  const nextPayoffItemId = model.summary.nextPayoff?.itemId ?? null;
 
-  if (settingsLoading || itemsLoading || valuesLoading || budgetPlansLoading || debtCategoriesLoading) {
+  if (settingsLoading || itemsLoading || valuesLoading || allNetWorthValuesLoading || budgetPlansLoading || debtCategoriesLoading || timelineEventsLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-9 w-48 rounded-full bg-muted" />
@@ -79,9 +140,13 @@ export default function TimelinePage() {
             Debt payoff timeline
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Forecasted from your latest liability balances and linked monthly debt payments.
+            Debt payoff forecasts and your own dated milestones in one place.
           </p>
         </div>
+        <Button className="rounded-full" onClick={() => setEventDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add event
+        </Button>
       </div>
 
       <Card className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-sm">
@@ -112,8 +177,8 @@ export default function TimelinePage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Closed already</p>
-                <p className="mt-2 font-display text-2xl font-bold text-foreground">{model.closed.length}</p>
+                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Custom events</p>
+                <p className="mt-2 font-display text-2xl font-bold text-foreground">{timelineEvents.length}</p>
               </div>
             </div>
           </div>
@@ -157,144 +222,179 @@ export default function TimelinePage() {
           <CardHeader className="pb-0">
             <CardTitle className="font-display text-xl">Payoff line</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {model.forecasted.length > 0
-                ? 'Soonest payoff first, using your linked budget payment as the recurring monthly amount.'
-                : 'No active debts can be projected yet.'}
+              {timelineFeed.length > 0
+                ? 'Forecasted debt payoffs and custom events, sorted by date.'
+                : 'No debt payoffs or custom events yet.'}
             </p>
           </CardHeader>
           <CardContent className="p-6 pt-5">
-            {model.forecasted.length === 0 ? (
+            {timelineFeed.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
-                <p className="font-display text-lg font-semibold text-foreground">Nothing on the payoff line yet</p>
+                <p className="font-display text-lg font-semibold text-foreground">Nothing on the timeline yet</p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Add a current balance in Net Worth and link the liability to a debt category with a planned payment.
+                  Add a custom event or link an active liability to a debt payment to start building your timeline.
                 </p>
-                <Button asChild className="mt-4 rounded-full">
-                  <Link to="/net-worth">Open Net Worth</Link>
-                </Button>
+                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+                  <Button className="rounded-full" onClick={() => setEventDialogOpen(true)}>Add event</Button>
+                  <Button asChild variant="outline" className="rounded-full">
+                    <Link to="/net-worth">Open Net Worth</Link>
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="relative">
-                <div className="space-y-5">
-                  {model.forecasted.map((entry, index) => (
+                <div className="space-y-4">
+                  {timelineFeed.map((entry, index) => (
                     <div
-                      key={entry.itemId}
+                      key={entry.kind === 'debt' ? entry.forecast.itemId : entry.id}
                       className="relative md:grid md:grid-cols-[130px_44px_minmax(0,1fr)] md:gap-5"
                     >
                       <div className="mb-3 md:mb-0 md:pr-2">
-                        <div
-                          className="inline-flex rounded-2xl px-3 py-2 font-display text-sm font-bold"
-                          style={{
-                            color: '#5b4ce1',
-                            background: 'rgba(108,92,231,0.08)',
-                            border: '1px solid rgba(108,92,231,0.18)',
-                            boxShadow: '0 10px 24px rgba(108,92,231,0.10)',
-                          }}
-                        >
-                          {entry.projectedLabel}
+                        <div className="inline-flex rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 font-display text-sm font-bold text-primary">
+                          {entry.dateLabel}
                         </div>
-                        <p className="mt-2 text-xs text-muted-foreground">{monthsLabel(entry.monthsToClose)}</p>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {entry.kind === 'debt' ? monthsLabel(entry.forecast.monthsToClose) : formatDateLabel(entry.eventDate)}
+                        </p>
                       </div>
 
                       <div className="relative hidden self-stretch md:flex md:justify-center">
-                        {index < model.forecasted.length - 1 && (
+                        {index < timelineFeed.length - 1 && (
                           <div
                             className="absolute bottom-[-1.25rem] left-1/2 top-[3.25rem] w-px -translate-x-1/2"
-                            style={{ background: 'linear-gradient(to bottom, rgba(108,92,231,0.16), transparent)' }}
+                            style={{ background: 'linear-gradient(to bottom, rgba(108,92,231,0.18), rgba(108,92,231,0.03))' }}
                           />
                         )}
                         <div
-                          className="relative mt-5 flex h-7 w-7 items-center justify-center rounded-full bg-background"
+                          className="relative mt-4 flex h-9 min-w-9 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 text-sm shadow-[0_8px_18px_rgba(16,185,129,0.12)] dark:border-emerald-900/70 dark:bg-emerald-950/30"
                           style={{
-                            border: '1px solid rgba(108,92,231,0.18)',
-                            boxShadow: '0 10px 24px rgba(108,92,231,0.12)',
+                            color: '#047857',
                           }}
                         >
-                          <div className="absolute inset-0 rounded-full blur-[6px]" style={{ background: 'rgba(108,92,231,0.08)' }} />
                           <div
                             className="absolute left-1/2 top-1/2 h-px w-7"
-                            style={{ background: 'linear-gradient(to right, rgba(108,92,231,0.20), transparent)' }}
+                            style={{ background: 'linear-gradient(to right, rgba(108,92,231,0.18), transparent)' }}
                           />
-                          <div className="relative flex h-full w-full items-center justify-center rounded-full">
-                            <div className="h-2.5 w-2.5 rounded-full bg-primary" />
-                          </div>
+                          <span className="relative" aria-hidden>{entry.kind === 'debt' ? '🎉' : '✨'}</span>
                         </div>
                       </div>
 
                       <div className="relative">
-                        <div className="overflow-hidden rounded-[24px] border border-border/70 bg-card">
-                          <div
-                            className="px-5 py-4"
-                            style={{ background: 'linear-gradient(135deg, rgba(108,92,231,0.10), transparent 58%)' }}
-                          >
+                        <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card">
+                          <div className="px-4 py-3.5">
                             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="font-display text-2xl font-bold text-foreground">{entry.name}</h3>
-                                  {index === 0 && (
-                                    <Badge
-                                      className="text-white"
-                                      style={{ background: 'linear-gradient(135deg, #6c5ce7, #8b78ff)' }}
-                                    >
-                                      Next up
+                                  <h3 className="font-display text-xl font-bold leading-tight text-foreground sm:text-[1.65rem]">
+                                    {entry.kind === 'debt' ? entry.forecast.name : entry.title}
+                                  </h3>
+                                  {entry.kind === 'debt' ? (
+                                    entry.forecast.itemId === nextPayoffItemId && (
+                                      <Badge className="border-0 bg-primary text-primary-foreground">
+                                        Next up
+                                      </Badge>
+                                    )
+                                  ) : (
+                                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+                                      Custom
+                                    </Badge>
+                                  )}
+                                  {entry.kind === 'debt' ? (
+                                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-300">
+                                      <PartyPopper className="mr-1.5 h-3.5 w-3.5" />
+                                      Closes {entry.forecast.projectedLabel}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300">
+                                      {formatDateLabel(entry.eventDate)}
                                     </Badge>
                                   )}
                                 </div>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                  {entry.group || 'Debt'} • snapshot from {entry.snapshotLabel}
+                                  {entry.kind === 'debt'
+                                    ? `${entry.forecast.group || 'Debt'} • snapshot from ${entry.forecast.snapshotLabel}`
+                                    : entry.description || 'Manual timeline event'}
                                 </p>
                               </div>
 
-                              <div
-                                className="rounded-2xl px-3 py-2 text-right"
-                                style={{
-                                  border: '1px solid rgba(245,158,11,0.20)',
-                                  background: 'linear-gradient(135deg, rgba(245,158,11,0.10), rgba(255,255,255,0.92))',
-                                }}
-                              >
-                                <p className="text-[11px] uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">Projected close</p>
-                                <p className="mt-1 font-display text-lg font-bold text-foreground">{entry.projectedLabel}</p>
+                              {entry.kind === 'debt' ? (
+                                <Badge variant="outline" className="h-fit border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+                                  {monthsLabel(entry.forecast.monthsToClose)}
+                                </Badge>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="h-fit border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+                                    {customEventMonthsLabel(entry.eventDate)}
+                                  </Badge>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        aria-label={`Open actions for ${entry.title}`}
+                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => { setEditingEvent(entry.event); setEventDialogOpen(true); }}>
+                                        <Pencil className="mr-2 h-3.5 w-3.5" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => setDeletingEvent(entry.event)}
+                                        className="text-[hsl(var(--expense))] focus:text-[hsl(var(--expense))]"
+                                      >
+                                        <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {entry.kind === 'debt' ? (
+                            <>
+                              <div className="flex flex-wrap gap-2 px-4 pb-3">
+                                <Badge variant="outline" className="rounded-full border-primary/15 bg-primary/5 px-3 py-1.5 font-normal text-foreground">
+                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Balance</span>
+                                  <span className="font-display text-sm font-bold">{formatMoney(entry.forecast.currentBalance, currency)}</span>
+                                </Badge>
+                                <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1.5 font-normal text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
+                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-emerald-700/80 dark:text-emerald-300/80">Payment</span>
+                                  <span className="font-display text-sm font-bold">{formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo</span>
+                                </Badge>
+                                <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-3 py-1.5 font-normal text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-200">
+                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-sky-700/80 dark:text-sky-300/80">Time left</span>
+                                  <span className="font-display text-sm font-bold">{monthsLabel(entry.forecast.monthsToClose)}</span>
+                                </Badge>
                               </div>
-                            </div>
-                          </div>
 
-                          <div className="grid gap-3 px-5 py-4 sm:grid-cols-3">
-                            <div
-                              className="rounded-2xl p-4"
-                              style={{ background: 'linear-gradient(180deg, rgba(108,92,231,0.08), rgba(248,250,252,0.7))' }}
-                            >
-                              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Current balance</p>
-                              <p className="mt-2 font-display text-xl font-bold text-foreground">
-                                {formatMoney(entry.currentBalance, currency)}
-                              </p>
+                              <div className="flex flex-col gap-2 border-t border-border/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                                <span>
+                                  {entry.forecast.linkedCategoryName ? `Budget payment: ${entry.forecast.linkedCategoryName}` : 'Using linked debt category'}
+                                </span>
+                                <Link to="/net-worth" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
+                                  Review in Net Worth
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </Link>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
+                              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1.5 font-normal text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+                                <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">Event date</span>
+                                <span className="font-display text-sm font-bold text-foreground">{formatDateLabel(entry.eventDate)}</span>
+                              </Badge>
+                              {entry.amount !== null && (
+                                <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1.5 font-normal text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
+                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-emerald-700/80 dark:text-emerald-300/80">Amount</span>
+                                  <span className="font-display text-sm font-bold">{formatMoney(entry.amount, currency, 2)}</span>
+                                </Badge>
+                              )}
                             </div>
-                            <div
-                              className="rounded-2xl p-4"
-                              style={{ background: 'linear-gradient(180deg, rgba(16,185,129,0.10), rgba(248,250,252,0.76))' }}
-                            >
-                              <p className="text-xs uppercase tracking-[0.18em] text-emerald-700/80 dark:text-emerald-300/80">Monthly payment</p>
-                              <p className="mt-2 font-display text-xl font-bold text-emerald-700 dark:text-emerald-300">
-                                {formatMoney(entry.monthlyPayment, currency, 2)}
-                              </p>
-                            </div>
-                            <div
-                              className="rounded-2xl p-4"
-                              style={{ background: 'linear-gradient(180deg, rgba(56,189,248,0.08), rgba(248,250,252,0.76))' }}
-                            >
-                              <p className="text-xs uppercase tracking-[0.18em] text-sky-700/80 dark:text-sky-300/80">Time left</p>
-                              <p className="mt-2 font-display text-xl font-bold text-sky-700 dark:text-sky-300">{monthsLabel(entry.monthsToClose)}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-2 border-t border-border/60 px-5 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                            <span>
-                              {entry.linkedCategoryName ? `Budget payment: ${entry.linkedCategoryName}` : 'Using linked debt category'}
-                            </span>
-                            <Link to="/net-worth" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                              Review in Net Worth
-                              <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -306,6 +406,81 @@ export default function TimelinePage() {
         </Card>
 
         <div className="space-y-6">
+          <Card className="rounded-[28px] border border-border/70 shadow-sm">
+            <CardHeader>
+              <CardTitle className="font-display text-xl">Net worth milestones</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                First-pass milestone dates from your saved net worth history.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {milestoneModel.latestPoint ? (
+                <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Latest net worth</p>
+                  <p className="mt-1 font-display text-2xl font-bold text-foreground">
+                    {formatMoney(milestoneModel.latestPoint.netWorth, currency)}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Saved in {milestoneModel.latestPoint.label}
+                    {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth > 0 && ` • trend pace ${formatMoney(milestoneModel.monthlyGrowth, currency)}/month`}
+                    {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0 && ' • recent trend is not positive'}
+                  </p>
+                </div>
+              ) : (
+                <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+                  Add some monthly net worth values to start tracking milestones.
+                </p>
+              )}
+
+              {milestoneModel.latestPoint && (
+                <div className="space-y-3">
+                  {milestoneModel.milestones.map(milestone => (
+                    <div key={milestone.amount} className="rounded-2xl border border-border/70 bg-card px-4 py-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-display text-lg font-bold text-foreground">{milestone.label}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {milestone.monthLabel
+                              ? milestone.status === 'reached'
+                                ? `First hit in ${milestone.monthLabel}`
+                                : milestone.status === 'off-track'
+                                  ? `First hit in ${milestone.monthLabel}, currently below target`
+                                : `Projected for ${milestone.monthLabel}`
+                              : 'No projection yet'}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={
+                            milestone.status === 'reached'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300'
+                              : milestone.status === 'off-track'
+                                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200'
+                              : milestone.status === 'projected'
+                                ? 'border-primary/20 bg-primary/5 text-primary'
+                                : 'border-border bg-muted/20 text-muted-foreground'
+                          }
+                        >
+                          {milestoneStatusLabel(milestone.status)}
+                        </Badge>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {milestone.status === 'projected' && milestone.monthsAway !== null && (
+                          <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
+                            {monthsLabel(milestone.monthsAway)}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-200">
+                          Current {formatMoney(milestone.currentNetWorth, currency)}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="rounded-[28px] border border-border/70 shadow-sm">
             <CardHeader>
               <CardTitle className="font-display text-xl">Closed or cleared</CardTitle>
@@ -321,14 +496,14 @@ export default function TimelinePage() {
               ) : (
                 model.closed.map(entry => (
                   <div key={entry.itemId} className="rounded-2xl border border-border/70 bg-card px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-foreground">{entry.name}</p>
-                        <p className="text-sm text-muted-foreground">{entry.group || 'Debt'}</p>
-                      </div>
-                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300">
-                        Closed
-                      </Badge>
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-lg shadow-[0_8px_18px_rgba(16,185,129,0.12)] dark:border-emerald-900/70 dark:bg-emerald-950/30">
+                          <span aria-hidden>🎉</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{entry.name}</p>
+                          <p className="text-sm text-muted-foreground">{entry.group || 'Debt'}</p>
+                        </div>
                     </div>
                     <p className="mt-2 text-xs text-muted-foreground">Latest zero balance tracked in {entry.snapshotLabel}</p>
                   </div>
@@ -384,6 +559,38 @@ export default function TimelinePage() {
       </div>
 
       {isMobile && <div className="h-2" aria-hidden />}
+
+      <AlertDialog open={!!deletingEvent} onOpenChange={open => { if (!open) setDeletingEvent(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deletingEvent?.title}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the custom event from your timeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deletingEvent) return;
+                deleteTimelineEventMutation.mutate(deletingEvent.id, { onSuccess: () => setDeletingEvent(null) });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <EventFormDialog
+        open={eventDialogOpen}
+        onOpenChange={open => {
+          setEventDialogOpen(open);
+          if (!open) setEditingEvent(null);
+        }}
+        editingEvent={editingEvent}
+      />
     </div>
   );
 }
