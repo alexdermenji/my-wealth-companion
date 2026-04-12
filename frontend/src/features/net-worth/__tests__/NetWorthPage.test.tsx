@@ -54,7 +54,7 @@ describe('NetWorthPage', () => {
     renderWithProviders(<NetWorthPage />);
 
     expect(screen.getByText('2026')).toBeInTheDocument();
-    expect(screen.getByText('Net Worth')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Net Worth' })).toBeInTheDocument();
     expect(screen.getByText('Assets')).toBeInTheDocument();
     expect(screen.getByText('Liabilities')).toBeInTheDocument();
     expect(screen.getAllByText('Net worth').length).toBeGreaterThanOrEqual(1);

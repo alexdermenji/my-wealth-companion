@@ -149,6 +149,8 @@ export default function NetWorthPage() {
         isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
       )}
     >
+      <h1 className="sr-only">Net Worth</h1>
+
       <div className="flex items-center justify-center shrink-0">
         <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
           <button
