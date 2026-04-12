@@ -129,4 +129,9 @@ describe("BudgetSection", () => {
     expect(screen.getByText("Savings")).toBeInTheDocument();
     expect(screen.getByText("Total Savings")).toBeInTheDocument();
   });
+
+  it("marks the supplied current month column", () => {
+    renderInTable(<BudgetSection {...defaultProps} currentMonth={4} />);
+    expect(screen.getAllByText("Apr")[0]).toHaveAttribute("data-current-month", "true");
+  });
 });

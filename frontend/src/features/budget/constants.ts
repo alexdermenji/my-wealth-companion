@@ -26,6 +26,11 @@ export const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const;
 
 export function allocationColor(v: number): string {
   if (v < 0) return 'text-[hsl(var(--expense))] font-bold';
-  if (v > 0) return 'text-[hsl(var(--warning))] font-semibold';
+  if (v > 0) return 'text-[hsl(var(--success))] font-semibold';
   return 'text-[hsl(var(--success))] font-semibold';
+}
+
+export function getCurrentBudgetMonth(year: number) {
+  const now = new Date();
+  return now.getFullYear() === year ? now.getMonth() + 1 : null;
 }

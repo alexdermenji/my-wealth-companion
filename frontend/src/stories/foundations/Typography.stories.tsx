@@ -8,7 +8,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "The Pearl type system uses **Syne** for display/headings (bold, geometric) and **DM Sans** for body text (clean, readable). Both are loaded from Google Fonts.",
+          "The Pearl type system uses **Syne** for display/headings, **DM Sans** for body copy, and **Space Grotesk** for amount-heavy numeric values such as totals, summaries, and currency comparisons.",
       },
     },
   },
@@ -33,7 +33,7 @@ function TypographyPage() {
         </p>
         <h1 className="font-display text-4xl font-extrabold text-[#1a1f35]">Typography</h1>
         <p className="mt-2 text-[#7a849e]">
-          Two typefaces. One for structure, one for reading.
+          Three typefaces. One for structure, one for reading, one for money.
         </p>
       </div>
 
@@ -123,9 +123,34 @@ function TypographyPage() {
               Last updated: April 2026 · Data refreshed every 24 hours
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Numeric amounts — Space Grotesk */}
+      <div className="mb-10 rounded-2xl border border-[#dde3f0] bg-white p-8 shadow-sm">
+        <p className="mb-6 font-display text-xs font-bold uppercase tracking-widest text-[#6c5ce7]">
+          Space Grotesk · Numeric Amounts · font-amount
+        </p>
+
+        <div className="space-y-6">
           <div>
-            <Label>Mono / Amount · 700 · 1.5rem</Label>
-            <p className="font-display text-2xl font-bold text-[#10b981]">£4,800.00</p>
+            <Label>Amount XL · 800 · 2rem</Label>
+            <p className="font-amount text-[32px] font-extrabold leading-none text-[#1a1f35]">£12,480</p>
+          </div>
+          <div>
+            <Label>Dashboard Total · 700 · 1.5rem</Label>
+            <p className="font-amount text-2xl font-bold text-[#10b981]">£4,800.00</p>
+          </div>
+          <div>
+            <Label>Compact Table Value · 700 · 1rem</Label>
+            <p className="font-amount text-base font-bold text-[#ec4899]">£141.50</p>
+          </div>
+          <div>
+            <Label>Comparison Pair · tracked numerals</Label>
+            <div className="flex items-center gap-6">
+              <p className="font-amount text-lg font-bold text-[#10b981]">£981.98</p>
+              <p className="font-amount text-lg font-bold text-[#1a1f35]">of £1,200</p>
+            </div>
           </div>
         </div>
       </div>
@@ -147,7 +172,7 @@ function TypographyPage() {
           ].map(({ label, cls, sample }) => (
             <div key={label} className="flex items-center gap-6">
               <p className="w-72 text-sm text-[#7a849e]">{label}</p>
-              <p className={`font-display text-base font-bold ${cls}`}>{sample}</p>
+              <p className={`font-amount text-base font-bold ${cls}`}>{sample}</p>
             </div>
           ))}
         </div>

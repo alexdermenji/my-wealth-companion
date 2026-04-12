@@ -89,11 +89,11 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                 </span>
                 <ProgressRing pct={pct} accentVar={m.accentVar} />
               </div>
-              <div className="font-bold text-foreground text-lg leading-none mb-0.5">
+              <div className="font-amount font-bold text-foreground text-lg leading-none mb-0.5">
                 {formatCurrency(section.totalTracked)}
               </div>
               <div className="text-xs text-muted-foreground mb-2">
-                of {formatCurrency(section.totalBudget)} budgeted
+                of <span className="font-amount">{formatCurrency(section.totalBudget)}</span> budgeted
               </div>
               <div className="h-1.5 rounded-full overflow-hidden bg-border">
                 <div
@@ -116,13 +116,13 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
             <div className="flex gap-6 text-sm text-muted-foreground">
               <span>
                 Tracked:{' '}
-                <span className="font-semibold text-foreground">
+                <span className="font-amount font-semibold text-foreground">
                   {formatCurrency(selected?.totalTracked ?? 0)}
                 </span>
               </span>
               <span>
                 Budget:{' '}
-                <span className="font-semibold text-foreground">
+                <span className="font-amount font-semibold text-foreground">
                   {formatCurrency(selected?.totalBudget ?? 0)}
                 </span>
               </span>
@@ -160,10 +160,10 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                 return (
                   <tr key={item.categoryId} className="border-b last:border-0 hover:bg-secondary/50 transition-colors">
                     <td className="px-4 py-2.5 text-foreground">{item.categoryName}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground">
+                    <td className="font-amount px-4 py-2.5 text-right tabular-nums text-foreground">
                       {item.tracked > 0 ? formatCurrency(item.tracked) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-foreground">
+                    <td className="font-amount px-4 py-2.5 text-right tabular-nums text-foreground">
                       {item.budget > 0 ? formatCurrency(item.budget) : <span className="text-muted-foreground">—</span>}
                     </td>
                     <td className="px-4 py-2.5">
@@ -178,12 +178,12 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">
+                    <td className="font-amount px-4 py-2.5 text-right tabular-nums">
                       {remaining > 0
                         ? <span className="text-foreground">{formatCurrency(remaining)}</span>
                         : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">
+                    <td className="font-amount px-4 py-2.5 text-right tabular-nums">
                       {excess > 0
                         ? <span className="font-semibold text-expense">{formatCurrency(excess)}</span>
                         : <span className="text-muted-foreground">—</span>}
@@ -203,10 +203,10 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
               <tfoot>
                 <tr className="border-t-2 bg-secondary">
                   <td className="px-4 py-2.5 font-bold text-foreground">Total</td>
-                  <td className="px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
+                  <td className="font-amount px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
                     {formatCurrency(selected?.totalTracked ?? 0)}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
+                  <td className="font-amount px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
                     {formatCurrency(selected?.totalBudget ?? 0)}
                   </td>
                   <td className="px-4 py-2.5">
@@ -221,12 +221,12 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
+                  <td className="font-amount px-4 py-2.5 text-right font-bold tabular-nums text-foreground">
                     {selected && selected.totalBudget > selected.totalTracked
                       ? formatCurrency(selected.totalBudget - selected.totalTracked)
                       : <span className="text-muted-foreground">—</span>}
                   </td>
-                  <td className="px-4 py-2.5 text-right font-bold tabular-nums">
+                  <td className="font-amount px-4 py-2.5 text-right font-bold tabular-nums">
                     {selected && selected.totalTracked > selected.totalBudget && selected.totalBudget > 0
                       ? <span className="text-expense">{formatCurrency(selected.totalTracked - selected.totalBudget)}</span>
                       : <span className="text-muted-foreground">—</span>}

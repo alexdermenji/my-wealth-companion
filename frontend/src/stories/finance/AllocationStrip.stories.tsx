@@ -8,7 +8,7 @@ const meta: Meta = {
     docs: {
       description: {
         component:
-          "The sticky header strip above the budget table. Shows `Remaining` — the difference between total income and total outflows (expenses + savings + liabilities) for each month. Positive = unallocated, Negative = over-budget, Zero = perfectly balanced.",
+          "The sticky header strip above the budget table. Shows `Remaining` — the difference between total income and total outflows (expenses + savings + liabilities) for each month. Positive = unallocated, Negative = over-budget, Zero = perfectly balanced. Values use the amount font for tighter numeric rhythm.",
       },
     },
   },
@@ -20,7 +20,7 @@ const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov
 
 function valColor(v: number) {
   if (v < 0)  return "#ec4899";  // over budget — pink
-  if (v > 0)  return "#f59e0b";  // unallocated — amber
+  if (v > 0)  return "#10b981";  // unallocated — calm green
   return "#10b981";              // balanced — green
 }
 
@@ -53,7 +53,7 @@ function AllocationStripDemo({ values }: StripProps) {
             {values.map((v, i) => (
               <td key={i} className="text-center">
                 <span
-                  className="font-display text-sm font-bold"
+                  className="font-amount text-sm font-bold"
                   style={{ color: valColor(v) }}
                 >
                   {v === 0
@@ -73,7 +73,7 @@ export const Positive: Story = {
   name: "Positive — Unallocated",
   parameters: {
     docs: {
-      description: { story: "Amber values mean income is higher than outflows — money is not yet allocated." },
+      description: { story: "Green values mean income is higher than outflows — money is not yet allocated." },
     },
   },
   render: () => (
@@ -124,7 +124,7 @@ export const Mixed: Story = {
       />
       <div className="mt-4 flex gap-6">
         {[
-          { label: "Positive (amber)",  desc: "Unallocated income",          color: "#f59e0b" },
+          { label: "Positive (green)",  desc: "Unallocated income",          color: "#10b981" },
           { label: "Negative (pink)",   desc: "Over budget — needs review",  color: "#ec4899" },
           { label: "Zero (green)",      desc: "Perfectly balanced",          color: "#10b981" },
         ].map(({ label, desc, color }) => (
