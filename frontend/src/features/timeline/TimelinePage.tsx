@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,19 +62,6 @@ function milestoneStatusLabel(status: 'reached' | 'off-track' | 'projected' | 'u
   return 'Waiting';
 }
 
-function unforecastedLabel(reason: 'unlinked' | 'no-payment' | 'no-snapshot') {
-  if (reason === 'unlinked') return 'No payment link yet';
-  if (reason === 'no-payment') return 'No budget payment found';
-  return 'No balance snapshot this year';
-}
-
-function formatDateLabel(date: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(`${date}T00:00:00`));
-}
 
 
 export default function TimelinePage() {
