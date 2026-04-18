@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarClock, Flag, Link2, MoreVertical, PartyPopper, Pencil, Plus, Sparkles, Trash2, WalletCards } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowRight, CheckCircle2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,13 +22,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useSettings } from '@/features/settings/hooks';
 import { useCategories } from '@/shared/hooks/useCategories';
-import { useAllNetWorthValues, useNetWorthItems, useNetWorthValues } from '@/features/net-worth/hooks';
+import { useAllNetWorthValues, useNetWorthItems, useNetWorthValues, useSetNetWorthValue } from '@/features/net-worth/hooks';
 import { useBudgetPlans } from '@/features/budget/hooks';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { EventFormDialog } from './components/EventFormDialog';
 import { useDeleteTimelineEvent, useTimelineEvents } from './hooks';
 import type { TimelineEvent } from './types';
-import { buildDebtTimelineModel, buildNetWorthMilestoneModel, buildTimelineFeed } from './utils';
+import { buildDebtTimelineModel, buildNetWorthMilestoneModel, buildTimelineFeed, splitDateLabel } from './utils';
+import type { DebtTimelineClosed, TimelineFeedEntry } from './utils';
+
+type AugmentedFeedEntry = TimelineFeedEntry | { kind: 'closed-debt'; closed: DebtTimelineClosed; date: Date; dateLabel: string };
 
 const NET_WORTH_MILESTONES = [100_000, 200_000, 1_000_000];
 
@@ -40,7 +43,7 @@ function formatMoney(value: number, currency: string, digits = 0) {
 }
 
 function monthsLabel(months: number) {
-  return months === 1 ? '1 month left' : `${months} months left`;
+  return months === 1 ? '1 month' : `${months} months`;
 }
 
 function customEventMonthsLabel(eventDate: string) {
@@ -49,7 +52,7 @@ function customEventMonthsLabel(eventDate: string) {
   const monthDelta = ((event.getFullYear() - now.getFullYear()) * 12) + (event.getMonth() - now.getMonth());
 
   if (monthDelta <= 0) return 'This month';
-  return monthsLabel(monthDelta);
+  return monthDelta === 1 ? '1 month' : `${monthDelta} months`;
 }
 
 function milestoneStatusLabel(status: 'reached' | 'off-track' | 'projected' | 'unavailable') {
@@ -59,24 +62,14 @@ function milestoneStatusLabel(status: 'reached' | 'off-track' | 'projected' | 'u
   return 'Waiting';
 }
 
-function unforecastedLabel(reason: 'unlinked' | 'no-payment' | 'no-snapshot') {
-  if (reason === 'unlinked') return 'No payment link yet';
-  if (reason === 'no-payment') return 'No budget payment found';
-  return 'No balance snapshot this year';
-}
 
-function formatDateLabel(date: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(`${date}T00:00:00`));
-}
 
 export default function TimelinePage() {
   const now = new Date();
   const year = now.getFullYear();
   const isMobile = useIsMobile();
+  const [selectedTab, setSelectedTab] = useState<'payoff' | 'milestones'>('payoff');
+  const [showClosed, setShowClosed] = useState(false);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<TimelineEvent | null>(null);
@@ -89,6 +82,7 @@ export default function TimelinePage() {
   const { data: debtCategories = [], isLoading: debtCategoriesLoading } = useCategories('Debt');
   const { data: timelineEvents = [], isLoading: timelineEventsLoading } = useTimelineEvents();
   const deleteTimelineEventMutation = useDeleteTimelineEvent();
+  const setNetWorthValueMutation = useSetNetWorthValue();
 
   const monthLimit = year === now.getFullYear() ? now.getMonth() + 1 : 12;
   const currency = settings?.currency ?? '£';
@@ -112,6 +106,33 @@ export default function TimelinePage() {
   }), [allNetWorthValues, items]);
   const nextPayoffItemId = model.summary.nextPayoff?.itemId ?? null;
 
+  const debtProgress = useMemo(() => {
+    const liabilityIds = new Set(items.filter(i => i.type === 'Liability').map(i => i.id));
+    const monthMap = new Map<string, number>();
+    for (const v of allNetWorthValues) {
+      if (!liabilityIds.has(v.itemId)) continue;
+      for (const [monthStr, amount] of Object.entries(v.months)) {
+        const key = `${v.year}-${monthStr.padStart(2, '0')}`;
+        monthMap.set(key, (monthMap.get(key) ?? 0) + (amount as number));
+      }
+    }
+    const peak = monthMap.size > 0 ? Math.max(...monthMap.values()) : model.summary.totalActiveBalance;
+    const current = model.summary.totalActiveBalance;
+    const pct = peak > 0 ? Math.round(((peak - current) / peak) * 100) : 0;
+    return { peak, pct };
+  }, [allNetWorthValues, items, model.summary.totalActiveBalance]);
+
+  const augmentedFeed = useMemo((): AugmentedFeedEntry[] => {
+    if (!showClosed || model.closed.length === 0) return timelineFeed;
+    const closedEntries = model.closed.map(c => ({
+      kind: 'closed-debt' as const,
+      closed: c,
+      date: new Date(year, c.snapshotMonth - 1, 1),
+      dateLabel: c.snapshotLabel,
+    }));
+    return [...timelineFeed, ...closedEntries].sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [timelineFeed, model.closed, showClosed, year]);
+
   if (settingsLoading || itemsLoading || valuesLoading || allNetWorthValuesLoading || budgetPlansLoading || debtCategoriesLoading || timelineEventsLoading) {
     return (
       <div className="space-y-6 animate-pulse">
@@ -128,437 +149,538 @@ export default function TimelinePage() {
     );
   }
 
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" />
-            Timeline
-          </div>
-          <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground">
-            Debt payoff timeline
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Debt payoff forecasts and your own dated milestones in one place.
-          </p>
+  const payoffCard = (
+    <Card className="rounded-[28px] border border-border/70 shadow-sm">
+      <CardContent className="p-6 pt-6">
+        {/* Card toolbar */}
+        <div className="mb-5 flex items-center justify-between gap-2">
+          <Button size="sm" className="rounded-full" onClick={() => setEventDialogOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Add event
+          </Button>
+          {model.closed.length > 0 && (
+            <button
+              onClick={() => setShowClosed(v => !v)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${showClosed ? 'bg-slate-400' : 'bg-slate-300'}`} />
+              {showClosed ? 'Hide' : 'Show'} {model.closed.length} paid off
+            </button>
+          )}
         </div>
-        <Button className="rounded-full" onClick={() => setEventDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add event
-        </Button>
-      </div>
 
-      <Card className="relative overflow-hidden rounded-[28px] border border-border/70 bg-card shadow-sm">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(108,92,231,0.14),transparent_35%),radial-gradient(circle_at_85%_20%,rgba(16,185,129,0.12),transparent_30%),linear-gradient(135deg,rgba(255,255,255,0.02),transparent_60%)]" />
-        <CardContent className="relative grid gap-6 p-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:p-8">
-          <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-background/70 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-              <CalendarClock className="h-3.5 w-3.5 text-primary" />
-              Based on balances tracked through {model.summary.nextPayoff?.snapshotLabel ?? `the latest saved month in ${year}`}
-            </div>
-
-            <div>
-              <p className="text-sm text-muted-foreground">Active debt still on the books</p>
-              <p className="mt-1 font-display text-4xl font-bold text-foreground">
-                {formatMoney(model.summary.totalActiveBalance, currency)}
-              </p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Forecasted</p>
-                <p className="mt-2 font-display text-2xl font-bold text-foreground">{model.summary.forecastableCount}</p>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Monthly payoff pace</p>
-                <p className="mt-2 font-display text-2xl font-bold text-foreground">
-                  {formatMoney(model.summary.totalMonthlyPayment, currency, 2)}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Custom events</p>
-                <p className="mt-2 font-display text-2xl font-bold text-foreground">{timelineEvents.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 content-start">
-            <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 dark:border-emerald-900/70 dark:bg-emerald-950/20">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
-                <Flag className="h-3.5 w-3.5" />
-                Next payoff
-              </div>
-              <p className="mt-3 font-display text-2xl font-bold text-foreground">
-                {model.summary.nextPayoff?.projectedLabel ?? 'No forecast yet'}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {model.summary.nextPayoff
-                  ? `${model.summary.nextPayoff.name} at ${formatMoney(model.summary.nextPayoff.monthlyPayment, currency, 2)}/mo`
-                  : 'Link a monthly payment to place a debt on the timeline.'}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-primary/15 bg-primary/5 p-4">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-primary">
-                <WalletCards className="h-3.5 w-3.5" />
-                Debt-free target
-              </div>
-              <p className="mt-3 font-display text-2xl font-bold text-foreground">
-                {model.summary.debtFreeDate?.projectedLabel ?? 'Pending links'}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {model.summary.debtFreeDate
-                  ? `Last projected payoff is ${model.summary.debtFreeDate.name}.`
-                  : 'The page will estimate a debt-free month once at least one active liability has both a balance and payment.'}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_340px]">
-        <Card className="rounded-[28px] border border-border/70 shadow-sm">
-          <CardHeader className="pb-0">
-            <CardTitle className="font-display text-xl">Payoff line</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {timelineFeed.length > 0
-                ? 'Forecasted debt payoffs and custom events, sorted by date.'
-                : 'No debt payoffs or custom events yet.'}
+        {augmentedFeed.length === 0 ? (
+          <div className="rounded-[24px] border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
+            <p className="font-display text-lg font-semibold text-foreground">Nothing on the timeline yet</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Add a custom event or link an active liability to a debt payment to start building your timeline.
             </p>
-          </CardHeader>
-          <CardContent className="p-6 pt-5">
-            {timelineFeed.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-border bg-muted/20 px-6 py-10 text-center">
-                <p className="font-display text-lg font-semibold text-foreground">Nothing on the timeline yet</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Add a custom event or link an active liability to a debt payment to start building your timeline.
-                </p>
-                <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                  <Button className="rounded-full" onClick={() => setEventDialogOpen(true)}>Add event</Button>
-                  <Button asChild variant="outline" className="rounded-full">
-                    <Link to="/net-worth">Open Net Worth</Link>
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="space-y-4">
-                  {timelineFeed.map((entry, index) => (
-                    <div
-                      key={entry.kind === 'debt' ? entry.forecast.itemId : entry.id}
-                      className="relative md:grid md:grid-cols-[130px_44px_minmax(0,1fr)] md:gap-5"
-                    >
-                      <div className="mb-3 md:mb-0 md:pr-2">
-                        <div className="inline-flex rounded-2xl border border-primary/20 bg-primary/5 px-3 py-2 font-display text-sm font-bold text-primary">
-                          {entry.dateLabel}
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {entry.kind === 'debt' ? monthsLabel(entry.forecast.monthsToClose) : formatDateLabel(entry.eventDate)}
-                        </p>
-                      </div>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+              <Button className="rounded-full" onClick={() => setEventDialogOpen(true)}>Add event</Button>
+              <Button asChild variant="outline" className="rounded-full">
+                <Link to="/net-worth">Open Net Worth</Link>
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {augmentedFeed.map((entry, index) => {
+              const { month, year: dateYear } = splitDateLabel(entry.dateLabel);
+              const isClosed = entry.kind === 'closed-debt';
 
-                      <div className="relative hidden self-stretch md:flex md:justify-center">
-                        {index < timelineFeed.length - 1 && (
-                          <div
-                            className="absolute bottom-[-1.25rem] left-1/2 top-[3.25rem] w-px -translate-x-1/2"
-                            style={{ background: 'linear-gradient(to bottom, rgba(108,92,231,0.18), rgba(108,92,231,0.03))' }}
-                          />
-                        )}
+              if (isClosed) {
+                return (
+                  <div
+                    key={entry.closed.itemId}
+                    className="relative grid grid-cols-[72px_24px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5 opacity-55"
+                  >
+                    {/* Date box — closed: slate */}
+                    <div className="mb-0">
+                      <div className="rounded-2xl border border-slate-200/70 bg-slate-50/60 px-3 py-3 text-center shadow-sm">
+                        <p className="md:hidden text-sm font-bold text-slate-500">{month} {dateYear}</p>
+                        <p className="hidden md:block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{month}</p>
+                        <p className="hidden md:block mt-0.5 font-display text-xl font-bold leading-none text-slate-600">{dateYear}</p>
+                      </div>
+                      <div className="hidden md:flex mt-2 justify-center">
+                        <span className="inline-flex items-center whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
+                          Paid off
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Connector — slate */}
+                    <div className="relative flex self-stretch justify-center">
+                      {index < augmentedFeed.length - 1 && (
                         <div
-                          className="relative mt-4 flex h-9 min-w-9 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50 px-2 text-sm shadow-[0_8px_18px_rgba(16,185,129,0.12)] dark:border-emerald-900/70 dark:bg-emerald-950/30"
-                          style={{
-                            color: '#047857',
-                          }}
-                        >
-                          <div
-                            className="absolute left-1/2 top-1/2 h-px w-7"
-                            style={{ background: 'linear-gradient(to right, rgba(108,92,231,0.18), transparent)' }}
-                          />
-                          <span className="relative" aria-hidden>{entry.kind === 'debt' ? '🎉' : '✨'}</span>
-                        </div>
+                          className="absolute bottom-[-1.5rem] left-1/2 top-[3.5rem] w-px -translate-x-1/2"
+                          style={{ backgroundImage: 'repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 5px, transparent 5px, transparent 11px)' }}
+                        />
+                      )}
+                      <div className="relative mt-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 shadow-sm">
+                        <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                       </div>
+                    </div>
 
-                      <div className="relative">
-                        <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card">
-                          <div className="px-4 py-3.5">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h3 className="font-display text-xl font-bold leading-tight text-foreground sm:text-[1.65rem]">
-                                    {entry.kind === 'debt' ? entry.forecast.name : entry.title}
-                                  </h3>
-                                  {entry.kind === 'debt' ? (
-                                    entry.forecast.itemId === nextPayoffItemId && (
-                                      <Badge className="border-0 bg-primary text-primary-foreground">
-                                        Next up
-                                      </Badge>
-                                    )
-                                  ) : (
-                                    <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                                      Custom
-                                    </Badge>
-                                  )}
-                                  {entry.kind === 'debt' ? (
-                                    <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-300">
-                                      <PartyPopper className="mr-1.5 h-3.5 w-3.5" />
-                                      Closes {entry.forecast.projectedLabel}
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300">
-                                      {formatDateLabel(entry.eventDate)}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  {entry.kind === 'debt'
-                                    ? `${entry.forecast.group || 'Debt'} • snapshot from ${entry.forecast.snapshotLabel}`
-                                    : entry.description || 'Manual timeline event'}
-                                </p>
-                              </div>
-
-                              {entry.kind === 'debt' ? (
-                                <Badge variant="outline" className="h-fit border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                                  {monthsLabel(entry.forecast.monthsToClose)}
-                                </Badge>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="h-fit border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                                    {customEventMonthsLabel(entry.eventDate)}
-                                  </Badge>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <button
-                                        aria-label={`Open actions for ${entry.title}`}
-                                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                                      >
-                                        <MoreVertical className="h-4 w-4" />
-                                      </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => { setEditingEvent(entry.event); setEventDialogOpen(true); }}>
-                                        <Pencil className="mr-2 h-3.5 w-3.5" />
-                                        Edit
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem
-                                        onClick={() => setDeletingEvent(entry.event)}
-                                        className="text-[hsl(var(--expense))] focus:text-[hsl(var(--expense))]"
-                                      >
-                                        <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                        Delete
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-                              )}
-                            </div>
+                    {/* Closed card */}
+                    <div className="overflow-hidden rounded-[20px] border border-border/50 bg-muted/20">
+                      <div className="flex items-center justify-between gap-3 px-5 py-4">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-display text-lg font-bold leading-tight text-muted-foreground line-through decoration-slate-300">
+                              {entry.closed.name}
+                            </h3>
+                            <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-500 text-[11px]">
+                              {entry.closed.group || 'Debt'}
+                            </Badge>
                           </div>
-
-                          {entry.kind === 'debt' ? (
-                            <>
-                              <div className="flex flex-wrap gap-2 px-4 pb-3">
-                                <Badge variant="outline" className="rounded-full border-primary/15 bg-primary/5 px-3 py-1.5 font-normal text-foreground">
-                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Balance</span>
-                                  <span className="font-display text-sm font-bold">{formatMoney(entry.forecast.currentBalance, currency)}</span>
-                                </Badge>
-                                <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1.5 font-normal text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
-                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-emerald-700/80 dark:text-emerald-300/80">Payment</span>
-                                  <span className="font-display text-sm font-bold">{formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo</span>
-                                </Badge>
-                                <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 px-3 py-1.5 font-normal text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-200">
-                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-sky-700/80 dark:text-sky-300/80">Time left</span>
-                                  <span className="font-display text-sm font-bold">{monthsLabel(entry.forecast.monthsToClose)}</span>
-                                </Badge>
-                              </div>
-
-                              <div className="flex flex-col gap-2 border-t border-border/60 px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                                <span>
-                                  {entry.forecast.linkedCategoryName ? `Budget payment: ${entry.forecast.linkedCategoryName}` : 'Using linked debt category'}
-                                </span>
-                                <Link to="/net-worth" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">
-                                  Review in Net Worth
-                                  <ArrowRight className="h-3.5 w-3.5" />
-                                </Link>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex flex-wrap items-center gap-2 px-4 pb-3">
-                              <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 px-3 py-1.5 font-normal text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                                <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-amber-700/80 dark:text-amber-300/80">Event date</span>
-                                <span className="font-display text-sm font-bold text-foreground">{formatDateLabel(entry.eventDate)}</span>
-                              </Badge>
-                              {entry.amount !== null && (
-                                <Badge variant="outline" className="rounded-full border-emerald-200 bg-emerald-50 px-3 py-1.5 font-normal text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200">
-                                  <span className="mr-2 text-[11px] uppercase tracking-[0.18em] text-emerald-700/80 dark:text-emerald-300/80">Amount</span>
-                                  <span className="font-display text-sm font-bold">{formatMoney(entry.amount, currency, 2)}</span>
-                                </Badge>
-                              )}
-                            </div>
-                          )}
                         </div>
+                        <span className="flex-shrink-0 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          Paid off
+                        </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card className="rounded-[28px] border border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-display text-xl">Net worth milestones</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                First-pass milestone dates from your saved net worth history.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {milestoneModel.latestPoint ? (
-                <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
-                  <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Latest net worth</p>
-                  <p className="mt-1 font-display text-2xl font-bold text-foreground">
-                    {formatMoney(milestoneModel.latestPoint.netWorth, currency)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Saved in {milestoneModel.latestPoint.label}
-                    {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth > 0 && ` • trend pace ${formatMoney(milestoneModel.monthlyGrowth, currency)}/month`}
-                    {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0 && ' • recent trend is not positive'}
-                  </p>
-                </div>
-              ) : (
-                <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                  Add some monthly net worth values to start tracking milestones.
-                </p>
-              )}
-
-              {milestoneModel.latestPoint && (
-                <div className="space-y-3">
-                  {milestoneModel.milestones.map(milestone => (
-                    <div key={milestone.amount} className="rounded-2xl border border-border/70 bg-card px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-display text-lg font-bold text-foreground">{milestone.label}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {milestone.monthLabel
-                              ? milestone.status === 'reached'
-                                ? `First hit in ${milestone.monthLabel}`
-                                : milestone.status === 'off-track'
-                                  ? `First hit in ${milestone.monthLabel}, currently below target`
-                                : `Projected for ${milestone.monthLabel}`
-                              : 'No projection yet'}
-                          </p>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            milestone.status === 'reached'
-                              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-300'
-                              : milestone.status === 'off-track'
-                                ? 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200'
-                              : milestone.status === 'projected'
-                                ? 'border-primary/20 bg-primary/5 text-primary'
-                                : 'border-border bg-muted/20 text-muted-foreground'
-                          }
-                        >
-                          {milestoneStatusLabel(milestone.status)}
-                        </Badge>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {milestone.status === 'projected' && milestone.monthsAway !== null && (
-                          <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-200">
-                            {monthsLabel(milestone.monthsAway)}
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="rounded-full border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/70 dark:bg-sky-950/30 dark:text-sky-200">
-                          Current {formatMoney(milestone.currentNetWorth, currency)}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[28px] border border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-display text-xl">Closed or cleared</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Liabilities with a latest tracked balance of zero stay off the payoff line.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {model.closed.length === 0 ? (
-                <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                  No cleared liabilities found for {year}.
-                </p>
-              ) : (
-                model.closed.map(entry => (
-                  <div key={entry.itemId} className="rounded-2xl border border-border/70 bg-card px-4 py-3">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-lg shadow-[0_8px_18px_rgba(16,185,129,0.12)] dark:border-emerald-900/70 dark:bg-emerald-950/30">
-                          <span aria-hidden>🎉</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{entry.name}</p>
-                          <p className="text-sm text-muted-foreground">{entry.group || 'Debt'}</p>
-                        </div>
-                    </div>
-                    <p className="mt-2 text-xs text-muted-foreground">Latest zero balance tracked in {entry.snapshotLabel}</p>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                );
+              }
 
-          <Card className="rounded-[28px] border border-border/70 shadow-sm">
-            <CardHeader>
-              <CardTitle className="font-display text-xl">Not forecasted</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Optional links are fine. These debts just stay out of the projection until you add what is needed.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {model.unforecasted.length === 0 ? (
-                <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-                  Every active debt with a balance is already forecasted.
-                </p>
-              ) : (
-                <>
-                  {model.unforecasted.map(entry => (
-                    <div key={entry.itemId} className="rounded-2xl border border-border/70 bg-card px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium text-foreground">{entry.name}</p>
-                          <p className="text-sm text-muted-foreground">{unforecastedLabel(entry.reason)}</p>
-                        </div>
-                        {entry.currentBalance > 0 && (
-                          <span className="font-display text-sm font-bold text-foreground">
-                            {formatMoney(entry.currentBalance, currency)}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-2 text-xs text-muted-foreground">
-                        {entry.snapshotLabel ? `Latest balance tracked in ${entry.snapshotLabel}` : 'No balance entered for this year yet'}
+              return (
+                <div
+                  key={entry.kind === 'debt' ? entry.forecast.itemId : entry.id}
+                  className="relative grid grid-cols-[72px_24px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5"
+                >
+                  {/* Date box */}
+                  <div className="mb-0">
+                    <div className={`rounded-2xl border px-3 py-3 text-center shadow-sm ${
+                      entry.kind === 'debt'
+                        ? 'border-emerald-200/70 bg-emerald-50/60'
+                        : 'border-amber-200/70 bg-amber-50/60'
+                    }`}>
+                      <p className={`md:hidden text-sm font-bold ${
+                        entry.kind === 'debt' ? 'text-emerald-700' : 'text-amber-600'
+                      }`}>
+                        {month} {dateYear}
+                      </p>
+                      <p className={`hidden md:block text-[11px] font-bold uppercase tracking-[0.18em] ${
+                        entry.kind === 'debt' ? 'text-emerald-600' : 'text-amber-500'
+                      }`}>
+                        {month}
+                      </p>
+                      <p className="hidden md:block mt-0.5 font-display text-xl font-bold leading-none text-foreground">
+                        {dateYear}
                       </p>
                     </div>
-                  ))}
+                    <div className="hidden md:flex mt-2 justify-center">
+                      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        entry.kind === 'debt'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {entry.kind === 'debt'
+                          ? `${monthsLabel(entry.forecast.monthsToClose)} left`
+                          : customEventMonthsLabel(entry.eventDate)}
+                      </span>
+                    </div>
+                  </div>
 
-                  <Button asChild variant="outline" className="mt-2 w-full rounded-full">
-                    <Link to="/net-worth">
-                      <Link2 className="mr-2 h-4 w-4" />
-                      Manage links in Net Worth
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  {/* Connector */}
+                  <div className="relative flex self-stretch justify-center">
+                    {index < augmentedFeed.length - 1 && (
+                      <div
+                        className="absolute bottom-[-1.5rem] left-1/2 top-[3.5rem] w-px -translate-x-1/2"
+                        style={{ backgroundImage: 'repeating-linear-gradient(to bottom, rgba(0,0,0,0.12) 0, rgba(0,0,0,0.12) 5px, transparent 5px, transparent 11px)' }}
+                      />
+                    )}
+                    <div className={`relative mt-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm ${
+                      entry.kind === 'debt'
+                        ? 'border-emerald-200 bg-emerald-50'
+                        : 'border-amber-200 bg-amber-50'
+                    }`}>
+                      <div className={`h-2.5 w-2.5 rounded-full ${
+                        entry.kind === 'debt' ? 'bg-emerald-500' : 'bg-amber-400'
+                      }`} />
+                    </div>
+                  </div>
+
+                  {/* Entry card */}
+                  <div className="overflow-hidden rounded-[20px] border border-border/70 bg-card transition-shadow hover:shadow-[0_0_0_1px_rgba(108,92,231,0.12),0_6px_20px_rgba(108,92,231,0.06)]">
+                    <div className="flex items-start justify-between gap-3 px-5 py-4">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-display text-lg font-bold leading-tight text-foreground">
+                            {entry.kind === 'debt' ? entry.forecast.name : entry.title}
+                          </h3>
+                          {entry.kind === 'debt' ? (
+                            <>
+                              {entry.forecast.itemId === nextPayoffItemId && (
+                                <Badge className="border-0 bg-primary text-primary-foreground text-[11px]">
+                                  Next up
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="border-border/70 bg-muted/30 text-muted-foreground text-[11px]">
+                                {entry.forecast.group || 'Debt'}
+                              </Badge>
+                            </>
+                          ) : (
+                            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800 text-[11px]">
+                              Custom
+                            </Badge>
+                          )}
+                        </div>
+                        {entry.kind === 'custom' && entry.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">{entry.description}</p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-shrink-0 items-center gap-1.5">
+                        {entry.kind === 'debt' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                aria-label={`Open actions for ${entry.forecast.name}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to="/net-worth" className="flex items-center">
+                                  <ArrowRight className="mr-2 h-3.5 w-3.5" />
+                                  Review in Net Worth
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setNetWorthValueMutation.mutate({
+                                  itemId: entry.forecast.itemId,
+                                  year,
+                                  month: monthLimit,
+                                  amount: 0,
+                                })}
+                              >
+                                <CheckCircle2 className="mr-2 h-3.5 w-3.5 text-emerald-600" />
+                                Mark as paid off
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                        {entry.kind === 'custom' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                aria-label={`Open actions for ${entry.title}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditingEvent(entry.event); setEventDialogOpen(true); }}>
+                                <Pencil className="mr-2 h-3.5 w-3.5" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeletingEvent(entry.event)}
+                                className="text-[hsl(var(--expense))] focus:text-[hsl(var(--expense))]"
+                              >
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
+                    </div>
+
+                    {entry.kind === 'debt' && (
+                      <>
+                        {/* Mobile: compact labeled strip */}
+                        <div className="flex divide-x divide-border/60 border-t border-border/60 md:hidden">
+                          <div className="flex-1 px-3 py-2">
+                            <p className="text-[9px] font-medium uppercase text-muted-foreground">Bal</p>
+                            <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--expense))]">
+                              {formatMoney(entry.forecast.currentBalance, currency)}
+                            </p>
+                          </div>
+                          <div className="flex-1 px-3 py-2">
+                            <p className="text-[9px] font-medium uppercase text-muted-foreground">Pay</p>
+                            <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                              {formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo
+                            </p>
+                          </div>
+                          <div className="flex-1 px-3 py-2">
+                            <p className="text-[9px] font-medium uppercase text-muted-foreground">Left</p>
+                            <p className="mt-0.5 font-mono text-sm font-bold text-primary">
+                              {monthsLabel(entry.forecast.monthsToClose)}
+                            </p>
+                          </div>
+                        </div>
+                        {/* Desktop: labeled 3-column grid */}
+                        <div className="hidden md:grid grid-cols-3 divide-x divide-border/60 border-t border-border/60">
+                          <div className="px-5 py-3">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Balance</p>
+                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--expense))]">
+                              {formatMoney(entry.forecast.currentBalance, currency)}
+                            </p>
+                          </div>
+                          <div className="px-5 py-3">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Payment</p>
+                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                              {formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo
+                            </p>
+                          </div>
+                          <div className="px-5 py-3">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time left</p>
+                            <p className="mt-1 font-mono text-sm font-bold text-primary">
+                              {monthsLabel(entry.forecast.monthsToClose)}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {entry.kind === 'custom' && (
+                      <div className={`grid divide-x divide-border/60 border-t border-border/60 ${entry.amount !== null ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {entry.amount !== null && (
+                          <div className="px-5 py-3">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Amount</p>
+                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                              {formatMoney(entry.amount, currency, 2)}
+                            </p>
+                          </div>
+                        )}
+                        <div className="px-5 py-3">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Left</p>
+                          <p className="mt-1 font-mono text-sm font-bold text-primary">
+                            {customEventMonthsLabel(entry.eventDate)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const milestonesCard = (
+    <Card className="rounded-[28px] border border-border/70 shadow-sm">
+      <CardContent className="space-y-3 p-6">
+        {milestoneModel.latestPoint ? (
+          <>
+            <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Latest net worth</p>
+              <p className="mt-1 font-mono text-xl font-bold text-foreground">
+                {formatMoney(milestoneModel.latestPoint.netWorth, currency)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {milestoneModel.latestPoint.label}
+                {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth > 0
+                  && ` · +${formatMoney(milestoneModel.monthlyGrowth, currency)}/mo`}
+                {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0
+                  && ' · trend not positive'}
+              </p>
+            </div>
+            <div className="space-y-2">
+              {milestoneModel.milestones.map(milestone => {
+                const statusColor = {
+                  reached:     'border-l-[hsl(var(--income))]',
+                  projected:   'border-l-primary',
+                  'off-track': 'border-l-[hsl(var(--warning))]',
+                  unavailable: 'border-l-border',
+                }[milestone.status];
+                return (
+                  <div
+                    key={milestone.amount}
+                    className={`overflow-hidden rounded-xl border border-border/70 border-l-2 bg-card ${statusColor}`}
+                  >
+                    <div className="flex items-start justify-between gap-3 px-4 py-3">
+                      <div>
+                        <p className="font-display text-base font-bold text-foreground">{milestone.label}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {milestone.monthLabel
+                            ? milestone.status === 'reached'
+                              ? `First hit ${milestone.monthLabel}`
+                              : milestone.status === 'off-track'
+                                ? `First hit ${milestone.monthLabel}, now below`
+                                : `Projected ${milestone.monthLabel}`
+                            : 'No projection yet'}
+                        </p>
+                      </div>
+                      <span className={`mt-0.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                        milestone.status === 'reached'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : milestone.status === 'off-track'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : milestone.status === 'projected'
+                              ? 'bg-primary/5 text-primary border border-primary/20'
+                              : 'bg-muted/30 text-muted-foreground border border-border'
+                      }`}>
+                        {milestoneStatusLabel(milestone.status)}
+                      </span>
+                    </div>
+                    {(milestone.status === 'projected' || milestone.status === 'reached' || milestone.status === 'off-track') && (
+                      <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60">
+                        {milestone.status === 'projected' && milestone.monthsAway !== null && (
+                          <div className="px-4 py-2">
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time away</p>
+                            <p className="mt-0.5 font-mono text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
+                          </div>
+                        )}
+                        <div className={`px-4 py-2 ${milestone.status === 'projected' && milestone.monthsAway !== null ? '' : 'col-span-2'}`}>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current</p>
+                          <p className="mt-0.5 font-mono text-sm font-bold text-foreground">
+                            {formatMoney(milestone.currentNetWorth, currency)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
+            Add some monthly net worth values to start tracking milestones.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* ── Page header ── */}
+      <div>
+        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
+          Debt payoff timeline
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Debt payoff forecasts and your own dated milestones in one place.
+        </p>
       </div>
 
-      {isMobile && <div className="h-2" aria-hidden />}
+      {/* ── Mobile hero card (matches NetWorth mobile pattern) ── */}
+      {isMobile && (
+        <div
+          className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-6 text-white"
+          style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
+        >
+          <div className="pointer-events-none absolute inset-0 z-0">
+            <div className="absolute -top-8 -right-8 h-36 w-36 rounded-full bg-white/[0.07]" />
+            <div className="absolute -bottom-6 left-4 h-24 w-24 rounded-full bg-white/[0.05]" />
+            <div className="absolute -bottom-3 right-4 h-20 w-28 rounded-t-[28px] bg-white/[0.12]" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-start gap-3">
+              {/* Left: title + stats */}
+              <div className="flex-1 min-w-0">
+                <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-white/70">Debt-free target</p>
+                <p className="font-display text-lg font-bold text-white">
+                  {model.summary.debtFreeDate?.projectedLabel ?? 'Pending'}
+                </p>
+                <div className="mt-3 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#f9a8d4]" />
+                    <span className="w-24 flex-shrink-0 text-white/70">Total debt</span>
+                    <span className="font-mono text-white">{formatMoney(model.summary.totalActiveBalance, currency)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-semibold">
+                    <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#6ee7b7]" />
+                    <span className="w-24 flex-shrink-0 text-white/70">Monthly pace</span>
+                    <span className="font-mono text-white">{formatMoney(model.summary.totalMonthlyPayment, currency, 2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: progress arc */}
+              {(() => {
+                const r = 30;
+                const cx = 40;
+                const cy = 40;
+                const sw = 8;
+                const C = 2 * Math.PI * r;
+                const trackLen = C * 0.75;
+                const progressLen = trackLen * Math.min(debtProgress.pct / 100, 1);
+                return (
+                  <svg width="80" height="80" viewBox="0 0 80 80" className="flex-shrink-0 -mt-1">
+                    {/* Track */}
+                    <circle cx={cx} cy={cy} r={r} fill="none"
+                      stroke="rgba(255,255,255,0.15)" strokeWidth={sw}
+                      strokeDasharray={`${trackLen} ${C - trackLen}`}
+                      strokeLinecap="round"
+                      transform={`rotate(135 ${cx} ${cy})`}
+                    />
+                    {/* Progress */}
+                    {progressLen > 0 && (
+                      <circle cx={cx} cy={cy} r={r} fill="none"
+                        stroke="rgba(255,255,255,0.9)" strokeWidth={sw}
+                        strokeDasharray={`${progressLen} ${C}`}
+                        strokeLinecap="round"
+                        transform={`rotate(135 ${cx} ${cy})`}
+                      />
+                    )}
+                    {/* Label */}
+                    <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle"
+                      fill="white" fontSize="15" fontWeight="700" fontFamily="inherit">
+                      {debtProgress.pct}%
+                    </text>
+                    <text x={cx} y={cy + 11} textAnchor="middle"
+                      fill="rgba(255,255,255,0.55)" fontSize="9" fontFamily="inherit">
+                      paid off
+                    </text>
+                  </svg>
+                );
+              })()}
+            </div>
+
+            <div className="mt-4 flex items-baseline justify-between border-t border-white/15 pt-3">
+              <span className="text-sm text-white/70">Next payoff</span>
+              <p className="font-display font-extrabold leading-none tracking-tight text-white">
+                {model.summary.nextPayoff?.projectedLabel ?? '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Mobile: tab bar + tab content ── */}
+      {isMobile && (
+        <>
+          <div className="flex gap-1.5 rounded-full border border-border bg-card p-1 shadow-sm">
+            {([
+              { id: 'payoff', label: 'Payoff line', color: 'hsl(var(--primary))' },
+              { id: 'milestones', label: 'Milestones', color: '#10b981' },
+            ] as const).map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setSelectedTab(tab.id)}
+                className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all ${
+                  selectedTab === tab.id ? 'text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+                style={selectedTab === tab.id ? { background: tab.color } : undefined}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {selectedTab === 'payoff' && payoffCard}
+          {selectedTab === 'milestones' && milestonesCard}
+        </>
+      )}
+
+      {/* ── Desktop: two-column grid ── */}
+      {!isMobile && (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_340px]">
+          {payoffCard}
+          {milestonesCard}
+        </div>
+      )}
 
       <AlertDialog open={!!deletingEvent} onOpenChange={open => { if (!open) setDeletingEvent(null); }}>
         <AlertDialogContent>
