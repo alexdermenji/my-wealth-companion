@@ -445,3 +445,8 @@ export function buildTimelineFeed(
       : a.forecast.name.localeCompare((b as TimelineDebtEntry).forecast.name);
   });
 }
+
+export function splitDateLabel(dateLabel: string): { month: string; year: string } {
+  const parts = dateLabel.split(' ');
+  return { month: parts[0] ?? '', year: parts[1] ?? '' };
+}
