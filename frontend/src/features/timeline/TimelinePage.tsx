@@ -151,10 +151,10 @@ export default function TimelinePage() {
 
   const payoffCard = (
     <Card className="rounded-[28px] border border-border/70 shadow-sm">
-      <CardContent className="p-6 pt-6">
+      <CardContent className="p-4 pt-4 md:p-6 md:pt-6">
         {/* Card toolbar */}
-        <div className="mb-5 flex items-center justify-between gap-2">
-          <Button size="sm" className="rounded-full" onClick={() => setEventDialogOpen(true)}>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <Button size="sm" variant="secondary" className="rounded-full" onClick={() => setEventDialogOpen(true)}>
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             Add event
           </Button>
@@ -183,7 +183,7 @@ export default function TimelinePage() {
             </div>
           </div>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-4 md:space-y-5">
             {augmentedFeed.map((entry, index) => {
               const { month, year: dateYear } = splitDateLabel(entry.dateLabel);
               const isClosed = entry.kind === 'closed-debt';
@@ -192,10 +192,10 @@ export default function TimelinePage() {
                 return (
                   <div
                     key={entry.closed.itemId}
-                    className="relative grid grid-cols-[72px_24px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5 opacity-55"
+                    className="relative grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5 opacity-55"
                   >
                     {/* Date box — closed: slate */}
-                    <div className="mb-0">
+                    <div className="hidden md:block">
                       <div className="rounded-2xl border border-slate-200/70 bg-slate-50/60 px-3 py-3 text-center shadow-sm">
                         <p className="md:hidden text-sm font-bold text-slate-500">{month} {dateYear}</p>
                         <p className="hidden md:block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{month}</p>
@@ -216,15 +216,18 @@ export default function TimelinePage() {
                           style={{ backgroundImage: 'repeating-linear-gradient(to bottom, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 5px, transparent 5px, transparent 11px)' }}
                         />
                       )}
-                      <div className="relative mt-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 shadow-sm">
-                        <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                      <div className="relative mt-3 flex h-6 w-6 md:h-8 md:w-8 flex-shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 shadow-sm">
+                        <div className="h-2 w-2 md:h-2.5 md:w-2.5 rounded-full bg-slate-300" />
                       </div>
                     </div>
 
                     {/* Closed card */}
                     <div className="overflow-hidden rounded-[20px] border border-border/50 bg-muted/20">
-                      <div className="flex items-center justify-between gap-3 px-5 py-4">
+                      <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
                         <div className="min-w-0">
+                          <p className="md:hidden mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-500">
+                            {month} · {dateYear}
+                          </p>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-display text-lg font-bold leading-tight text-muted-foreground line-through decoration-slate-300">
                               {entry.closed.name}
@@ -246,10 +249,10 @@ export default function TimelinePage() {
               return (
                 <div
                   key={entry.kind === 'debt' ? entry.forecast.itemId : entry.id}
-                  className="relative grid grid-cols-[72px_24px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5"
+                  className="relative grid grid-cols-[20px_minmax(0,1fr)] gap-x-3 md:grid-cols-[96px_32px_minmax(0,1fr)] md:gap-x-5"
                 >
                   {/* Date box */}
-                  <div className="mb-0">
+                  <div className="hidden md:block">
                     <div className={`rounded-2xl border px-3 py-3 text-center shadow-sm ${
                       entry.kind === 'debt'
                         ? 'border-emerald-200/70 bg-emerald-50/60'
@@ -269,17 +272,6 @@ export default function TimelinePage() {
                         {dateYear}
                       </p>
                     </div>
-                    <div className="hidden md:flex mt-2 justify-center">
-                      <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        entry.kind === 'debt'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {entry.kind === 'debt'
-                          ? `${monthsLabel(entry.forecast.monthsToClose)} left`
-                          : customEventMonthsLabel(entry.eventDate)}
-                      </span>
-                    </div>
                   </div>
 
                   {/* Connector */}
@@ -290,12 +282,12 @@ export default function TimelinePage() {
                         style={{ backgroundImage: 'repeating-linear-gradient(to bottom, rgba(0,0,0,0.12) 0, rgba(0,0,0,0.12) 5px, transparent 5px, transparent 11px)' }}
                       />
                     )}
-                    <div className={`relative mt-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm ${
+                    <div className={`relative mt-3 flex h-6 w-6 md:h-8 md:w-8 flex-shrink-0 items-center justify-center rounded-full border shadow-sm ${
                       entry.kind === 'debt'
                         ? 'border-emerald-200 bg-emerald-50'
                         : 'border-amber-200 bg-amber-50'
                     }`}>
-                      <div className={`h-2.5 w-2.5 rounded-full ${
+                      <div className={`h-2 w-2 md:h-2.5 md:w-2.5 rounded-full ${
                         entry.kind === 'debt' ? 'bg-emerald-500' : 'bg-amber-400'
                       }`} />
                     </div>
@@ -303,11 +295,16 @@ export default function TimelinePage() {
 
                   {/* Entry card */}
                   <div className="overflow-hidden rounded-[20px] border border-border/70 bg-card transition-shadow hover:shadow-[0_0_0_1px_rgba(108,92,231,0.12),0_6px_20px_rgba(108,92,231,0.06)]">
-                    <div className="flex items-start justify-between gap-3 px-5 py-4">
+                    <div className="flex items-start justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
                       <div className="min-w-0">
+                        <p className={`md:hidden mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${
+                          entry.kind === 'debt' ? 'text-emerald-600' : 'text-amber-500'
+                        }`}>
+                          {month} · {dateYear}
+                        </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="font-display text-lg font-bold leading-tight text-foreground">
-                            {entry.kind === 'debt' ? entry.forecast.name : entry.title}
+                            {entry.kind === 'debt' ? `${entry.forecast.name} paid off` : entry.title}
                           </h3>
                           {entry.kind === 'debt' ? (
                             <>
@@ -316,7 +313,7 @@ export default function TimelinePage() {
                                   Next up
                                 </Badge>
                               )}
-                              <Badge variant="outline" className="border-border/70 bg-muted/30 text-muted-foreground text-[11px]">
+                              <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700 text-[11px]">
                                 {entry.forecast.group || 'Debt'}
                               </Badge>
                             </>
@@ -395,19 +392,19 @@ export default function TimelinePage() {
                       <>
                         {/* Mobile: compact labeled strip */}
                         <div className="flex divide-x divide-border/60 border-t border-border/60 md:hidden">
-                          <div className="flex-1 px-3 py-2">
-                            <p className="text-[9px] font-medium uppercase text-muted-foreground">Bal</p>
+                          <div className="flex-1 pl-3 pr-2 py-1.5">
+                            <p className="text-[9px] font-medium uppercase text-muted-foreground">Balance</p>
                             <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--expense))]">
                               {formatMoney(entry.forecast.currentBalance, currency)}
                             </p>
                           </div>
-                          <div className="flex-1 px-3 py-2">
+                          <div className="flex-1 pl-3 pr-2 py-1.5">
                             <p className="text-[9px] font-medium uppercase text-muted-foreground">Pay</p>
                             <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--income))]">
                               {formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo
                             </p>
                           </div>
-                          <div className="flex-1 px-3 py-2">
+                          <div className="flex-1 pl-3 pr-2 py-1.5">
                             <p className="text-[9px] font-medium uppercase text-muted-foreground">Left</p>
                             <p className="mt-0.5 font-mono text-sm font-bold text-primary">
                               {monthsLabel(entry.forecast.monthsToClose)}
@@ -429,7 +426,7 @@ export default function TimelinePage() {
                             </p>
                           </div>
                           <div className="px-5 py-3">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time left</p>
+                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Left</p>
                             <p className="mt-1 font-mono text-sm font-bold text-primary">
                               {monthsLabel(entry.forecast.monthsToClose)}
                             </p>
@@ -441,16 +438,16 @@ export default function TimelinePage() {
                     {entry.kind === 'custom' && (
                       <div className={`grid divide-x divide-border/60 border-t border-border/60 ${entry.amount !== null ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {entry.amount !== null && (
-                          <div className="px-5 py-3">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Amount</p>
-                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                          <div className="pl-3 pr-2 py-1.5 md:px-5 md:py-3">
+                            <p className="text-[9px] md:text-[10px] font-medium md:font-normal uppercase md:tracking-[0.18em] text-muted-foreground">Amount</p>
+                            <p className="mt-0.5 md:mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
                               {formatMoney(entry.amount, currency, 2)}
                             </p>
                           </div>
                         )}
-                        <div className="px-5 py-3">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Left</p>
-                          <p className="mt-1 font-mono text-sm font-bold text-primary">
+                        <div className="pl-3 pr-2 py-1.5 md:px-5 md:py-3">
+                          <p className="text-[9px] md:text-[10px] font-medium md:font-normal uppercase md:tracking-[0.18em] text-muted-foreground">Left</p>
+                          <p className="mt-0.5 md:mt-1 font-mono text-sm font-bold text-primary">
                             {customEventMonthsLabel(entry.eventDate)}
                           </p>
                         </div>
@@ -557,7 +554,7 @@ export default function TimelinePage() {
       {/* ── Page header ── */}
       <div>
         <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-          Debt payoff timeline
+          Timeline
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           Debt payoff forecasts and your own dated milestones in one place.
