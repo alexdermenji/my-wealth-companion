@@ -160,11 +160,15 @@ export default function TimelinePage() {
           </Button>
           {model.closed.length > 0 && (
             <button
+              role="switch"
+              aria-checked={showClosed}
               onClick={() => setShowClosed(v => !v)}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/30 px-3 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+              className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              <span className={`h-1.5 w-1.5 rounded-full ${showClosed ? 'bg-slate-400' : 'bg-slate-300'}`} />
-              {showClosed ? 'Hide' : 'Show'} {model.closed.length} paid off
+              <span className="text-xs">Show {model.closed.length} paid off</span>
+              <span className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ${showClosed ? 'bg-primary' : 'bg-muted'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ${showClosed ? 'translate-x-4' : 'translate-x-0'}`} />
+              </span>
             </button>
           )}
         </div>
@@ -199,7 +203,7 @@ export default function TimelinePage() {
                       <div className="rounded-2xl border border-slate-200/70 bg-slate-50/60 px-3 py-3 text-center shadow-sm">
                         <p className="md:hidden text-sm font-bold text-slate-500">{month} {dateYear}</p>
                         <p className="hidden md:block text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">{month}</p>
-                        <p className="hidden md:block mt-0.5 font-display text-xl font-bold leading-none text-slate-600">{dateYear}</p>
+                        <p className="hidden md:block mt-0.5 font-sans text-xl font-semibold leading-none text-slate-600">{dateYear}</p>
                       </div>
                       <div className="hidden md:flex mt-2 justify-center">
                         <span className="inline-flex items-center whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
@@ -229,7 +233,7 @@ export default function TimelinePage() {
                             {month} · {dateYear}
                           </p>
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="font-display text-lg font-bold leading-tight text-muted-foreground line-through decoration-slate-300">
+                            <h3 className="font-sans text-lg font-semibold leading-snug text-muted-foreground line-through decoration-slate-300">
                               {entry.closed.name}
                             </h3>
                             <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-500 text-[11px]">
@@ -268,7 +272,7 @@ export default function TimelinePage() {
                       }`}>
                         {month}
                       </p>
-                      <p className="hidden md:block mt-0.5 font-display text-xl font-bold leading-none text-foreground">
+                      <p className="hidden md:block mt-0.5 font-sans text-xl font-semibold leading-none text-foreground">
                         {dateYear}
                       </p>
                     </div>
@@ -294,7 +298,7 @@ export default function TimelinePage() {
                   </div>
 
                   {/* Entry card */}
-                  <div className="overflow-hidden rounded-[20px] border border-border/70 bg-card transition-shadow hover:shadow-[0_0_0_1px_rgba(108,92,231,0.12),0_6px_20px_rgba(108,92,231,0.06)]">
+                  <div className="overflow-hidden rounded-[20px] border border-border/70 bg-gradient-to-b from-violet-50/40 via-white to-white transition-shadow hover:shadow-[0_0_0_1px_rgba(108,92,231,0.12),0_6px_20px_rgba(108,92,231,0.06)]">
                     <div className="flex items-start justify-between gap-3 px-4 py-3 md:px-5 md:py-4">
                       <div className="min-w-0">
                         <p className={`md:hidden mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${
@@ -303,7 +307,7 @@ export default function TimelinePage() {
                           {month} · {dateYear}
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="font-display text-lg font-bold leading-tight text-foreground">
+                          <h3 className="font-sans text-lg font-semibold leading-snug text-foreground">
                             {entry.kind === 'debt' ? `${entry.forecast.name} paid off` : entry.title}
                           </h3>
                           {entry.kind === 'debt' ? (
@@ -394,19 +398,19 @@ export default function TimelinePage() {
                         <div className="flex divide-x divide-border/60 border-t border-border/60 md:hidden">
                           <div className="flex-1 pl-3 pr-2 py-1.5">
                             <p className="text-[9px] font-medium uppercase text-muted-foreground">Balance</p>
-                            <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--expense))]">
+                            <p className="mt-0.5 font-sans text-sm font-bold text-[hsl(var(--expense))]">
                               {formatMoney(entry.forecast.currentBalance, currency)}
                             </p>
                           </div>
                           <div className="flex-1 pl-3 pr-2 py-1.5">
                             <p className="text-[9px] font-medium uppercase text-muted-foreground">Pay</p>
-                            <p className="mt-0.5 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                            <p className="mt-0.5 font-sans text-sm font-bold text-[hsl(var(--income))]">
                               {formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo
                             </p>
                           </div>
                           <div className="flex-1 pl-3 pr-2 py-1.5">
                             <p className="text-[9px] font-medium uppercase text-muted-foreground">Left</p>
-                            <p className="mt-0.5 font-mono text-sm font-bold text-primary">
+                            <p className="mt-0.5 font-sans text-sm font-bold text-primary">
                               {monthsLabel(entry.forecast.monthsToClose)}
                             </p>
                           </div>
@@ -415,19 +419,19 @@ export default function TimelinePage() {
                         <div className="hidden md:grid grid-cols-3 divide-x divide-border/60 border-t border-border/60">
                           <div className="px-5 py-3">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Balance</p>
-                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--expense))]">
+                            <p className="mt-1 font-sans text-sm font-bold text-[hsl(var(--expense))]">
                               {formatMoney(entry.forecast.currentBalance, currency)}
                             </p>
                           </div>
                           <div className="px-5 py-3">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Payment</p>
-                            <p className="mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                            <p className="mt-1 font-sans text-sm font-bold text-[hsl(var(--income))]">
                               {formatMoney(entry.forecast.monthlyPayment, currency, 2)}/mo
                             </p>
                           </div>
                           <div className="px-5 py-3">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Left</p>
-                            <p className="mt-1 font-mono text-sm font-bold text-primary">
+                            <p className="mt-1 font-sans text-sm font-bold text-primary">
                               {monthsLabel(entry.forecast.monthsToClose)}
                             </p>
                           </div>
@@ -440,14 +444,14 @@ export default function TimelinePage() {
                         {entry.amount !== null && (
                           <div className="pl-3 pr-2 py-1.5 md:px-5 md:py-3">
                             <p className="text-[9px] md:text-[10px] font-medium md:font-normal uppercase md:tracking-[0.18em] text-muted-foreground">Amount</p>
-                            <p className="mt-0.5 md:mt-1 font-mono text-sm font-bold text-[hsl(var(--income))]">
+                            <p className="mt-0.5 md:mt-1 font-sans text-sm font-bold text-[hsl(var(--income))]">
                               {formatMoney(entry.amount, currency, 2)}
                             </p>
                           </div>
                         )}
                         <div className="pl-3 pr-2 py-1.5 md:px-5 md:py-3">
                           <p className="text-[9px] md:text-[10px] font-medium md:font-normal uppercase md:tracking-[0.18em] text-muted-foreground">Left</p>
-                          <p className="mt-0.5 md:mt-1 font-mono text-sm font-bold text-primary">
+                          <p className="mt-0.5 md:mt-1 font-sans text-sm font-bold text-primary">
                             {customEventMonthsLabel(entry.eventDate)}
                           </p>
                         </div>
@@ -470,7 +474,7 @@ export default function TimelinePage() {
           <>
             <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Latest net worth</p>
-              <p className="mt-1 font-mono text-xl font-bold text-foreground">
+              <p className="mt-1 font-sans text-xl font-bold text-foreground">
                 {formatMoney(milestoneModel.latestPoint.netWorth, currency)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -524,12 +528,12 @@ export default function TimelinePage() {
                         {milestone.status === 'projected' && milestone.monthsAway !== null && (
                           <div className="px-4 py-2">
                             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time away</p>
-                            <p className="mt-0.5 font-mono text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
+                            <p className="mt-0.5 font-sans text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
                           </div>
                         )}
                         <div className={`px-4 py-2 ${milestone.status === 'projected' && milestone.monthsAway !== null ? '' : 'col-span-2'}`}>
                           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current</p>
-                          <p className="mt-0.5 font-mono text-sm font-bold text-foreground">
+                          <p className="mt-0.5 font-sans text-sm font-bold text-foreground">
                             {formatMoney(milestone.currentNetWorth, currency)}
                           </p>
                         </div>
@@ -584,12 +588,12 @@ export default function TimelinePage() {
                   <div className="flex items-center gap-2 text-xs font-semibold">
                     <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#f9a8d4]" />
                     <span className="w-24 flex-shrink-0 text-white/70">Total debt</span>
-                    <span className="font-mono text-white">{formatMoney(model.summary.totalActiveBalance, currency)}</span>
+                    <span className="font-sans text-white">{formatMoney(model.summary.totalActiveBalance, currency)}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs font-semibold">
                     <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#6ee7b7]" />
                     <span className="w-24 flex-shrink-0 text-white/70">Monthly pace</span>
-                    <span className="font-mono text-white">{formatMoney(model.summary.totalMonthlyPayment, currency, 2)}</span>
+                    <span className="font-sans text-white">{formatMoney(model.summary.totalMonthlyPayment, currency, 2)}</span>
                   </div>
                 </div>
               </div>
