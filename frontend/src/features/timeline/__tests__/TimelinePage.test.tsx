@@ -118,7 +118,7 @@ describe('feed entry — Next up badge', () => {
     // Only one "Next up" badge exists
     expect(screen.getAllByText('Next up')).toHaveLength(1);
     // Car Loan closes in 2 months — it is next up
-    expect(screen.getByText('Car Loan')).toBeInTheDocument();
+    expect(screen.getByText('Car Loan paid off')).toBeInTheDocument();
   });
 });
 
@@ -217,10 +217,10 @@ describe('feed entry — debt data strip', () => {
   it('shows Balance, Payment, and Time left labels with correct values', () => {
     renderWithProviders(<TimelinePage />);
 
-    // Labels are unique to the data strip
-    expect(screen.getByText('Balance')).toBeInTheDocument();
-    expect(screen.getByText('Payment')).toBeInTheDocument();
-    expect(screen.getByText('Time left')).toBeInTheDocument();
+    // Labels appear in both mobile and desktop strips
+    expect(screen.getAllByText('Balance').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Payment').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Left').length).toBeGreaterThan(0);
 
     // £1,200 appears in both the summary total and the strip — assert at least one occurrence
     expect(screen.getAllByText('£1,200').length).toBeGreaterThan(0);
