@@ -87,13 +87,24 @@ export interface NetWorthTimelinePoint {
   netWorth: number;
 }
 
+export interface UserMilestone {
+  id: string;
+  amount: number;
+  label: string | null;
+  targetDate: string | null;
+  note: string;
+}
+
 export interface NetWorthMilestone {
+  id: string;
   amount: number;
   label: string;
-  status: 'reached' | 'off-track' | 'projected' | 'unavailable';
+  status: 'reached' | 'on-track' | 'off-track' | 'projected' | 'unavailable';
   monthLabel: string | null;
   monthsAway: number | null;
   currentNetWorth: number;
+  targetDate: string | null;
+  note: string;
 }
 
 export interface NetWorthMilestoneModel {
@@ -141,7 +152,7 @@ function monthDistance(
   return ((toYear - fromYear) * 12) + (toMonth - fromMonth);
 }
 
-function formatMilestoneLabel(amount: number): string {
+export function formatMilestoneLabel(amount: number): string {
   if (amount >= 1_000_000) {
     const millions = amount / 1_000_000;
     return millions % 1 === 0 ? `${millions.toFixed(0)}M` : `${millions.toFixed(1)}M`;
@@ -301,7 +312,7 @@ export function buildNetWorthMilestoneModel({
 }: {
   items: NetWorthItem[];
   values: NetWorthValue[];
-  milestones: number[];
+  milestones: UserMilestone[];
 }): NetWorthMilestoneModel {
   const itemTypeMap = new Map(items.map(item => [item.id, item.type]));
   const pointMap = new Map<string, NetWorthTimelinePoint>();
@@ -352,53 +363,53 @@ export function buildNetWorthMilestoneModel({
   const recentTrendWindow = monthlyizedDeltas.slice(-12);
   const monthlyGrowth = getMedian(recentTrendWindow.length >= 6 ? recentTrendWindow : monthlyizedDeltas);
 
-  const milestoneRows = milestones.map(amount => {
+  const milestoneRows = milestones.map(m => {
+    const { id, amount, targetDate, note } = m;
+    const label = m.label ?? formatMilestoneLabel(amount);
+    const base = { id, amount, label, targetDate, note, currentNetWorth: latestPoint?.netWorth ?? 0 };
+
     const reachedPoint = points.find(point => point.netWorth >= amount) ?? null;
     if (reachedPoint) {
       const currentlyHeld = (latestPoint?.netWorth ?? 0) >= amount;
       return {
-        amount,
-        label: formatMilestoneLabel(amount),
+        ...base,
         status: currentlyHeld ? 'reached' as const : 'off-track' as const,
         monthLabel: reachedPoint.label,
         monthsAway: currentlyHeld ? 0 : null,
-        currentNetWorth: latestPoint?.netWorth ?? 0,
       };
     }
 
-    if (!latestPoint || monthlyGrowth === null || monthlyGrowth <= 0) {
-      return {
-        amount,
-        label: formatMilestoneLabel(amount),
-        status: 'unavailable' as const,
-        monthLabel: null,
-        monthsAway: null,
-        currentNetWorth: latestPoint?.netWorth ?? 0,
-      };
+    if (!latestPoint) {
+      return { ...base, status: 'unavailable' as const, monthLabel: null, monthsAway: null };
     }
 
     const remaining = amount - latestPoint.netWorth;
-    const monthsAway = Math.ceil(remaining / monthlyGrowth);
-    if (!Number.isFinite(monthsAway) || monthsAway <= 0) {
-      return {
-        amount,
-        label: formatMilestoneLabel(amount),
-        status: 'unavailable' as const,
-        monthLabel: null,
-        monthsAway: null,
-        currentNetWorth: latestPoint.netWorth,
-      };
+    const latestDate = new Date(latestPoint.year, latestPoint.month - 1, 1);
+
+    if (monthlyGrowth !== null && monthlyGrowth > 0) {
+      const monthsAway = Math.ceil(remaining / monthlyGrowth);
+      if (Number.isFinite(monthsAway) && monthsAway > 0) {
+        const projectedDate = addMonths(latestDate, monthsAway);
+
+        if (targetDate) {
+          const isOnTrack = projectedDate <= new Date(targetDate);
+          return {
+            ...base,
+            status: isOnTrack ? 'on-track' as const : 'off-track' as const,
+            monthLabel: format(projectedDate, 'MMM yyyy'),
+            monthsAway,
+          };
+        }
+
+        return { ...base, status: 'projected' as const, monthLabel: format(projectedDate, 'MMM yyyy'), monthsAway };
+      }
     }
 
-    const projectedDate = addMonths(new Date(latestPoint.year, latestPoint.month - 1, 1), monthsAway);
-    return {
-      amount,
-      label: formatMilestoneLabel(amount),
-      status: 'projected' as const,
-      monthLabel: format(projectedDate, 'MMM yyyy'),
-      monthsAway,
-      currentNetWorth: latestPoint.netWorth,
-    };
+    if (targetDate) {
+      return { ...base, status: 'off-track' as const, monthLabel: format(new Date(targetDate), 'MMM yyyy'), monthsAway: null };
+    }
+
+    return { ...base, status: 'unavailable' as const, monthLabel: null, monthsAway: null };
   });
 
   return {

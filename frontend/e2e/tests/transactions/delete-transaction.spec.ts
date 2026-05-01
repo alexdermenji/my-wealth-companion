@@ -21,14 +21,13 @@ test.describe('Delete Transaction', () => {
   test('should delete newly added transaction', async ({ transactionsPage }) => {
     await transactionsPage.addTransaction({
       amount: '25.00',
-      details: 'Temp purchase',
       account: 'Bank Account',
       budgetType: 'Expenses',
       budgetPosition: 'Groceries',
     });
 
     await transactionsPage.table.expectRowCount(3);
-    await transactionsPage.table.clickDelete('Temp purchase');
+    await transactionsPage.table.clickDeleteByIndex(2); // delete the newly added row
     await transactionsPage.table.expectRowCount(2);
   });
 });

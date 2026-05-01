@@ -14,6 +14,10 @@ import {
   useCreateTimelineEvent,
   useUpdateTimelineEvent,
   useIsMobile,
+  useNetWorthMilestones,
+  useCreateNetWorthMilestone,
+  useUpdateNetWorthMilestone as useUpdateNetWorthMilestoneMock,
+  useDeleteNetWorthMilestone,
 } from '../__mocks__/hooks';
 
 vi.mock('@/features/settings/hooks', () => ({ useSettings }));
@@ -21,6 +25,12 @@ vi.mock('@/features/net-worth/hooks', () => ({ useNetWorthItems, useNetWorthValu
 vi.mock('@/features/budget/hooks', () => ({ useBudgetPlans }));
 vi.mock('@/shared/hooks/useCategories', () => ({ useCategories }));
 vi.mock('../hooks', () => ({ useTimelineEvents, useDeleteTimelineEvent, useCreateTimelineEvent, useUpdateTimelineEvent }));
+vi.mock('../milestonesHooks', () => ({
+  useNetWorthMilestones,
+  useCreateNetWorthMilestone,
+  useUpdateNetWorthMilestone: useUpdateNetWorthMilestoneMock,
+  useDeleteNetWorthMilestone,
+}));
 vi.mock('@/shared/hooks/use-mobile', () => ({ useIsMobile }));
 
 import TimelinePage from '../TimelinePage';
@@ -66,6 +76,17 @@ beforeEach(() => {
   useCreateTimelineEvent.mockReturnValue({ mutate: vi.fn(), isPending: false });
   useUpdateTimelineEvent.mockReturnValue({ mutate: vi.fn(), isPending: false });
   useIsMobile.mockReturnValue(false);
+  useNetWorthMilestones.mockReturnValue({
+    data: [
+      { id: 'm1', amount: 100_000, label: null, targetDate: null, note: '' },
+      { id: 'm2', amount: 200_000, label: null, targetDate: null, note: '' },
+      { id: 'm3', amount: 1_000_000, label: null, targetDate: null, note: '' },
+    ],
+    isLoading: false,
+  });
+  useCreateNetWorthMilestone.mockReturnValue({ mutate: vi.fn(), isPending: false });
+  useUpdateNetWorthMilestoneMock.mockReturnValue({ mutate: vi.fn(), isPending: false });
+  useDeleteNetWorthMilestone.mockReturnValue({ mutate: vi.fn() });
 });
 
 // ── Slice 2: date box renders month and year as separate text ──────────────
@@ -162,10 +183,6 @@ describe('feed entry — custom event data strip', () => {
 
 describe('sidebar — net worth milestone cards', () => {
   function setupMilestoneData() {
-    useNetWorthItems.mockReturnValue({
-      data: [{ id: 'a1', name: 'ISA', group: 'Savings', type: 'Asset', order: 0, linkedBudgetCategoryId: null }],
-      isLoading: false,
-    });
     useNetWorthItems.mockReturnValue({ data: [], isLoading: false });
     useNetWorthValues.mockReturnValue({ data: [], isLoading: false });
     useBudgetPlans.mockReturnValue({ data: [], isLoading: false });

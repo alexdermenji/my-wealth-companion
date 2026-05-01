@@ -87,7 +87,7 @@ describe('buildNetWorthMilestoneModel', () => {
       values: [
         { itemId: 'a1', year: 2024, months: { 1: 90_000, 6: 105_000, 12: 110_000 } },
       ],
-      milestones: [100_000],
+      milestones: [{ id: '1', amount: 100_000, label: null, targetDate: null, note: '' }],
     });
 
     expect(model.milestones).toHaveLength(1);
@@ -105,7 +105,7 @@ describe('buildNetWorthMilestoneModel', () => {
       values: [
         { itemId: 'a1', year: 2024, months: { 1: 80_000, 2: 82_000, 3: 84_000 } },
       ],
-      milestones: [100_000],
+      milestones: [{ id: '1', amount: 100_000, label: null, targetDate: null, note: '' }],
     });
 
     expect(model.milestones[0].status).toBe('projected');

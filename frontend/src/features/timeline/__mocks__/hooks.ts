@@ -12,3 +12,7 @@ export const useDeleteTimelineEvent = vi.fn();
 export const useCreateTimelineEvent = vi.fn();
 export const useUpdateTimelineEvent = vi.fn();
 export const useIsMobile = vi.fn();
+export const useNetWorthMilestones = vi.fn();
+export const useCreateNetWorthMilestone = vi.fn();
+export const useUpdateNetWorthMilestone = vi.fn();
+export const useDeleteNetWorthMilestone = vi.fn();

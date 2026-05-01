@@ -25,20 +25,22 @@ function formatPercentage(pct: number): string {
   return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
 }
 
-function ProgressRing({ pct, accentVar }: { pct: number; accentVar: string }) {
+function ProgressRing({ pct }: { pct: number }) {
   const r = 18;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - Math.min(pct, 100) / 100);
+  const over = pct > 100;
+  const color = over ? 'hsl(var(--destructive))' : 'hsl(var(--primary))';
   return (
     <svg width="44" height="44" style={{ flexShrink: 0 }}>
       <circle cx="22" cy="22" r={r} fill="none" stroke="hsl(var(--border))" strokeWidth="3.5" />
       <circle
-        cx="22" cy="22" r={r} fill="none" stroke={accentVar} strokeWidth="3.5"
+        cx="22" cy="22" r={r} fill="none" stroke={color} strokeWidth="3.5"
         strokeDasharray={circ} strokeDashoffset={offset}
         strokeLinecap="round" transform="rotate(-90 22 22)"
       />
-      <text x="22" y="26.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill={accentVar}>
-        {formatPercentage(Math.min(pct, 100))}
+      <text x="22" y="26.5" textAnchor="middle" fontSize="8.5" fontWeight="700" fill={color}>
+        {formatPercentage(pct)}
       </text>
     </svg>
   );
@@ -87,7 +89,7 @@ export default function BudgetBreakdown({ breakdown, formatCurrency }: Props) {
                 <span className={`text-xs font-bold uppercase tracking-widest ${m.textClass}`}>
                   {section.type}
                 </span>
-                <ProgressRing pct={pct} accentVar={m.accentVar} />
+                <ProgressRing pct={pct} />
               </div>
               <div className="font-amount font-bold text-foreground text-lg leading-none mb-0.5">
                 {formatCurrency(section.totalTracked)}

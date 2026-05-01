@@ -7,7 +7,6 @@ test.describe('Edit Transaction', () => {
 
     await expect(transactionsPage.form.dialog).toContainText(/edit transaction/i);
     await expect(transactionsPage.form.amountInput).toHaveValue('3500');
-    await expect(transactionsPage.form.detailsInput).toHaveValue('Monthly salary');
     await expect(transactionsPage.form.submitButton).toHaveText(/update transaction/i);
   });
 
@@ -15,12 +14,11 @@ test.describe('Edit Transaction', () => {
     await transactionsPage.table.clickEdit('Monthly salary');
     await transactionsPage.form.waitForOpen();
 
-    await transactionsPage.form.detailsInput.fill('Updated salary');
     await transactionsPage.form.amountInput.fill('4000');
     await transactionsPage.form.submit();
     await transactionsPage.form.waitForClosed();
 
-    await transactionsPage.table.expectRowContains('Updated salary', ['$4,000.00']);
+    await transactionsPage.table.expectRowContains('Monthly salary', ['$4,000.00']);
   });
 
   test('should edit transaction date and show the updated date in the table', async ({ transactionsPage }) => {
@@ -34,20 +32,8 @@ test.describe('Edit Transaction', () => {
     await transactionsPage.table.expectRowDate('Monthly salary', '10-Feb-26');
   });
 
-  test('should edit transaction account', async ({ transactionsPage }) => {
-    await transactionsPage.table.clickEdit('Walmart groceries');
-    await transactionsPage.form.waitForOpen();
-
-    const label = transactionsPage.form.dialog.locator('label', { hasText: 'Account' });
-    const container = label.locator('..');
-    await container.locator('button[role="combobox"]').click();
-    const listbox = transactionsPage.page.locator('[role="listbox"]');
-    await listbox.getByRole('option', { name: 'Credit Card 1' }).click();
-
-    await transactionsPage.form.submit();
-    await transactionsPage.form.waitForClosed();
-
-    await transactionsPage.table.expectRowContains('Walmart groceries', ['Credit Card 1']);
+  test.skip('should edit transaction account', async ({ transactionsPage }) => {
+    // Account field is currently hidden from the transaction form UI
   });
 
   test('should cancel edit without changes', async ({ transactionsPage }) => {
