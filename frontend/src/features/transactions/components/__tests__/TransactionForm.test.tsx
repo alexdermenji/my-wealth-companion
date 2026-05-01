@@ -28,29 +28,40 @@ describe("TransactionForm", () => {
     expect(screen.getByText("Edit Transaction")).toBeInTheDocument();
   });
 
-  it("pre-fills fields when defaultValues provided", () => {
+  it("pre-fills date and amount when defaultValues provided", () => {
     render(
       <TransactionForm
         {...defaultProps}
-        defaultValues={{ date: "2026-01-15", amount: 100, details: "Test" }}
+        defaultValues={{ date: "2026-01-15", amount: 100 }}
       />
     );
     expect(screen.getByDisplayValue("2026-01-15")).toBeInTheDocument();
     expect(screen.getByDisplayValue("100")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Test")).toBeInTheDocument();
   });
 
-  it("shows validation errors when submitting empty form", async () => {
+  it("shows validation error when amount is missing", async () => {
     render(<TransactionForm {...defaultProps} />);
     const buttons = screen.getAllByText("Add Transaction");
     await userEvent.click(buttons[buttons.length - 1]);
     expect(screen.getByText("Amount is required")).toBeInTheDocument();
-    expect(screen.getByText("Details are required")).toBeInTheDocument();
-    expect(screen.getByText("Account is required")).toBeInTheDocument();
   });
 
   it("shows Update Transaction button when editing", () => {
     render(<TransactionForm {...defaultProps} editing={true} />);
     expect(screen.getByText("Update Transaction")).toBeInTheDocument();
   });
+
+  it("pre-selects Expenses as the default budget type", () => {
+    render(<TransactionForm {...defaultProps} />);
+    // getAllByRole('combobox')[0] is the Budget Type trigger (first Select in the form)
+    expect(screen.getAllByRole('combobox')[0]).toHaveTextContent("Expenses");
+  });
+
+  it("does not show a validation error when details is empty", async () => {
+    render(<TransactionForm {...defaultProps} />);
+    const buttons = screen.getAllByText("Add Transaction");
+    await userEvent.click(buttons[buttons.length - 1]);
+    expect(screen.queryByText("Details are required")).not.toBeInTheDocument();
+  });
+
 });

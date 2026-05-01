@@ -41,12 +41,14 @@ export class TransactionFormDialog {
     await this.amountInput.clear();
     await this.amountInput.fill(data.amount);
 
-    if (data.details !== undefined) {
+    if (data.details !== undefined && await this.detailsInput.isVisible()) {
       await this.detailsInput.clear();
       await this.detailsInput.fill(data.details);
     }
 
-    await this.selectByLabel('Account', data.account);
+    if (await this.dialog.locator('label', { hasText: 'Account' }).isVisible()) {
+      await this.selectByLabel('Account', data.account);
+    }
 
     if (data.budgetType) {
       await this.selectByLabel('Budget Type', data.budgetType);

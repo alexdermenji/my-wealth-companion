@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,14 +26,21 @@ import { useAllNetWorthValues, useNetWorthItems, useNetWorthValues, useSetNetWor
 import { useBudgetPlans } from '@/features/budget/hooks';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { EventFormDialog } from './components/EventFormDialog';
+import { MilestoneFormDialog } from './components/MilestoneFormDialog';
+import { NetWorthChart } from './components/NetWorthChart';
 import { useDeleteTimelineEvent, useTimelineEvents } from './hooks';
+import { useCreateNetWorthMilestone, useDeleteNetWorthMilestone, useNetWorthMilestones } from './milestonesHooks';
 import type { TimelineEvent } from './types';
-import { buildDebtTimelineModel, buildNetWorthMilestoneModel, buildTimelineFeed, splitDateLabel } from './utils';
-import type { DebtTimelineClosed, TimelineFeedEntry } from './utils';
+import { buildDebtTimelineModel, buildNetWorthMilestoneModel, buildTimelineFeed, formatMilestoneLabel, splitDateLabel } from './utils';
+import type { DebtTimelineClosed, TimelineFeedEntry, UserMilestone } from './utils';
 
 type AugmentedFeedEntry = TimelineFeedEntry | { kind: 'closed-debt'; closed: DebtTimelineClosed; date: Date; dateLabel: string };
 
-const NET_WORTH_MILESTONES = [100_000, 200_000, 1_000_000];
+const DEFAULT_MILESTONES: Omit<UserMilestone, 'id'>[] = [
+  { amount: 100_000, label: null, targetDate: null, note: '' },
+  { amount: 200_000, label: null, targetDate: null, note: '' },
+  { amount: 1_000_000, label: null, targetDate: null, note: '' },
+];
 
 function formatMoney(value: number, currency: string, digits = 0) {
   return `${currency}${new Intl.NumberFormat('en-US', {
@@ -55,8 +62,9 @@ function customEventMonthsLabel(eventDate: string) {
   return monthDelta === 1 ? '1 month' : `${monthDelta} months`;
 }
 
-function milestoneStatusLabel(status: 'reached' | 'off-track' | 'projected' | 'unavailable') {
+function milestoneStatusLabel(status: 'reached' | 'on-track' | 'off-track' | 'projected' | 'unavailable') {
   if (status === 'reached') return 'Reached';
+  if (status === 'on-track') return 'On track';
   if (status === 'off-track') return 'Off track';
   if (status === 'projected') return 'Projected';
   return 'Waiting';
@@ -73,6 +81,9 @@ export default function TimelinePage() {
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<TimelineEvent | null>(null);
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<UserMilestone | null>(null);
+  const [deletingMilestone, setDeletingMilestone] = useState<UserMilestone | null>(null);
 
   const { data: settings, isLoading: settingsLoading } = useSettings();
   const { data: items = [], isLoading: itemsLoading } = useNetWorthItems();
@@ -81,8 +92,20 @@ export default function TimelinePage() {
   const { data: budgetPlans = [], isLoading: budgetPlansLoading } = useBudgetPlans(year);
   const { data: debtCategories = [], isLoading: debtCategoriesLoading } = useCategories('Debt');
   const { data: timelineEvents = [], isLoading: timelineEventsLoading } = useTimelineEvents();
+  const { data: userMilestones, isLoading: milestonesLoading } = useNetWorthMilestones();
+  const createMilestoneMutation = useCreateNetWorthMilestone();
+  const deleteMilestoneMutation = useDeleteNetWorthMilestone();
   const deleteTimelineEventMutation = useDeleteTimelineEvent();
   const setNetWorthValueMutation = useSetNetWorthValue();
+
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (userMilestones === undefined || userMilestones.length > 0 || seeded.current) return;
+    seeded.current = true;
+    for (const m of DEFAULT_MILESTONES) {
+      createMilestoneMutation.mutate(m);
+    }
+  }, [userMilestones]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const monthLimit = year === now.getFullYear() ? now.getMonth() + 1 : 12;
   const currency = settings?.currency ?? '£';
@@ -102,8 +125,8 @@ export default function TimelinePage() {
   const milestoneModel = useMemo(() => buildNetWorthMilestoneModel({
     items,
     values: allNetWorthValues,
-    milestones: NET_WORTH_MILESTONES,
-  }), [allNetWorthValues, items]);
+    milestones: userMilestones ?? [],
+  }), [allNetWorthValues, items, userMilestones]);
   const nextPayoffItemId = model.summary.nextPayoff?.itemId ?? null;
 
   const debtProgress = useMemo(() => {
@@ -133,7 +156,7 @@ export default function TimelinePage() {
     return [...timelineFeed, ...closedEntries].sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [timelineFeed, model.closed, showClosed, year]);
 
-  if (settingsLoading || itemsLoading || valuesLoading || allNetWorthValuesLoading || budgetPlansLoading || debtCategoriesLoading || timelineEventsLoading) {
+  if (settingsLoading || itemsLoading || valuesLoading || allNetWorthValuesLoading || budgetPlansLoading || debtCategoriesLoading || timelineEventsLoading || milestonesLoading) {
     return (
       <div className="space-y-6 animate-pulse">
         <div className="h-9 w-48 rounded-full bg-muted" />
@@ -470,84 +493,126 @@ export default function TimelinePage() {
   const milestonesCard = (
     <Card className="rounded-[28px] border border-border/70 shadow-sm">
       <CardContent className="space-y-3 p-6">
-        {milestoneModel.latestPoint ? (
-          <>
-            <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Latest net worth</p>
-              <p className="mt-1 font-sans text-xl font-bold text-foreground">
-                {formatMoney(milestoneModel.latestPoint.netWorth, currency)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {milestoneModel.latestPoint.label}
-                {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth > 0
-                  && ` · +${formatMoney(milestoneModel.monthlyGrowth, currency)}/mo`}
-                {milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0
-                  && ' · trend not positive'}
-              </p>
-            </div>
-            <div className="space-y-2">
-              {milestoneModel.milestones.map(milestone => {
-                const statusColor = {
-                  reached:     'border-l-[hsl(var(--income))]',
-                  projected:   'border-l-primary',
-                  'off-track': 'border-l-[hsl(var(--warning))]',
-                  unavailable: 'border-l-border',
-                }[milestone.status];
-                return (
-                  <div
-                    key={milestone.amount}
-                    className={`overflow-hidden rounded-xl border border-border/70 border-l-2 bg-card ${statusColor}`}
-                  >
-                    <div className="flex items-start justify-between gap-3 px-4 py-3">
-                      <div>
-                        <p className="font-display text-base font-bold text-foreground">{milestone.label}</p>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          {milestone.monthLabel
-                            ? milestone.status === 'reached'
-                              ? `First hit ${milestone.monthLabel}`
-                              : milestone.status === 'off-track'
-                                ? `First hit ${milestone.monthLabel}, now below`
-                                : `Projected ${milestone.monthLabel}`
-                            : 'No projection yet'}
-                        </p>
-                      </div>
-                      <span className={`mt-0.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+        {/* Card toolbar */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground">Milestones</p>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="rounded-full"
+            onClick={() => { setEditingMilestone(null); setMilestoneDialogOpen(true); }}
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Add milestone
+          </Button>
+        </div>
+
+        <NetWorthChart items={items} values={allNetWorthValues} currency={currency} />
+
+        {milestoneModel.milestones.length === 0 ? (
+          <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-center text-muted-foreground">
+            No milestones yet. Add one to start tracking your net worth goals.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {milestoneModel.milestones.map(milestone => {
+              const userMs = (userMilestones ?? []).find(m => m.id === milestone.id);
+              const statusColor = {
+                reached:     'border-l-[hsl(var(--income))]',
+                'on-track':  'border-l-emerald-500',
+                projected:   'border-l-primary',
+                'off-track': 'border-l-[hsl(var(--warning))]',
+                unavailable: 'border-l-border',
+              }[milestone.status];
+
+              const subtitleText = (() => {
+                if (!milestone.monthLabel) {
+                  if (!milestoneModel.latestPoint) return 'No net worth data yet';
+                  if (milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0)
+                    return 'Trend declining · add a target date to track this';
+                  return 'No projection yet';
+                }
+                if (milestone.status === 'reached') return `First hit ${milestone.monthLabel}`;
+                if (milestone.status === 'off-track' && !milestone.targetDate) return `First hit ${milestone.monthLabel}, now below`;
+                if (milestone.status === 'off-track') return `Projected ${milestone.monthLabel} · behind target`;
+                if (milestone.status === 'on-track') return `Projected ${milestone.monthLabel}`;
+                return `Projected ${milestone.monthLabel}`;
+              })();
+
+              return (
+                <div
+                  key={milestone.id}
+                  className={`overflow-hidden rounded-xl border border-border/70 border-l-2 bg-card ${statusColor}`}
+                >
+                  <div className="flex items-start justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="font-display text-base font-bold text-foreground">{milestone.label}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{subtitleText}</p>
+                      {milestone.note && (
+                        <p className="mt-1 text-xs text-muted-foreground/70 italic">{milestone.note}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-shrink-0 items-center gap-1.5">
+                      <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                         milestone.status === 'reached'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : milestone.status === 'off-track'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : milestone.status === 'projected'
-                              ? 'bg-primary/5 text-primary border border-primary/20'
-                              : 'bg-muted/30 text-muted-foreground border border-border'
+                          : milestone.status === 'on-track'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : milestone.status === 'off-track'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : milestone.status === 'projected'
+                                ? 'bg-primary/5 text-primary border border-primary/20'
+                                : 'bg-muted/30 text-muted-foreground border border-border'
                       }`}>
                         {milestoneStatusLabel(milestone.status)}
                       </span>
+                      {userMs && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              aria-label={`Actions for ${milestone.label}`}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                            >
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setEditingMilestone(userMs); setMilestoneDialogOpen(true); }}>
+                              <Pencil className="mr-2 h-3.5 w-3.5" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeletingMilestone(userMs)}
+                              className="text-[hsl(var(--expense))] focus:text-[hsl(var(--expense))]"
+                            >
+                              <Trash2 className="mr-2 h-3.5 w-3.5" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
-                    {(milestone.status === 'projected' || milestone.status === 'reached' || milestone.status === 'off-track') && (
-                      <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60">
-                        {milestone.status === 'projected' && milestone.monthsAway !== null && (
-                          <div className="px-4 py-2">
-                            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time away</p>
-                            <p className="mt-0.5 font-sans text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
-                          </div>
-                        )}
-                        <div className={`px-4 py-2 ${milestone.status === 'projected' && milestone.monthsAway !== null ? '' : 'col-span-2'}`}>
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current</p>
-                          <p className="mt-0.5 font-sans text-sm font-bold text-foreground">
-                            {formatMoney(milestone.currentNetWorth, currency)}
-                          </p>
-                        </div>
-                      </div>
-                    )}
                   </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-muted-foreground">
-            Add some monthly net worth values to start tracking milestones.
-          </p>
+                  {(milestone.status === 'projected' || milestone.status === 'on-track' || milestone.status === 'reached' || milestone.status === 'off-track') && (
+                    <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60">
+                      {(milestone.status === 'projected' || milestone.status === 'on-track') && milestone.monthsAway !== null && (
+                        <div className="px-4 py-2">
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time away</p>
+                          <p className="mt-0.5 font-sans text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
+                        </div>
+                      )}
+                      <div className={`px-4 py-2 ${(milestone.status === 'projected' || milestone.status === 'on-track') && milestone.monthsAway !== null ? '' : 'col-span-2'}`}>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current</p>
+                        <p className="mt-0.5 font-sans text-sm font-bold text-foreground">
+                          {formatMoney(milestone.currentNetWorth, currency)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -714,6 +779,38 @@ export default function TimelinePage() {
         }}
         editingEvent={editingEvent}
       />
+
+      <MilestoneFormDialog
+        open={milestoneDialogOpen}
+        onOpenChange={open => {
+          setMilestoneDialogOpen(open);
+          if (!open) setEditingMilestone(null);
+        }}
+        editingMilestone={editingMilestone}
+      />
+
+      <AlertDialog open={!!deletingMilestone} onOpenChange={open => { if (!open) setDeletingMilestone(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deletingMilestone?.label ?? formatMilestoneLabel(deletingMilestone?.amount ?? 0)}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This milestone will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deletingMilestone) return;
+                deleteMilestoneMutation.mutate(deletingMilestone.id, { onSuccess: () => setDeletingMilestone(null) });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

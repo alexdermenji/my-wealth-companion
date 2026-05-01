@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -17,7 +17,7 @@ const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt', 'Tr
 const schema = yup.object({
   date: yup.string().required('Date is required'),
   amount: yup.number().typeError('Amount is required').positive('Must be greater than 0').required('Amount is required'),
-  details: yup.string().trim().required('Details are required'),
+  details: yup.string().trim().optional().default(''),
   accountId: yup.string().required('Account is required'),
   budgetType: yup.string().required('Budget type is required'),
   budgetPositionId: yup.string().when('budgetType', {
@@ -39,7 +39,7 @@ const freshDefaults: FormValues = {
   amount: undefined as unknown as number,
   details: '',
   accountId: '',
-  budgetType: '',
+  budgetType: 'Expenses',
   budgetPositionId: '',
   accountToId: '',
 };
@@ -70,9 +70,14 @@ export function TransactionForm({
     defaultValues: freshDefaults,
   });
 
+  const computedDefaults = useMemo(() => ({
+    ...freshDefaults,
+    accountId: accounts[0]?.id ?? '',
+  }), [accounts]);
+
   useEffect(() => {
-    if (open) reset(defaultValues ?? freshDefaults);
-  }, [open, defaultValues, reset]);
+    if (open) reset({ ...computedDefaults, ...defaultValues });
+  }, [open, defaultValues, reset, computedDefaults]);
 
   const budgetType = watch('budgetType');
   const isTransfer = budgetType === 'Transfer';
@@ -84,25 +89,6 @@ export function TransactionForm({
 
   const filteredPositions = filteredCategories.filter(c =>
     c.name.toLowerCase().includes(posSearch.toLowerCase())
-  );
-
-  const accountSelect = (name: 'accountId' | 'accountToId', label: string) => (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      <Controller
-        name={name}
-        control={control}
-        render={({ field }) => (
-          <Select value={field.value || undefined} onValueChange={field.onChange}>
-            <SelectTrigger className={errors[name] ? 'border-destructive' : ''}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        )}
-      />
-      {errors[name] && <p className="text-xs text-destructive">{errors[name]?.message}</p>}
-    </div>
   );
 
   return (
@@ -117,6 +103,20 @@ export function TransactionForm({
           <DialogTitle className="font-display">{editing ? 'Edit' : 'New'} Transaction</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Amount */}
+          <div className="flex flex-col gap-2">
+            <Label>Amount</Label>
+            <Input type="number" step="0.01" placeholder="e.g. 100" {...register('amount', { valueAsNumber: true })} className={errors.amount ? 'border-destructive' : ''} />
+            {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
+          </div>
+
+          {/* Date */}
+          <div className="flex flex-col gap-2">
+            <Label>Date</Label>
+            <Input type="date" {...register('date')} className={`w-full ${errors.date ? 'border-destructive' : ''}`} />
+            {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
+          </div>
+
           {/* Budget Type + Budget Position (or full-width Budget Type when Transfer) */}
           <div className={isTransfer ? undefined : 'grid grid-cols-2 gap-4'}>
             <div className="flex flex-col gap-2">
@@ -189,32 +189,6 @@ export function TransactionForm({
             )}
           </div>
 
-          {/* Date + Amount */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <Label>Date</Label>
-              <Input type="date" {...register('date')} className={errors.date ? 'border-destructive' : ''} />
-              {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label>Amount</Label>
-              <Input type="number" step="0.01" placeholder="e.g. 100" {...register('amount', { valueAsNumber: true })} className={errors.amount ? 'border-destructive' : ''} />
-              {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
-            </div>
-          </div>
-
-          {/* Details */}
-          <div className="flex flex-col gap-2">
-            <Label>Details</Label>
-            <Input placeholder="e.g. Tesco groceries" {...register('details')} className={errors.details ? 'border-destructive' : ''} />
-            {errors.details && <p className="text-xs text-destructive">{errors.details.message}</p>}
-          </div>
-
-          {/* Account (From) */}
-          {accountSelect('accountId', isTransfer ? 'Account From' : 'Account')}
-
-          {/* Account To — only for Transfer */}
-          {isTransfer && accountSelect('accountToId', 'Account To')}
 
           <Button type="submit" className="w-full">{editing ? 'Update' : 'Add'} Transaction</Button>
         </form>

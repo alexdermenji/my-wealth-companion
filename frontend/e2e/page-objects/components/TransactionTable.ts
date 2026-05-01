@@ -24,6 +24,10 @@ export class TransactionTable {
     return this.rows.filter({ hasText: details });
   }
 
+  getRowByText(text: string): Locator {
+    return this.rows.filter({ hasText: text });
+  }
+
   async expectRowCount(count: number) {
     if (count === 0) {
       await expect(this.emptyMessage).toBeVisible();
@@ -51,6 +55,11 @@ export class TransactionTable {
 
   async clickDelete(details: string) {
     const row = this.getRowByDetails(details);
+    await row.locator('button.text-destructive').click();
+  }
+
+  async clickDeleteByIndex(index: number) {
+    const row = this.getRow(index);
     await row.locator('button.text-destructive').click();
   }
 }
