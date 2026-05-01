@@ -113,12 +113,12 @@ export function TransactionForm({
           {/* Date */}
           <div className="flex flex-col gap-2">
             <Label>Date</Label>
-            <Input type="date" {...register('date')} className={`w-full ${errors.date ? 'border-destructive' : ''}`} />
+            <Input type="date" {...register('date')} className={`w-full h-10 appearance-none text-left [&::-webkit-date-and-time-value]:text-left ${errors.date ? 'border-destructive' : ''}`} />
             {errors.date && <p className="text-xs text-destructive">{errors.date.message}</p>}
           </div>
 
-          {/* Budget Type + Budget Position (or full-width Budget Type when Transfer) */}
-          <div className={isTransfer ? undefined : 'grid grid-cols-2 gap-4'}>
+          {/* Budget Type + Budget Position */}
+          <div className="space-y-4">
             <div className="flex flex-col gap-2">
               <Label>Budget Type</Label>
               <Controller
