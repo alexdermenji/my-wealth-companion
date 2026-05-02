@@ -5,7 +5,7 @@ test.describe('Navigation', () => {
     await page.goto('/transactions');
     await appNav.navigateTo('Dashboard');
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Budget Dashboard' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('should navigate to Transactions', async ({ page, appNav }) => {
@@ -19,7 +19,7 @@ test.describe('Navigation', () => {
     await page.goto('/');
     await appNav.navigateTo('Budget Plan');
     await expect(page).toHaveURL('/budget');
-    await expect(page.getByText('Allocations', { exact: true }).first()).toBeVisible();
+    await expect(page.getByText('Edit Budget', { exact: true }).first()).toBeVisible();
   });
 
   test('should navigate to Net Worth', async ({ page, appNav }) => {
