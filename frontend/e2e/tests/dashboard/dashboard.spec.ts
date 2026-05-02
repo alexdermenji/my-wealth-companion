@@ -1,62 +1,23 @@
 import { test, expect } from '../../fixtures/base.fixture';
 
 test.describe('Dashboard', () => {
-  test('should display summary cards', async ({ dashboardPage }) => {
-    const income = await dashboardPage.getSummaryValue('Income');
-    expect(income).toContain('3,500');
-
-    const expenses = await dashboardPage.getSummaryValue('Expenses');
-    expect(expenses).toContain('85');
-
-    const savings = await dashboardPage.getSummaryValue('Savings');
-    expect(savings).toContain('0');
-
-    const debt = await dashboardPage.getSummaryValue('Debt');
-    expect(debt).toContain('0');
+  test('shows the page heading', async ({ dashboardPage }) => {
+    await expect(dashboardPage.heading).toBeVisible();
   });
 
-  test('should display breakdown section', async ({ dashboardPage }) => {
-    // Income is selected by default — its categories appear in the detail table
-    await expect(dashboardPage.getDetailPanelCategory('Employment (Net)')).toBeVisible();
-
-    // Switch to Expenses — Groceries should now appear
-    await dashboardPage.getNavigatorTile('Expenses').click();
-    await expect(dashboardPage.getDetailPanelCategory('Groceries')).toBeVisible();
+  test('shows the Net Worth chart with all three series', async ({ dashboardPage }) => {
+    await expect(dashboardPage.getChartLegendItem('Assets')).toBeVisible();
+    await expect(dashboardPage.getChartLegendItem('Liabilities')).toBeVisible();
+    await expect(dashboardPage.getChartLegendItem('Net Worth')).toBeVisible();
   });
 
-  test('should change year', async ({ dashboardPage }) => {
-    // Mock returns hasData=false for any year other than 2026, so Income tracked becomes $0
-    await dashboardPage.selectYear('2025');
-    const income = await dashboardPage.getSummaryValue('Income');
-    expect(income).toContain('0');
+  test('shows current net worth from latest data point', async ({ dashboardPage }) => {
+    // Apr 2026: Assets(28250+95500=123750) - Liabilities(68500) = 55,250
+    await expect(dashboardPage.page.getByText(/55,250/)).toBeVisible();
   });
 
-  test('should change month', async ({ dashboardPage }) => {
-    await dashboardPage.selectMonth('Jan');
-    await expect(dashboardPage.getMonthTrigger()).toContainText('Jan');
-  });
-
-  test('should update detail panel title when switching tiles', async ({ dashboardPage }) => {
-    // Default: Income detail panel is shown
-    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Income');
-
-    // Click Expenses tile — detail panel title updates
-    await dashboardPage.getNavigatorTile('Expenses').click();
-    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Expenses');
-
-    // Click Savings tile
-    await dashboardPage.getNavigatorTile('Savings').click();
-    await expect(dashboardPage.getDetailPanelTitle()).toContainText('Savings');
-  });
-
-  test('should show categories for selected tile', async ({ dashboardPage }) => {
-    // Expenses tile → Groceries visible
-    await dashboardPage.getNavigatorTile('Expenses').click();
-    await expect(dashboardPage.getDetailPanelCategory('Groceries')).toBeVisible();
-
-    // Back to Income → Employment (Net) visible, Groceries gone
-    await dashboardPage.getNavigatorTile('Income').click();
-    await expect(dashboardPage.getDetailPanelCategory('Employment (Net)')).toBeVisible();
-    await expect(dashboardPage.getDetailPanelCategory('Groceries')).not.toBeVisible();
+  test('shows gain since earliest data point', async ({ dashboardPage }) => {
+    // Jan net worth = 25000+90000-70000 = 45000; Apr = 55250; gain = +10250
+    await expect(dashboardPage.page.getByText(/10,250/)).toBeVisible();
   });
 });
