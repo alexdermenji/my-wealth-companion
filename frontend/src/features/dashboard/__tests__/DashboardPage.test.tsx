@@ -2,101 +2,90 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { screen } from "@testing-library/react";
 import DashboardPage from "../DashboardPage";
 import { renderWithProviders } from "@/test/test-utils";
-import { useDashboardSummary } from "../hooks";
+import { useNetWorthItems, useAllNetWorthValues } from "@/features/net-worth/hooks";
 import { useSettings } from "@/features/settings/hooks";
 
-vi.mock("../hooks");
+vi.mock("@/features/net-worth/hooks");
 vi.mock("@/features/settings/hooks");
 
-const mockSummary = {
-  year: 2026,
-  month: 4,
-  breakdown: [
-    {
-      type: "Income",
-      totalTracked: 0,
-      totalBudget: 3761,
-      items: [
-        { categoryId: "i1", categoryName: "Space (Net)", group: "Employment", tracked: 0, budget: 2870, percentage: 0 },
-      ],
-    },
-    {
-      type: "Expenses",
-      totalTracked: 900,
-      totalBudget: 1200,
-      items: [
-        { categoryId: "e1", categoryName: "Rent", group: "Housing", tracked: 900, budget: 900, percentage: 100 },
-      ],
-    },
-    {
-      type: "Savings",
-      totalTracked: 0,
-      totalBudget: 400,
-      items: [],
-    },
-    {
-      type: "Debt",
-      totalTracked: 0,
-      totalBudget: 300,
-      items: [],
-    },
-  ],
-};
+const mockItems = [
+  { id: 'nw1', name: 'Cash Savings', group: 'Cash', type: 'Asset' as const, order: 0 },
+  { id: 'nw2', name: 'Mortgage', group: 'Home', type: 'Liability' as const, order: 0 },
+];
+
+// Two data points minimum for the chart to render
+const mockValues = [
+  { itemId: 'nw1', year: 2026, months: { 1: 50000, 2: 52000 } },
+  { itemId: 'nw2', year: 2026, months: { 1: 20000, 2: 19500 } },
+];
+
+function setupMocks(
+  items = mockItems,
+  values = mockValues,
+) {
+  vi.mocked(useSettings).mockReturnValue({
+    data: { startYear: 2026, startMonth: 1, currency: '£' },
+    isLoading: false,
+  } as ReturnType<typeof useSettings>);
+  vi.mocked(useNetWorthItems).mockReturnValue({
+    data: items,
+    isLoading: false,
+  } as ReturnType<typeof useNetWorthItems>);
+  vi.mocked(useAllNetWorthValues).mockReturnValue({
+    data: values,
+    isLoading: false,
+  } as unknown as ReturnType<typeof useAllNetWorthValues>);
+}
 
 describe("DashboardPage", () => {
   beforeEach(() => {
-    vi.mocked(useDashboardSummary).mockReturnValue({
-      data: mockSummary,
-      isLoading: false,
-    } as ReturnType<typeof useDashboardSummary>);
-    vi.mocked(useSettings).mockReturnValue({
-      data: { startYear: 2026, startMonth: 1, currency: "£" },
-      isLoading: false,
-    } as ReturnType<typeof useSettings>);
+    setupMocks();
   });
 
-  it("renders the page title", () => {
+  it("renders the page heading", () => {
     renderWithProviders(<DashboardPage />);
-    // Both mobile hero and desktop <h1> render in jsdom (no CSS breakpoints);
-    // target the heading role to specifically verify the desktop h1.
-    expect(screen.getByRole("heading", { name: "Budget Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
   });
 
-  it("renders year and month selectors", () => {
+  it("renders the Net Worth chart when data is available", () => {
     renderWithProviders(<DashboardPage />);
-    const selectors = screen.getAllByRole("combobox");
-    expect(selectors).toHaveLength(2);
-    expect(selectors[0]).toHaveTextContent("2026");
-    expect(selectors[1]).toBeInTheDocument();
+    // "Net Worth" appears in both the label strip and the chart legend
+    expect(screen.getAllByText("Net Worth").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Assets").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Liabilities").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("passes breakdown data to BudgetBreakdown — section tiles visible", () => {
+  it("shows current net worth value", () => {
+    // Jan: 50000 - 20000 = 30000, Feb: 52000 - 19500 = 32500 (latest)
     renderWithProviders(<DashboardPage />);
-    // Mobile tabs + desktop nav both render in jsdom; use getAllByRole.
-    expect(screen.getAllByRole("button", { name: /income/i }).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole("button", { name: /expenses/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/32,500/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("passes breakdown data to BudgetBreakdown — first section categories visible", () => {
+  it("shows the gain since earliest data point", () => {
+    // Gain: 32500 - 30000 = 2500; formatted as £2,500
     renderWithProviders(<DashboardPage />);
-    // Category name renders in both mobile and desktop layouts in jsdom.
-    expect(screen.getAllByText("Space (Net)").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/\+£2,500/)).toBeInTheDocument();
   });
 
-  it("uses currency from settings for formatting", () => {
+  it("shows empty state when no items exist", () => {
+    setupMocks([], []);
     renderWithProviders(<DashboardPage />);
-    // The desktop Income nav button includes the tracked amount formatted with £.
-    const incomeButtons = screen.getAllByRole("button", { name: /income/i });
-    const desktopNavButton = incomeButtons.find(b => b.textContent?.includes("£0"));
-    expect(desktopNavButton).toBeTruthy();
+    expect(screen.getByText(/no net worth data yet/i)).toBeInTheDocument();
   });
 
-  it("renders correctly with no breakdown data", () => {
-    vi.mocked(useDashboardSummary).mockReturnValue({
+  it("shows loading skeleton while fetching", () => {
+    vi.mocked(useNetWorthItems).mockReturnValue({
       data: undefined,
-      isLoading: false,
-    } as ReturnType<typeof useDashboardSummary>);
+      isLoading: true,
+    } as ReturnType<typeof useNetWorthItems>);
+    const { container } = renderWithProviders(<DashboardPage />);
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+  });
+
+  it("uses currency from settings", () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByRole("heading", { name: "Budget Dashboard" })).toBeInTheDocument();
+    // Net worth values are formatted with £
+    const netWorthEl = screen.getAllByText(/£/);
+    expect(netWorthEl.length).toBeGreaterThan(0);
   });
 });

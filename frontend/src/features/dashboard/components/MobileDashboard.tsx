@@ -109,20 +109,21 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
           const expensesVal = expenses?.totalTracked ?? 0;
           const savingsVal  = savings?.totalTracked  ?? 0;
           const debtVal     = debt?.totalTracked     ?? 0;
-          const totalOut    = expensesVal + savingsVal + debtVal;
-          const usedPct     = incomeVal > 0 ? Math.round(totalOut / incomeVal * 100) : 0;
-          const isOver      = usedPct > 100;
-          const isEmpty     = incomeVal === 0 && totalOut === 0;
+          const expBudget   = expenses?.totalBudget  ?? 0;
+
+          const usedPct  = expBudget > 0 ? Math.round((expensesVal / expBudget) * 100) : 0;
+          const isOver   = usedPct > 100;
+          const isEmpty  = expBudget === 0 && expensesVal === 0;
 
           // Arc parameters: semicircle from left to right, r=45, centre (55,65)
-          const ARC_LEN = 141; // circumference of the half-circle path
-          const fillLen = isEmpty ? 0 : Math.min(usedPct / 100, 1) * ARC_LEN;
+          const ARC_LEN = 141;
+          const fillLen    = isEmpty ? 0 : Math.min(usedPct / 100, 1) * ARC_LEN;
           const dashOffset = ARC_LEN - fillLen;
 
-          const arcColor = isEmpty  ? 'rgba(255,255,255,0.25)'
-                         : isOver   ? '#f9a8d4'  // pink-300
+          const arcColor = isEmpty       ? 'rgba(255,255,255,0.25)'
+                         : isOver        ? '#f9a8d4'  // pink-300
                          : usedPct >= 80 ? '#fbbf24'  // amber-400
-                         : '#6ee7b7'; // emerald-300
+                         :                 '#6ee7b7'; // emerald-300
 
           return (
             <div className="relative flex items-center gap-4 mb-4">
@@ -143,11 +144,11 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
                   />
                 )}
                 {/* Label */}
-                <text x="55" y="48" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" opacity={isEmpty ? 0.4 : 0.8}>
-                  {isOver ? 'OVER' : 'USED'}
+                <text x="55" y="45" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" opacity={isEmpty ? 0.4 : 0.8}>
+                  {isOver ? 'OVER BUDGET' : 'OF BUDGET'}
                 </text>
                 <text x="55" y="62" textAnchor="middle" fill="white" fontSize="14" fontWeight="800" opacity={isEmpty ? 0.4 : 1}>
-                  {isEmpty ? '0%' : `${usedPct}%`}
+                  {isEmpty ? '—' : `${usedPct}%`}
                 </text>
               </svg>
 

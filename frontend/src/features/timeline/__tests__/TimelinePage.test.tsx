@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { renderWithProviders } from '@/test/test-utils';
 import {
   useSettings,
@@ -190,7 +190,7 @@ describe('sidebar — net worth milestone cards', () => {
     useTimelineEvents.mockReturnValue({ data: [], isLoading: false });
   }
 
-  it('shows "Reached" status and no "Time away" cell for a reached £100k milestone', () => {
+  it('shows "Reached" status badge and no "months away" text for a reached £100k milestone', () => {
     setupMilestoneData();
     useAllNetWorthValues.mockReturnValue({
       data: [{ itemId: 'a1', year: 2024, months: { 1: 90_000, 6: 105_000, 12: 110_000 } }],
@@ -202,14 +202,16 @@ describe('sidebar — net worth milestone cards', () => {
     });
 
     renderWithProviders(<TimelinePage />);
+    fireEvent.click(screen.getByRole('tab', { name: /milestones/i }));
 
-    // Scope to the 100k milestone card
     const card = screen.getByText('100k').closest('div[class*="rounded"]') as HTMLElement;
-    expect(within(card).getByText('Reached')).toBeInTheDocument();
-    expect(within(card).queryByText('Time away')).not.toBeInTheDocument();
+    // "Reached" appears in the badge and in the data strip label
+    expect(within(card).getAllByText('Reached').length).toBeGreaterThanOrEqual(1);
+    // No "months away" countdown for a reached milestone
+    expect(within(card).queryByText(/months away/i)).not.toBeInTheDocument();
   });
 
-  it('shows "Projected" status with "Time away" cell for a projected £100k milestone', () => {
+  it('shows "Projected" status badge and months-away countdown for a projected £100k milestone', () => {
     setupMilestoneData();
     useAllNetWorthValues.mockReturnValue({
       data: [{ itemId: 'a1', year: 2024, months: { 1: 80_000, 2: 82_000, 3: 84_000 } }],
@@ -221,10 +223,13 @@ describe('sidebar — net worth milestone cards', () => {
     });
 
     renderWithProviders(<TimelinePage />);
+    fireEvent.click(screen.getByRole('tab', { name: /milestones/i }));
 
     const card = screen.getByText('100k').closest('div[class*="rounded"]') as HTMLElement;
-    expect(within(card).getByText('Projected')).toBeInTheDocument();
-    expect(within(card).getByText('Time away')).toBeInTheDocument();
+    // "Projected" appears in the badge and in the data strip label
+    expect(within(card).getAllByText('Projected').length).toBeGreaterThanOrEqual(1);
+    // Months-away countdown is visible (e.g. "8 months away")
+    expect(within(card).getByText(/months away/i)).toBeInTheDocument();
   });
 });
 

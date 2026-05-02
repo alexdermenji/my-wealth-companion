@@ -27,7 +27,7 @@ import { useBudgetPlans } from '@/features/budget/hooks';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { EventFormDialog } from './components/EventFormDialog';
 import { MilestoneFormDialog } from './components/MilestoneFormDialog';
-import { NetWorthChart } from './components/NetWorthChart';
+import { NetWorthProjectionChart } from './components/NetWorthProjectionChart';
 import { useDeleteTimelineEvent, useTimelineEvents } from './hooks';
 import { useCreateNetWorthMilestone, useDeleteNetWorthMilestone, useNetWorthMilestones } from './milestonesHooks';
 import type { TimelineEvent } from './types';
@@ -76,7 +76,7 @@ export default function TimelinePage() {
   const now = new Date();
   const year = now.getFullYear();
   const isMobile = useIsMobile();
-  const [selectedTab, setSelectedTab] = useState<'payoff' | 'milestones'>('payoff');
+  const [selectedTab, setSelectedTab] = useState<'timeline' | 'milestones'>('timeline');
   const [showClosed, setShowClosed] = useState(false);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
@@ -492,23 +492,18 @@ export default function TimelinePage() {
 
   const milestonesCard = (
     <Card className="rounded-[28px] border border-border/70 shadow-sm">
-      <CardContent className="space-y-3 p-6">
-        {/* Card toolbar */}
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-muted-foreground">Milestones</p>
-          <Button
-            size="sm"
-            variant="secondary"
-            className="rounded-full"
-            onClick={() => { setEditingMilestone(null); setMilestoneDialogOpen(true); }}
-          >
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Add milestone
-          </Button>
-        </div>
+      <CardContent className="p-6">
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          {/* Chart — full width on tablet and below, 50% on desktop */}
+          <NetWorthProjectionChart
+            items={items}
+            values={allNetWorthValues}
+            currency={currency}
+            milestoneAmounts={milestoneModel.milestones.map(m => m.amount)}
+          />
 
-        <NetWorthChart items={items} values={allNetWorthValues} currency={currency} />
-
+          {/* Milestone list — full width on tablet and below, 50% on desktop */}
+          <div>
         {milestoneModel.milestones.length === 0 ? (
           <p className="rounded-2xl bg-muted/20 px-4 py-6 text-sm text-center text-muted-foreground">
             No milestones yet. Add one to start tracking your net worth goals.
@@ -525,18 +520,25 @@ export default function TimelinePage() {
                 unavailable: 'border-l-border',
               }[milestone.status];
 
-              const subtitleText = (() => {
-                if (!milestone.monthLabel) {
-                  if (!milestoneModel.latestPoint) return 'No net worth data yet';
-                  if (milestoneModel.monthlyGrowth !== null && milestoneModel.monthlyGrowth <= 0)
-                    return 'Trend declining · add a target date to track this';
-                  return 'No projection yet';
-                }
-                if (milestone.status === 'reached') return `First hit ${milestone.monthLabel}`;
-                if (milestone.status === 'off-track' && !milestone.targetDate) return `First hit ${milestone.monthLabel}, now below`;
-                if (milestone.status === 'off-track') return `Projected ${milestone.monthLabel} · behind target`;
-                if (milestone.status === 'on-track') return `Projected ${milestone.monthLabel}`;
-                return `Projected ${milestone.monthLabel}`;
+              // Progress bar fill and color per status
+              const progressPct = milestone.amount > 0
+                ? Math.min(100, (milestone.currentNetWorth / milestone.amount) * 100)
+                : 0;
+              const progressColor = {
+                reached:     '#10b981',
+                'on-track':  '#10b981',
+                projected:   'hsl(var(--primary))',
+                'off-track': '#f59e0b',
+                unavailable: 'hsl(var(--border))',
+              }[milestone.status];
+
+              // What to show in the left data cell
+              const dateLabel = (() => {
+                if (milestone.status === 'reached') return 'Reached';
+                if (milestone.status === 'on-track' || milestone.status === 'projected') return 'Projected';
+                if (milestone.status === 'off-track' && milestone.monthsAway !== null) return 'Projected';
+                if (milestone.status === 'off-track' && milestone.monthLabel) return 'Was hit';
+                return null;
               })();
 
               return (
@@ -544,12 +546,12 @@ export default function TimelinePage() {
                   key={milestone.id}
                   className={`overflow-hidden rounded-xl border border-border/70 border-l-2 bg-card ${statusColor}`}
                 >
-                  <div className="flex items-start justify-between gap-3 px-4 py-3">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2">
                     <div className="min-w-0">
                       <p className="font-display text-base font-bold text-foreground">{milestone.label}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{subtitleText}</p>
                       {milestone.note && (
-                        <p className="mt-1 text-xs text-muted-foreground/70 italic">{milestone.note}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground/70 italic">{milestone.note}</p>
                       )}
                     </div>
                     <div className="flex flex-shrink-0 items-center gap-1.5">
@@ -593,17 +595,40 @@ export default function TimelinePage() {
                       )}
                     </div>
                   </div>
-                  {(milestone.status === 'projected' || milestone.status === 'on-track' || milestone.status === 'reached' || milestone.status === 'off-track') && (
+
+                  {/* Progress bar */}
+                  {milestone.currentNetWorth > 0 && (
+                    <div className="px-4 pb-3">
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
+                        <span className="font-semibold">{formatMoney(milestone.currentNetWorth, currency)}</span>
+                        <span>{formatMoney(milestone.amount, currency)}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden bg-border/60">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${progressPct}%`, background: progressColor }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Data strip */}
+                  {milestone.status !== 'unavailable' && milestone.monthLabel && (
                     <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60">
-                      {(milestone.status === 'projected' || milestone.status === 'on-track') && milestone.monthsAway !== null && (
-                        <div className="px-4 py-2">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Time away</p>
-                          <p className="mt-0.5 font-sans text-sm font-bold text-foreground">{monthsLabel(milestone.monthsAway)}</p>
-                        </div>
-                      )}
-                      <div className={`px-4 py-2 ${(milestone.status === 'projected' || milestone.status === 'on-track') && milestone.monthsAway !== null ? '' : 'col-span-2'}`}>
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Current</p>
-                        <p className="mt-0.5 font-sans text-sm font-bold text-foreground">
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{dateLabel}</p>
+                        <p className="mt-0.5 font-display text-base font-bold text-foreground leading-tight">
+                          {milestone.monthLabel}
+                        </p>
+                        {milestone.monthsAway !== null && milestone.monthsAway > 0 && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{monthsLabel(milestone.monthsAway)} away</p>
+                        )}
+                      </div>
+                      <div className="px-4 py-2.5">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                          {milestone.status === 'off-track' && !milestone.monthsAway ? 'Now below' : 'Current'}
+                        </p>
+                        <p className="mt-0.5 font-sans text-base font-bold text-foreground leading-tight">
                           {formatMoney(milestone.currentNetWorth, currency)}
                         </p>
                       </div>
@@ -614,6 +639,8 @@ export default function TimelinePage() {
             })}
           </div>
         )}
+          </div>{/* end milestone list col */}
+        </div>{/* end grid */}
       </CardContent>
     </Card>
   );
@@ -630,8 +657,40 @@ export default function TimelinePage() {
         </p>
       </div>
 
+      {/* ── Page-level tab bar ── */}
+      <div role="tablist" className="flex items-center border-b border-border -mt-2">
+        {(['timeline', 'milestones'] as const).map(tab => (
+          <button
+            key={tab}
+            role="tab"
+            aria-selected={selectedTab === tab}
+            onClick={() => setSelectedTab(tab)}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors capitalize ${
+              selectedTab === tab
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab === 'timeline' ? 'Timeline' : 'Milestones'}
+          </button>
+        ))}
+        {selectedTab === 'milestones' && (
+          <div className="ml-auto pb-1">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="rounded-full"
+              onClick={() => { setEditingMilestone(null); setMilestoneDialogOpen(true); }}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Add milestone
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* ── Mobile hero card (matches NetWorth mobile pattern) ── */}
-      {isMobile && (
+      {isMobile && selectedTab === 'timeline' && (
         <div
           className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-6 text-white"
           style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
@@ -714,39 +773,9 @@ export default function TimelinePage() {
         </div>
       )}
 
-      {/* ── Mobile: tab bar + tab content ── */}
-      {isMobile && (
-        <>
-          <div className="flex gap-1.5 rounded-full border border-border bg-card p-1 shadow-sm">
-            {([
-              { id: 'payoff', label: 'Payoff line', color: 'hsl(var(--primary))' },
-              { id: 'milestones', label: 'Milestones', color: '#10b981' },
-            ] as const).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setSelectedTab(tab.id)}
-                className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold whitespace-nowrap transition-all ${
-                  selectedTab === tab.id ? 'text-white shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-                style={selectedTab === tab.id ? { background: tab.color } : undefined}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {selectedTab === 'payoff' && payoffCard}
-          {selectedTab === 'milestones' && milestonesCard}
-        </>
-      )}
-
-      {/* ── Desktop: two-column grid ── */}
-      {!isMobile && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_340px]">
-          {payoffCard}
-          {milestonesCard}
-        </div>
-      )}
+      {/* ── Tab content ── */}
+      {selectedTab === 'timeline' && payoffCard}
+      {selectedTab === 'milestones' && milestonesCard}
 
       <AlertDialog open={!!deletingEvent} onOpenChange={open => { if (!open) setDeletingEvent(null); }}>
         <AlertDialogContent>
