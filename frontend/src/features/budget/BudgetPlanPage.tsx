@@ -6,7 +6,6 @@ import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/tab
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useBudgetPlans, useSetBudgetAmount } from './hooks';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFullWidth } from '@/app/AppLayout';
 import { BudgetSection } from './components/BudgetSection';
 import { useSettings } from '@/features/settings/hooks';

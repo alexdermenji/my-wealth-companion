@@ -34,7 +34,7 @@ function setupMocks(
   vi.mocked(useAllNetWorthValues).mockReturnValue({
     data: values,
     isLoading: false,
-  } as ReturnType<typeof useAllNetWorthValues>);
+  } as unknown as ReturnType<typeof useAllNetWorthValues>);
 }
 
 describe("DashboardPage", () => {
