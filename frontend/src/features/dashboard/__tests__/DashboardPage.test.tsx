@@ -42,9 +42,12 @@ describe("DashboardPage", () => {
     setupMocks();
   });
 
-  it("renders the page heading", () => {
+  it("renders the chart period selector", () => {
     renderWithProviders(<DashboardPage />);
-    expect(screen.getByRole("heading", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "6M" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "1Y" })).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "2Y" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("renders the Net Worth chart when data is available", () => {

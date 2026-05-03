@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import type { NetWorthItem, NetWorthValue } from '@/features/net-worth/types';
 
 interface Props {
@@ -15,7 +16,17 @@ interface DataPoint {
   liabilities: number;
   netWorth: number;
   sortKey: number;
+  monthIndex: number;
 }
+
+type PeriodKey = '6m' | '1y' | '2y' | 'all';
+
+const PERIODS: Array<{ key: PeriodKey; label: string; months: number | null }> = [
+  { key: '6m', label: '6M', months: 6 },
+  { key: '1y', label: '1Y', months: 12 },
+  { key: '2y', label: '2Y', months: 24 },
+  { key: 'all', label: 'All', months: null },
+];
 
 function buildChartData(items: NetWorthItem[], values: NetWorthValue[]): DataPoint[] {
   const assetIds = new Set(items.filter(i => i.type === 'Asset').map(i => i.id));
@@ -52,8 +63,20 @@ function buildChartData(items: NetWorthItem[], values: NetWorthValue[]): DataPoi
         liabilities,
         netWorth: assets - liabilities,
         sortKey: key,
+        monthIndex: year * 12 + month,
       };
     });
+}
+
+function filterDataByPeriod(data: DataPoint[], period: PeriodKey): DataPoint[] {
+  const selectedPeriod = PERIODS.find(p => p.key === period) ?? PERIODS[0];
+  if (selectedPeriod.months === null) return data;
+
+  const latest = data[data.length - 1];
+  const startMonthIndex = latest.monthIndex - selectedPeriod.months + 1;
+  const filtered = data.filter(point => point.monthIndex >= startMonthIndex);
+
+  return filtered.length >= 2 ? filtered : data.slice(-2);
 }
 
 function fmtY(v: number, currency: string) {
@@ -100,37 +123,62 @@ function CustomTooltip({ active, payload, label, currency }: TooltipProps) {
 }
 
 export function NetWorthChart({ items, values, currency }: Props) {
+  const [period, setPeriod] = useState<PeriodKey>('all');
   const data = useMemo(() => buildChartData(items, values), [items, values]);
+  const visibleData = useMemo(() => filterDataByPeriod(data, period), [data, period]);
 
   if (data.length < 2) return null;
 
-  const latest = data[data.length - 1];
-  const earliest = data[0];
+  const latest = visibleData[visibleData.length - 1];
+  const earliest = visibleData[0];
   const gain = latest.netWorth - earliest.netWorth;
   const gainPct = earliest.netWorth !== 0
     ? ((gain / Math.abs(earliest.netWorth)) * 100).toFixed(1)
     : null;
 
-  const tickInterval = Math.max(1, Math.floor(data.length / 8));
+  const tickInterval = Math.max(1, Math.floor(visibleData.length / 8));
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 pt-4 pb-2">
+    <div className="rounded-2xl border border-border/70 bg-card px-4 pt-4 pb-2">
       {/* Summary strip */}
-      <div className="mb-3 flex items-start justify-between gap-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Net Worth</p>
           <p className="mt-0.5 font-sans text-xl font-bold text-foreground">{fmtFull(latest.netWorth, currency)}</p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Since {earliest.label}</p>
-          <p className={`mt-0.5 font-sans text-base font-bold ${gain >= 0 ? 'text-[hsl(var(--income))]' : 'text-[hsl(var(--expense))]'}`}>
-            {gain >= 0 ? '+' : ''}{fmtFull(gain, currency)}
-          </p>
-          {gainPct !== null && (
-            <p className={`text-[11px] font-medium ${gain >= 0 ? 'text-[hsl(var(--income))]' : 'text-[hsl(var(--expense))]'}`}>
-              {gain >= 0 ? '↑' : '↓'} {gainPct}% total
+        <div className="flex flex-col items-end gap-2">
+          <div className="inline-flex w-fit rounded-md border border-border bg-secondary/60 p-0.5">
+            {PERIODS.map(option => {
+              const isActive = option.key === period;
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => setPeriod(option.key)}
+                  className={cn(
+                    'h-7 min-w-9 rounded px-2 text-xs font-semibold transition-colors',
+                    isActive
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Since {earliest.label}</p>
+            <p className={`mt-0.5 font-sans text-base font-bold ${gain >= 0 ? 'text-[hsl(var(--income))]' : 'text-[hsl(var(--expense))]'}`}>
+              {gain >= 0 ? '+' : ''}{fmtFull(gain, currency)}
             </p>
-          )}
+            {gainPct !== null && (
+              <p className={`text-[11px] font-medium ${gain >= 0 ? 'text-[hsl(var(--income))]' : 'text-[hsl(var(--expense))]'}`}>
+                {gain >= 0 ? '↑' : '↓'} {gainPct}% total
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
@@ -149,9 +197,9 @@ export function NetWorthChart({ items, values, currency }: Props) {
       </div>
 
       {/* Chart */}
-      <div style={{ height: 160 }}>
+      <div style={{ height: 188 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <AreaChart data={visibleData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="gradAssets" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.22} />
