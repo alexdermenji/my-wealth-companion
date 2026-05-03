@@ -1,9 +1,13 @@
 import { cn } from "@/lib/utils";
 import type { RecentDay, StreakData } from "../types";
-import { getTrackingCopy, getNoSpendCopy } from "../shameCopy";
+import { CheckInWidget } from "./CheckInWidget";
+import { useCheckIn } from "../hooks";
+import { useDashboardSummary } from "@/features/dashboard/hooks";
+import { useSettings } from "@/features/settings/hooks";
 
 interface Props {
   streak: StreakData;
+  onSpentSelected: () => void;
 }
 
 const DAY_LETTER = ["S", "M", "T", "W", "T", "F", "S"];
@@ -31,43 +35,55 @@ function getGreeting() {
   return "Good evening";
 }
 
-export function StreakBanner({ streak }: Props) {
-  const { tracking, noSpend } = streak;
-  const todayDate = tracking.recentDays[tracking.recentDays.length - 1]?.date;
+const MONTH_METRICS = [
+  { key: "Income",   color: "#6ee7b7" },
+  { key: "Expenses", color: "#f9a8d4" },
+  { key: "Debt",     color: "#38bdf8" },
+] as const;
 
+export function StreakBanner({ streak, onSpentSelected }: Props) {
+  const { tracking } = streak;
+  const { mutate: checkIn } = useCheckIn();
+
+  const now = new Date();
+  const { data: summary }  = useDashboardSummary(now.getFullYear(), now.getMonth() + 1);
+  const { data: settings } = useSettings();
+  const currency = settings?.currency ?? "$";
+  const fmt = (v: number) =>
+    `${currency}${Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+
+  const income   = summary?.breakdown.find(b => b.type === "Income");
+  const expenses = summary?.breakdown.find(b => b.type === "Expenses");
+  const debt     = summary?.breakdown.find(b => b.type === "Debt");
+  const net = (income?.totalTracked ?? 0) - (expenses?.totalTracked ?? 0) - (debt?.totalTracked ?? 0);
+
+  const todayDate = tracking.recentDays[tracking.recentDays.length - 1]?.date;
   const weeks: RecentDay[][] = [];
   for (let i = 0; i < tracking.recentDays.length; i += 7) {
     weeks.push(tracking.recentDays.slice(i, i + 7));
   }
 
-  const trackingCopy = getTrackingCopy({
-    currentStreak: tracking.currentStreak,
-    todayStatus: tracking.todayStatus,
-    longestStreak: tracking.longestStreak,
-  });
-  const noSpendCopy = getNoSpendCopy({
-    currentStreak: noSpend.currentStreak,
-    todayStatus: noSpend.todayStatus,
-    longestStreak: noSpend.longestStreak,
-  });
+  const isDone     = tracking.todayStatus === "logged" || tracking.todayStatus === "checked_in";
+  const showCheckIn = tracking.todayStatus === "pending";
 
-  const isLogged = tracking.todayStatus === "logged";
-  const thisWeekDays = tracking.recentDays.slice(-7);
-  const thisWeekLogged = thisWeekDays.filter((d) => d.logged).length;
+  const monthlyValues: Record<string, number> = {
+    Income:   income?.totalTracked   ?? 0,
+    Expenses: expenses?.totalTracked ?? 0,
+    Debt:     debt?.totalTracked     ?? 0,
+  };
 
   return (
     <div
-      className="rounded-xl text-white overflow-hidden"
-      style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78f0 100%)" }}
+      className="rounded-2xl text-white relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)" }}
     >
+      {/* Decorative blobs */}
+      <div className="pointer-events-none absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/[0.07]" />
+      <div className="pointer-events-none absolute -bottom-6 left-4 w-24 h-24 rounded-full bg-white/[0.05]" />
+
       {/* ── Mobile: greeting row ── */}
-      <div className="md:hidden flex items-center gap-3 px-4 pt-4 pb-3" style={{ background: "rgba(255,255,255,0.12)" }}>
-        <img
-          src="/streak.png"
-          alt=""
-          aria-hidden="true"
-          className="h-14 w-auto object-contain drop-shadow-lg flex-shrink-0"
-        />
+      <div className="md:hidden flex items-center gap-3 px-4 pt-4 pb-3 relative" style={{ background: "rgba(255,255,255,0.12)" }}>
+        <img src="/streak.png" alt="" aria-hidden="true" className="h-14 w-auto object-contain drop-shadow-lg flex-shrink-0" />
         <div>
           <p className="text-[15px] font-bold text-white">{getGreeting()} 👋</p>
           <p className="text-[12px] text-white/55 mt-0.5">Here's your streak</p>
@@ -75,29 +91,23 @@ export function StreakBanner({ streak }: Props) {
       </div>
 
       {/* ── Main row ── */}
-      <div className="flex items-stretch">
+      <div className="flex items-stretch relative">
 
-        {/* Desktop only: mascot column */}
+        {/* Desktop: mascot column */}
         <div
           className="hidden md:flex flex-col items-center justify-center flex-shrink-0 w-[180px] py-4 px-4"
           style={{ background: "rgba(255,255,255,0.12)" }}
         >
           <p className="text-[14px] font-bold text-white mb-3 whitespace-nowrap">{getGreeting()} 👋</p>
-          <img
-            src="/streak.png"
-            alt=""
-            aria-hidden="true"
-            className="w-full h-auto object-contain object-bottom drop-shadow-xl"
-          />
+          <img src="/streak.png" alt="" aria-hidden="true" className="w-full h-auto object-contain object-bottom drop-shadow-xl" />
         </div>
 
-        {/* Content */}
+        {/* Streak content */}
         <div className="flex-1 min-w-0 flex flex-col">
 
-          {/* Top: streak data */}
           <div className="flex items-start gap-5 p-5 pb-3">
 
-            {/* Number block */}
+            {/* Streak number */}
             <div className="flex-shrink-0">
               <div className="font-amount text-[42px] font-bold leading-none tracking-tight">
                 {tracking.currentStreak}
@@ -140,28 +150,9 @@ export function StreakBanner({ streak }: Props) {
                   missed
                 </span>
               </div>
-            </div>
 
-            {/* Divider */}
-            <div className="w-px self-stretch bg-white/20 hidden md:block mx-1" />
-
-            {/* Weekly progress + stats */}
-            <div className="hidden md:flex flex-col justify-between gap-3 self-stretch min-w-0">
-              <div>
-                <div className="text-[11px] font-bold uppercase tracking-widest text-white/40 mb-2">
-                  This week
-                </div>
-<p className="text-[15px] font-bold text-white leading-snug">
-                  {thisWeekLogged} / 7 days logged
-                </p>
-                {trackingCopy.subline && (
-                  <p className="text-xs text-white/55 mt-1.5 leading-snug">
-                    {trackingCopy.subline}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4">
+              {/* Best ever + Today */}
+              <div className="flex items-center gap-4 mt-3">
                 <div>
                   <div className="text-[11px] text-white/45 mb-1">Best ever</div>
                   <div className="font-amount text-[17px] font-bold leading-none whitespace-nowrap">
@@ -174,51 +165,74 @@ export function StreakBanner({ streak }: Props) {
                   <span
                     className={cn(
                       "text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap",
-                      isLogged
+                      isDone
                         ? "bg-emerald-400/30 text-emerald-100 ring-1 ring-emerald-400/40"
                         : "bg-white/15 text-white/65"
                     )}
                   >
-                    {isLogged ? "✓ Done today" : "Pending"}
+                    {isDone ? "✓ Done today" : "Pending"}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom: no-spend */}
-          <div className="px-5 pb-5">
-            <div
-              className="w-full md:w-auto md:max-w-[65%] rounded-xl px-4 py-3 flex items-center gap-3"
-              style={{ background: "rgba(0,0,0,0.30)" }}
-            >
-              <span className="text-lg leading-none select-none flex-shrink-0">💸</span>
+          {/* Check-in widget */}
+          {showCheckIn && (
+            <CheckInWidget
+              onSpent={onSpentSelected}
+              onNoSpend={() => checkIn("no_spend")}
+            />
+          )}
 
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-white/80 leading-snug">
-                  No-spend challenge
-                  <span className="font-normal text-white/55"> · {noSpendCopy.status}</span>
-                </p>
-                {noSpendCopy.challenge && (
-                  <p className="text-[11px] text-white/50 mt-1 leading-snug">
-                    {noSpendCopy.challenge}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex-shrink-0 text-right">
-                <div className="font-amount leading-none">
-                  <span className="text-[24px] font-bold text-white/85">{noSpend.currentStreak}</span>
-                  <span className="text-[11px] font-semibold text-white/50 ml-0.5">days</span>
+          {/* Mobile: monthly stats */}
+          <div className="md:hidden px-5 pb-5 pt-1">
+            <div className="border-t border-white/15 pt-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">This month</p>
+              {MONTH_METRICS.map(({ key, color }) => (
+                <div key={key} className="flex items-center gap-2 text-xs font-semibold">
+                  <span className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: color }} />
+                  <span className="text-white/70 w-14 flex-shrink-0">{key}</span>
+                  <span className="font-amount">{fmt(monthlyValues[key])}</span>
                 </div>
-                <div className="text-[11px] text-white/40 mt-0.5">
-                  best {noSpend.longestStreak}
-                </div>
+              ))}
+              <div className="flex items-baseline justify-between pt-2 border-t border-white/10">
+                <span className="text-[11px] text-white/50">Net</span>
+                <span
+                  className="font-amount font-bold text-base"
+                  style={{ color: net >= 0 ? "#6ee7b7" : "#f9a8d4" }}
+                >
+                  {net >= 0 ? "" : "-"}{fmt(net)}
+                </span>
               </div>
             </div>
           </div>
-
         </div>
+
+        {/* Desktop: monthly stats column */}
+        <div className="hidden md:flex w-px self-stretch bg-white/20 mx-1 flex-shrink-0" />
+        <div className="hidden md:flex flex-col justify-center gap-0 flex-shrink-0 px-5 py-5 min-w-[160px]">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">This month</p>
+          <div className="space-y-2.5">
+            {MONTH_METRICS.map(({ key, color }) => (
+              <div key={key} className="flex items-center gap-2 text-xs font-semibold">
+                <span className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: color }} />
+                <span className="text-white/70 w-14 flex-shrink-0">{key}</span>
+                <span className="font-amount">{fmt(monthlyValues[key])}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-white/15 mt-3 pt-3 flex items-baseline justify-between gap-3">
+            <span className="text-xs text-white/60">Net</span>
+            <span
+              className="font-amount font-extrabold tracking-tight text-lg leading-none"
+              style={{ color: net >= 0 ? "#6ee7b7" : "#f9a8d4" }}
+            >
+              {net >= 0 ? "" : "-"}{fmt(net)}
+            </span>
+          </div>
+        </div>
+
       </div>
     </div>
   );

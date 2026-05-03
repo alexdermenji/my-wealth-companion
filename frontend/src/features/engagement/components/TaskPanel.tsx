@@ -18,9 +18,10 @@ const TASK_ROUTE: Record<EngagementTask["id"], string> = {
 
 interface Props {
   tasks: TaskData;
+  onAddTransaction?: () => void;
 }
 
-export function TaskPanel({ tasks }: Props) {
+export function TaskPanel({ tasks, onAddTransaction }: Props) {
   const navigate = useNavigate();
   const taskList = buildTaskList(tasks);
   const doneCount = taskList.filter((t) => t.status === "done").length;
@@ -91,7 +92,8 @@ export function TaskPanel({ tasks }: Props) {
                   className="text-[11px] font-semibold text-white bg-primary hover:bg-primary/90 rounded px-2 py-1 flex-shrink-0 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate("/transactions");
+                    if (onAddTransaction) onAddTransaction();
+                    else navigate("/transactions");
                   }}
                 >
                   + Add

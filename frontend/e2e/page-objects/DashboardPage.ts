@@ -1,15 +1,15 @@
 import { Page, Locator } from '@playwright/test';
 
 export class DashboardPage {
-  readonly heading: Locator;
+  readonly chart: Locator;
 
   constructor(readonly page: Page) {
-    this.heading = page.getByRole('heading', { name: 'Dashboard' });
+    this.chart = page.locator('span', { hasText: 'Net Worth' }).first();
   }
 
   async goto() {
     await this.page.goto('/');
-    await this.heading.waitFor();
+    await this.chart.waitFor();
   }
 
   getChartLegendItem(label: string): Locator {

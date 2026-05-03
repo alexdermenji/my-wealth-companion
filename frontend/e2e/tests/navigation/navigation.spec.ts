@@ -5,7 +5,6 @@ test.describe('Navigation', () => {
     await page.goto('/transactions');
     await appNav.navigateTo('Dashboard');
     await expect(page).toHaveURL('/');
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   });
 
   test('should navigate to Transactions', async ({ page, appNav }) => {
