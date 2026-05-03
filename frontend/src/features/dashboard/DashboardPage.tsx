@@ -31,7 +31,7 @@ export default function DashboardPage() {
       )}
 
       {/* Streak banner */}
-      {engagement && <StreakBanner streak={engagement.streak} insights={engagement.insights} />}
+      {engagement && <StreakBanner streak={engagement.streak} />}
 
       {/* Main content + task panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">

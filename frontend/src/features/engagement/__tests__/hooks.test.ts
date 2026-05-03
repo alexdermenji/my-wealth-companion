@@ -26,6 +26,10 @@ const mockSummary = {
     nextMonthBudgetFilled: true,
     currentMonthNetWorthFilled: true,
   },
+  insights: {
+    weeklyTrackedTotal: 0,
+    avgDailySpend: 0,
+  },
 };
 
 describe("useEngagementSummary", () => {

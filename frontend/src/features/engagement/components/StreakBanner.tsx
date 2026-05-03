@@ -1,10 +1,9 @@
 import { cn } from "@/lib/utils";
-import type { InsightsData, RecentDay, StreakData } from "../types";
+import type { RecentDay, StreakData } from "../types";
 import { getTrackingCopy, getNoSpendCopy } from "../shameCopy";
 
 interface Props {
   streak: StreakData;
-  insights: InsightsData;
 }
 
 const DAY_LETTER = ["S", "M", "T", "W", "T", "F", "S"];
@@ -32,7 +31,7 @@ function getGreeting() {
   return "Good evening";
 }
 
-export function StreakBanner({ streak, insights }: Props) {
+export function StreakBanner({ streak }: Props) {
   const { tracking, noSpend } = streak;
   const todayDate = tracking.recentDays[tracking.recentDays.length - 1]?.date;
 
