@@ -25,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: `npx vite --port ${E2E_PORT}`,
     url: `http://localhost:${E2E_PORT}`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 30_000,
     env: {
       VITE_E2E_TEST: 'true',
