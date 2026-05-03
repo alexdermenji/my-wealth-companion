@@ -1,17 +1,16 @@
 import { computeInsights } from '../computeInsights';
+import { computeTips } from '../tips';
 import { useInsightsInput } from '../useInsightsInput';
-import { TIPS } from '../tips';
 import { FeaturedInsightCard } from './FeaturedInsightCard';
 import { SecondaryInsightCard } from './SecondaryInsightCard';
 import type { Insight } from '../types';
 
 const SECONDARY_TARGET = 2;
 
-function padWithTips(secondary: Insight[]): Insight[] {
+function padWithTips(secondary: Insight[], input: Parameters<typeof computeTips>[0]): Insight[] {
   const presentIds = new Set(secondary.map(i => i.id));
-  const available = TIPS.filter(t => !t.suppressIfPresent || !presentIds.has(t.suppressIfPresent));
   const needed = Math.max(0, SECONDARY_TARGET - secondary.length);
-  return [...secondary, ...available.slice(0, needed)];
+  return [...secondary, ...computeTips(input, presentIds).slice(0, needed)];
 }
 
 export function InsightsSection() {
@@ -23,7 +22,7 @@ export function InsightsSection() {
   if (insights.length === 0) return null;
 
   const featured = insights.find(i => i.featured);
-  const secondary = padWithTips(insights.filter(i => !i.featured));
+  const secondary = padWithTips(insights.filter(i => !i.featured), input);
 
   if (!featured) return null;
 
