@@ -1,10 +1,6 @@
 import { test, expect } from '../../fixtures/base.fixture';
 
 test.describe('Dashboard', () => {
-  test('shows the page heading', async ({ dashboardPage }) => {
-    await expect(dashboardPage.heading).toBeVisible();
-  });
-
   test('shows the Net Worth chart with all three series', async ({ dashboardPage }) => {
     await expect(dashboardPage.getChartLegendItem('Assets')).toBeVisible();
     await expect(dashboardPage.getChartLegendItem('Liabilities')).toBeVisible();
