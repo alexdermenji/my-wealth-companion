@@ -13,6 +13,8 @@ import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useCreateTransaction, useCreateTransfer } from '@/features/transactions/hooks';
 import { BudgetType } from '@/shared/types';
+import { FeaturedInsightSection } from '@/features/insights/components/FeaturedInsightSection';
+import { SecondaryInsightsCard } from '@/features/insights/components/SecondaryInsightsCard';
 
 const OUTFLOW_TYPES = ['Expenses', 'Debt'];
 
@@ -73,35 +75,40 @@ export default function DashboardPage() {
           : <StreakBanner streak={engagement.streak} onSpentSelected={() => setTxOpen(true)} />
       )}
 
-      {/* Main content + task panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
-
-        {/* Task panel — above chart on mobile, right column on desktop */}
-        <div className="lg:order-2">
+      {/* Featured insight + secondary insights (connected) + Task panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-stretch">
+        <div className="lg:order-1 flex flex-col">
+          {engagement && !isNewUser && (
+            <>
+              <FeaturedInsightSection className="rounded-b-none border-b-0" />
+              <SecondaryInsightsCard className="rounded-t-none" />
+              <div className="flex-1" />
+            </>
+          )}
+        </div>
+        <div className="lg:order-2 h-full">
           {engagement ? (
             isNewUser
               ? <OnboardingPanel tasks={engagement.tasks} onAddTransaction={() => setTxOpen(true)} />
               : <TaskPanel tasks={engagement.tasks} onAddTransaction={() => setTxOpen(true)} />
           ) : (
-            <div className="bg-card border border-border rounded-xl h-48 animate-pulse" />
-          )}
-        </div>
-
-        {/* Charts */}
-        <div className="space-y-4 lg:order-1">
-          {isLoading ? (
-            <div className="h-64 rounded-2xl bg-muted/30 animate-pulse" />
-          ) : items.length === 0 || values.length === 0 ? (
-            <div className="rounded-2xl border border-border/70 bg-muted/10 px-6 py-16 text-center">
-              <p className="text-muted-foreground text-sm">
-                No net worth data yet. Add assets and liabilities in Net Worth to see your chart.
-              </p>
-            </div>
-          ) : (
-            <NetWorthChart items={items} values={values} currency={currency} />
+            <div className="bg-card border border-border rounded-xl h-full animate-pulse" />
           )}
         </div>
       </div>
+
+      {/* Chart */}
+      {isLoading ? (
+        <div className="h-64 rounded-2xl bg-muted/30 animate-pulse" />
+      ) : items.length === 0 || values.length === 0 ? (
+        <div className="rounded-2xl border border-border/70 bg-muted/10 px-6 py-16 text-center">
+          <p className="text-muted-foreground text-sm">
+            No net worth data yet. Add assets and liabilities in Net Worth to see your chart.
+          </p>
+        </div>
+      ) : (
+        <NetWorthChart items={items} values={values} currency={currency} />
+      )}
 
       {/* Transaction modal — opened when user selects "Yes, I spent" in check-in */}
       <TransactionForm

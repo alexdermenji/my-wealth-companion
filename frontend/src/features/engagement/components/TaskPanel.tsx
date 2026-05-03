@@ -29,7 +29,7 @@ export function TaskPanel({ tasks, onAddTransaction }: Props) {
   const allDone = doneCount === total;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden h-full flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border">
         <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -38,7 +38,7 @@ export function TaskPanel({ tasks, onAddTransaction }: Props) {
       </div>
 
       {/* Task rows */}
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border flex-1">
         {taskList.map((task) => {
           const isDone = task.status === "done";
           const isTransactions = task.id === "transactions";

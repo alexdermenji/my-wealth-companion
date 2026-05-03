@@ -196,11 +196,12 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
                   <span className="font-amount">{fmt(monthlyValues[key])}</span>
                 </div>
               ))}
-              <div className="flex items-baseline justify-between pt-2 border-t border-white/10">
-                <span className="text-[11px] text-white/50">Net</span>
+              <div className="flex items-start gap-2 pt-2 border-t border-white/10">
+                <span className="w-1 flex-shrink-0" />
+                <span className="text-[11px] text-white/50 w-14 flex-shrink-0 pt-1">Net</span>
                 <span
-                  className="font-amount font-bold text-base"
-                  style={{ color: net >= 0 ? "#6ee7b7" : "#f9a8d4" }}
+                  className="font-amount font-bold text-xl leading-none"
+                  style={{ color: net >= 0 ? "#6ee7b7" : "#ffffff" }}
                 >
                   {net >= 0 ? "" : "-"}{fmt(net)}
                 </span>
@@ -211,7 +212,7 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
 
         {/* Desktop: monthly stats column */}
         <div className="hidden md:flex w-px self-stretch bg-white/20 mx-1 flex-shrink-0" />
-        <div className="hidden md:flex flex-col justify-center gap-0 flex-shrink-0 px-5 py-5 min-w-[160px]">
+        <div className="hidden md:flex flex-col justify-center gap-0 flex-shrink-0 px-5 py-5 w-[280px]">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-3">This month</p>
           <div className="space-y-2.5">
             {MONTH_METRICS.map(({ key, color }) => (
@@ -222,11 +223,12 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
               </div>
             ))}
           </div>
-          <div className="border-t border-white/15 mt-3 pt-3 flex items-baseline justify-between gap-3">
-            <span className="text-xs text-white/60">Net</span>
+          <div className="flex items-start gap-2 border-t border-white/15 mt-3 pt-3">
+            <span className="w-1 flex-shrink-0" />
+            <span className="text-xs text-white/60 w-14 flex-shrink-0 pt-0.5">Net</span>
             <span
               className="font-amount font-extrabold tracking-tight text-lg leading-none"
-              style={{ color: net >= 0 ? "#6ee7b7" : "#f9a8d4" }}
+              style={{ color: net >= 0 ? "#6ee7b7" : "#ffffff" }}
             >
               {net >= 0 ? "" : "-"}{fmt(net)}
             </span>
