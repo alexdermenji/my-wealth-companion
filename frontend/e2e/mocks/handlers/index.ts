@@ -6,8 +6,9 @@ import { setupSettingsMock } from './settings.handler';
 import { setupDashboardMock } from './dashboard.handler';
 import { setupBudgetPlansMock, type BudgetPlansMockOptions } from './budget-plans.handler';
 import { setupNetWorthMock } from './net-worth.handler';
+import { setupEngagementMock } from './engagement.handler';
 
-export { setupAccountsMock, setupCategoriesMock, setupTransactionsMock, setupSettingsMock, setupDashboardMock, setupBudgetPlansMock, setupNetWorthMock };
+export { setupAccountsMock, setupCategoriesMock, setupTransactionsMock, setupSettingsMock, setupDashboardMock, setupBudgetPlansMock, setupNetWorthMock, setupEngagementMock };
 
 export interface AllMocksOptions {
   transactions?: TransactionsMockOptions;
@@ -21,6 +22,7 @@ export async function setupAllMocks(page: Page, options: AllMocksOptions = {}) {
   const categoriesMock = await setupCategoriesMock(page, options.categories);
   const txMock = await setupTransactionsMock(page, options.transactions);
   await setupDashboardMock(page);
+  await setupEngagementMock(page);
   const budgetPlansMock = await setupBudgetPlansMock(page, options.budgetPlans);
   const netWorthMock = await setupNetWorthMock(page);
   return { txMock, accountsMock, categoriesMock, settingsMock, budgetPlansMock, netWorthMock };
