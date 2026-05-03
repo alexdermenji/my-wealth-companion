@@ -6,37 +6,46 @@
 
 -- ─── Table ───────────────────────────────────────────────────────────────────
 
-CREATE TABLE "DailyCheckIns" (
-  "Id"          text PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  "UserId"      text NOT NULL,
-  "CheckInDate" date NOT NULL,
+CREATE TABLE IF NOT EXISTS "DailyCheckIns" (
+  "Id"           text PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  "UserId"       text NOT NULL,
+  "CheckInDate"  date NOT NULL,
+  "ResponseType" text,
+  -- values: 'spent' | 'no_spend' | 'passive' | NULL (legacy rows)
   UNIQUE ("UserId", "CheckInDate")
 );
+
+-- Add ResponseType to existing tables that predate this column
+ALTER TABLE "DailyCheckIns" ADD COLUMN IF NOT EXISTS "ResponseType" text;
 
 -- ─── RLS Policies ────────────────────────────────────────────────────────────
 
 ALTER TABLE "DailyCheckIns" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "dailycheckins_select" ON "DailyCheckIns";
 CREATE POLICY "dailycheckins_select" ON "DailyCheckIns"
   FOR SELECT USING ("UserId" = auth.uid()::text);
 
+DROP POLICY IF EXISTS "dailycheckins_insert" ON "DailyCheckIns";
 CREATE POLICY "dailycheckins_insert" ON "DailyCheckIns"
   FOR INSERT WITH CHECK ("UserId" = auth.uid()::text);
 
+DROP POLICY IF EXISTS "dailycheckins_delete" ON "DailyCheckIns";
 CREATE POLICY "dailycheckins_delete" ON "DailyCheckIns"
   FOR DELETE USING ("UserId" = auth.uid()::text);
 
 -- ─── Auto-UserId Trigger ─────────────────────────────────────────────────────
 
+DROP TRIGGER IF EXISTS dailycheckins_set_user_id ON "DailyCheckIns";
 CREATE TRIGGER dailycheckins_set_user_id
   BEFORE INSERT ON "DailyCheckIns"
   FOR EACH ROW EXECUTE FUNCTION set_user_id();
 
 -- ─── complete_daily_checkin ───────────────────────────────────────────────────
--- Records a "nothing today" confirmation for the calling user.
--- Idempotent: safe to call multiple times on the same day.
--- Full-credit days (transactions logged) do not need to call this.
-CREATE OR REPLACE FUNCTION complete_daily_checkin()
+-- Records a daily check-in for the calling user.
+-- response_type: 'spent' | 'no_spend' | 'passive'
+-- Idempotent: first write wins; subsequent calls on the same day are ignored.
+CREATE OR REPLACE FUNCTION complete_daily_checkin(response_type text DEFAULT 'passive')
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -45,8 +54,8 @@ AS $$
 DECLARE
   v_uid text := auth.uid()::text;
 BEGIN
-  INSERT INTO "DailyCheckIns" ("UserId", "CheckInDate")
-  VALUES (v_uid, CURRENT_DATE)
+  INSERT INTO "DailyCheckIns" ("UserId", "CheckInDate", "ResponseType")
+  VALUES (v_uid, CURRENT_DATE, response_type)
   ON CONFLICT ("UserId", "CheckInDate") DO NOTHING;
 END;
 $$;
@@ -94,20 +103,44 @@ BEGIN
     WHERE  "UserId" = v_uid
   ),
 
-  -- Whether today has been logged (determines pending vs logged status)
-  today_logged AS (
+  -- Check-in days (explicit daily check-in, any response type)
+  checkin_days AS (
+    SELECT "CheckInDate" AS day
+    FROM   "DailyCheckIns"
+    WHERE  "UserId" = v_uid
+  ),
+
+  -- Credited days = transaction days OR check-in days
+  credited_days AS (
+    SELECT day FROM tx_days
+    UNION
+    SELECT day FROM checkin_days
+  ),
+
+  -- Today's transaction status (for distinguishing "logged" vs "checked_in")
+  today_tx_logged AS (
     SELECT EXISTS (SELECT 1 FROM tx_days WHERE day = v_today) AS val
   ),
 
-  -- Reference date: today if logged, yesterday if still pending
-  tracking_ref AS (
-    SELECT CASE WHEN (SELECT val FROM today_logged) THEN v_today ELSE v_today - 1 END AS ref_date
+  -- Today's check-in status
+  today_checkin AS (
+    SELECT EXISTS (SELECT 1 FROM checkin_days WHERE day = v_today) AS val
   ),
 
-  -- Current tracking streak via offset match
+  -- Today is credited if either a transaction or check-in exists
+  today_credited AS (
+    SELECT (SELECT val FROM today_tx_logged) OR (SELECT val FROM today_checkin) AS val
+  ),
+
+  -- Reference date: today if credited, yesterday if still pending
+  tracking_ref AS (
+    SELECT CASE WHEN (SELECT val FROM today_credited) THEN v_today ELSE v_today - 1 END AS ref_date
+  ),
+
+  -- Current tracking streak via offset match (uses credited_days)
   tracking_numbered AS (
     SELECT day, (ROW_NUMBER() OVER (ORDER BY day DESC) - 1)::int AS day_offset
-    FROM   tx_days
+    FROM   credited_days
     WHERE  day <= (SELECT ref_date FROM tracking_ref)
   ),
   tracking_current AS (
@@ -117,21 +150,21 @@ BEGIN
     WHERE  day = tracking_ref.ref_date - day_offset
   ),
 
-  -- Longest tracking streak ever (gaps-and-islands)
+  -- Longest tracking streak ever (gaps-and-islands, uses credited_days)
   tracking_grp AS (
     SELECT day, day - ROW_NUMBER() OVER (ORDER BY day)::int AS island
-    FROM   tx_days
+    FROM   credited_days
   ),
   tracking_longest AS (
     SELECT COALESCE(MAX(cnt), 0)::int AS val
     FROM (SELECT COUNT(*)::int AS cnt FROM tracking_grp GROUP BY island) s
   ),
 
-  -- Last 28 days logged status for activity board
+  -- Last 28 days logged status for activity board (credited = tx OR check-in)
   recent_days AS (
     SELECT
       d::date AS day,
-      EXISTS (SELECT 1 FROM tx_days t WHERE t.day = d::date) AS logged
+      EXISTS (SELECT 1 FROM credited_days c WHERE c.day = d::date) AS logged
     FROM generate_series(v_today - 27, v_today, '1 day'::interval) d
   ),
 
@@ -230,7 +263,11 @@ BEGIN
       'tracking', jsonb_build_object(
         'currentStreak', (SELECT val FROM tracking_current),
         'longestStreak', (SELECT val FROM tracking_longest),
-        'todayStatus',   CASE WHEN (SELECT val FROM today_logged) THEN 'logged' ELSE 'pending' END,
+        'todayStatus',   CASE
+                           WHEN (SELECT val FROM today_tx_logged) THEN 'logged'
+                           WHEN (SELECT val FROM today_checkin)   THEN 'checked_in'
+                           ELSE 'pending'
+                         END,
         'recentDays', (
           SELECT jsonb_agg(jsonb_build_object('date', day, 'logged', logged) ORDER BY day)
           FROM recent_days
@@ -272,5 +309,5 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION complete_daily_checkin()  TO authenticated;
+GRANT EXECUTE ON FUNCTION complete_daily_checkin(text)  TO authenticated;
 GRANT EXECUTE ON FUNCTION get_engagement_summary()  TO authenticated;

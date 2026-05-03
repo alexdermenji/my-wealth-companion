@@ -6,7 +6,7 @@ export interface RecentDay {
 export interface TrackingStreak {
   currentStreak: number;
   longestStreak: number;
-  todayStatus: "logged" | "pending";
+  todayStatus: "logged" | "checked_in" | "pending";
   recentDays: RecentDay[];
 }
 
