@@ -12,9 +12,9 @@ const OUTFLOW_TYPES = ['Expenses', 'Debt'];
 
 const navItems = [
   { to: '/',             label: 'Dashboard',    icon: LayoutDashboard },
-  { to: '/timeline',     label: 'Timeline',     icon: CalendarClock   },
   { to: '/budget',       label: 'Budget',       icon: PiggyBank       },
   { to: '/net-worth',    label: 'Net Worth',    icon: TrendingUp      },
+  { to: '/timeline',     label: 'Timeline',     icon: CalendarClock   },
 ];
 
 export function MobileBottomBar() {

@@ -23,6 +23,46 @@ const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 type Tab = 'overview' | 'edit';
 
+function BudgetOverviewHero() {
+  return (
+    <section
+      className="relative overflow-hidden rounded-2xl text-white"
+      style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
+    >
+      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/[0.08]" />
+      <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/[0.06]" />
+
+      <div className="relative flex min-h-[132px] items-stretch">
+        <div
+          className="flex w-[240px] flex-shrink-0 items-center justify-center px-5 py-4"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
+        >
+          <img
+            src="/budget-overeview.png"
+            alt=""
+            aria-hidden="true"
+            className="max-h-[116px] w-auto object-contain drop-shadow-xl"
+          />
+        </div>
+
+        <div className="flex flex-1 items-center px-8 py-6">
+          <div className="max-w-2xl">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">Budget overview</p>
+            <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
+              See where this month is landing
+            </h2>
+            <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-white/72">
+              Use this view to compare your tracked activity with the plan for the selected month. Open each section
+              to spot categories running hot, check what is still available, and decide where to adjust before the
+              month gets away from you.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function BudgetPlanPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -185,7 +225,8 @@ export default function BudgetPlanPage() {
               onNextMonth={goToNextMonth}
             />
           ) : (
-            <div className="overflow-auto flex-1">
+            <div className="overflow-auto flex-1 space-y-4 pr-1">
+              <BudgetOverviewHero />
               <BudgetBreakdown breakdown={breakdown} formatCurrency={formatCurrency} />
             </div>
           )}

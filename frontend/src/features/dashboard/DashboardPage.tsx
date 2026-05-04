@@ -7,7 +7,6 @@ import { StreakBanner } from '@/features/engagement/components/StreakBanner';
 import { WelcomeBanner } from '@/features/engagement/components/WelcomeBanner';
 import { TaskPanel } from '@/features/engagement/components/TaskPanel';
 import { OnboardingPanel } from '@/features/engagement/components/OnboardingPanel';
-import { WhatYouMissedBanner } from '@/features/engagement/components/WhatYouMissedBanner';
 import { TransactionForm, type FormValues } from '@/features/transactions/components/TransactionForm';
 import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
@@ -35,8 +34,6 @@ export default function DashboardPage() {
   const isLoading = settingsLoading || itemsLoading || valuesLoading;
 
   const isNewUser = engagement !== undefined && engagement.tasks.daysSinceLastTransaction === null;
-  const daysSince = engagement?.tasks.daysSinceLastTransaction ?? 0;
-  const showMissedBanner = !isNewUser && daysSince >= 2;
 
   function handleTransactionSubmit(data: FormValues) {
     if (data.budgetType === 'Transfer') {
@@ -63,11 +60,6 @@ export default function DashboardPage() {
 
   return (
     <div className="animate-fade-in max-w-5xl mx-auto space-y-4">
-      {/* What you missed — shown when returning after 2+ days */}
-      {engagement && showMissedBanner && (
-        <WhatYouMissedBanner daysSince={daysSince} tasks={engagement.tasks} />
-      )}
-
       {/* Hero banner — welcome for new users, streak for returning users */}
       {engagement && (
         isNewUser

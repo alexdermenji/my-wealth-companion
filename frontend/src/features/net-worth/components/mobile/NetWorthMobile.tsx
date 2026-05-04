@@ -20,21 +20,12 @@ interface NetWorthMobileProps {
 }
 
 const NET_WORTH_TYPES: NetWorthType[] = ['Asset', 'Liability'];
-const ARC_LEN = 141;
 
 function formatAmount(value: number, currency: string) {
   if (value === 0) return '—';
   return `${value < 0 ? '-' : ''}${currency}${new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 6,
-  }).format(Math.abs(value))}`;
-}
-
-function formatCompactAmount(value: number, currency: string) {
-  if (value === 0) return `${currency}0`;
-  return `${value < 0 ? '-' : ''}${currency}${new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
   }).format(Math.abs(value))}`;
 }
 
@@ -62,25 +53,6 @@ export function NetWorthMobile({
     return netWorth - (netWorthByMonth[selectedMonth - 2] ?? 0);
   }, [netWorth, netWorthByMonth, selectedMonth]);
 
-  const previousNetWorth = selectedMonth > 1 ? (netWorthByMonth[selectedMonth - 2] ?? 0) : null;
-  const changePct = monthDelta !== null && previousNetWorth !== null && previousNetWorth !== 0
-    ? Math.round((monthDelta / Math.abs(previousNetWorth)) * 1000) / 10
-    : null;
-  const gaugeFillPct = changePct === null ? (monthDelta === null ? 0 : 100) : Math.min(Math.abs(changePct), 100);
-  const gaugeDashOffset = ARC_LEN - (gaugeFillPct / 100) * ARC_LEN;
-  const gaugeColor = monthDelta === null
-    ? 'rgba(255,255,255,0.25)'
-    : monthDelta < 0
-      ? '#f9a8d4'
-      : changePct !== null && changePct >= 20
-        ? '#fbbf24'
-        : '#6ee7b7';
-  const gaugeValue = changePct !== null
-    ? `${changePct > 0 ? '+' : ''}${Math.round(changePct)}%`
-    : monthDelta === null
-      ? '—'
-      : formatCompactAmount(monthDelta, currency);
-
   const deltaColor = monthDelta === null
     ? 'text-white/70'
     : monthDelta < 0
@@ -92,7 +64,7 @@ export function NetWorthMobile({
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-auto">
       <div
-        className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-7 text-white mb-4 min-h-[228px]"
+        className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-8 text-white mb-4 min-h-[248px]"
         style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
       >
         <div className="pointer-events-none absolute inset-0 z-0">
@@ -131,33 +103,15 @@ export function NetWorthMobile({
             </div>
           </div>
 
-          <div className="relative flex items-center gap-4 mb-4 mt-4">
-            <svg width="110" height="70" viewBox="0 0 110 70" className="flex-shrink-0">
-              <path
-                d="M 10 65 A 45 45 0 0 1 100 65"
-                fill="none"
-                stroke="rgba(255,255,255,0.15)"
-                strokeWidth="8"
-                strokeLinecap="round"
+          <div className="relative flex items-center gap-4 mb-4 mt-3">
+            <div className="flex w-[104px] flex-shrink-0 justify-center">
+              <img
+                src="/net-worth.png"
+                alt=""
+                aria-hidden="true"
+                className="h-[86px] w-auto object-contain drop-shadow-xl"
               />
-              {monthDelta !== null && (
-                <path
-                  d="M 10 65 A 45 45 0 0 1 100 65"
-                  fill="none"
-                  stroke={gaugeColor}
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={ARC_LEN}
-                  strokeDashoffset={gaugeDashOffset}
-                />
-              )}
-              <text x="55" y="48" textAnchor="middle" fill="white" fontSize="10" fontWeight="700" opacity="0.8">
-                CHANGE
-              </text>
-              <text x="55" y="62" textAnchor="middle" fill="white" fontSize="14" fontWeight="800">
-                {gaugeValue}
-              </text>
-            </svg>
+            </div>
 
             <div className="flex-1 space-y-1.5">
               <div className="flex items-center gap-2 text-xs font-semibold">
@@ -187,7 +141,7 @@ export function NetWorthMobile({
             </div>
           </div>
 
-          <div className="relative pt-3 border-t border-white/15 flex items-baseline justify-between">
+          <div className="relative pt-4 border-t border-white/15 flex items-baseline justify-between gap-4">
             <span className="text-sm text-white/70">Net worth</span>
             <p
               className={cn('font-amount whitespace-nowrap font-extrabold leading-none tracking-tight', netWorthColor)}

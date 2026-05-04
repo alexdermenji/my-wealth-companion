@@ -188,7 +188,7 @@ export function NetWorthProjectionChart({ items, values, currency, milestoneAmou
       {/* Chart */}
       <div style={{ height: 180 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+          <AreaChart data={points} margin={{ top: 8, right: 56, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="gradProjActual" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6c5ce7" stopOpacity={0.28} />
@@ -225,6 +225,13 @@ export function NetWorthProjectionChart({ items, values, currency, milestoneAmou
                 stroke="rgba(245,158,11,0.6)"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
+                label={{
+                  value: fmtY(amount, currency),
+                  position: 'right',
+                  fill: '#b45309',
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
               />
             ))}
 

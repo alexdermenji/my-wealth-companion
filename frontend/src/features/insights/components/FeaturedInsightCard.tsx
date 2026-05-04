@@ -1,4 +1,4 @@
-import { ArrowUp, Check } from 'lucide-react';
+import { Check, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Insight } from '../types';
 
@@ -42,7 +42,7 @@ export function FeaturedInsightCard({ insight, className }: { insight: Insight; 
           'text-xs font-semibold',
           isWarning ? 'text-amber-900' : 'text-emerald-900',
         )}>
-          {isWarning ? <ArrowUp className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+          {isWarning ? <TrendingDown className="h-3 w-3" /> : <Check className="h-3 w-3" />}
           {insight.actionLabel}
         </div>
       )}

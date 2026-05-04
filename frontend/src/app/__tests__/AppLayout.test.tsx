@@ -22,7 +22,8 @@ describe("AppLayout", () => {
   it("renders all navigation links", () => {
     renderWithProviders(<AppLayout>Content</AppLayout>);
 
-    // Each label appears in both the desktop nav and the mobile bottom bar
+    // Most labels appear in both the desktop nav and the mobile bottom bar.
+    // Transactions stays desktop-only because mobile uses the centered add button.
     expect(screen.getAllByText("Dashboard")).toHaveLength(2);
     expect(screen.getByText("Transactions")).toBeInTheDocument();
     expect(screen.getAllByText("Net Worth")).toHaveLength(2);
