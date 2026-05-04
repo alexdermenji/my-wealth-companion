@@ -103,57 +103,26 @@ export function MobileDashboard({ breakdown, formatCurrency, year, month, onPrev
           </div>
         </div>
 
-        {/* Gauge + metrics */}
+        {/* Character + metrics */}
         {(() => {
           const incomeVal   = income?.totalTracked   ?? 0;
           const expensesVal = expenses?.totalTracked ?? 0;
           const savingsVal  = savings?.totalTracked  ?? 0;
           const debtVal     = debt?.totalTracked     ?? 0;
-          const expBudget   = expenses?.totalBudget  ?? 0;
-
-          const usedPct  = expBudget > 0 ? Math.round((expensesVal / expBudget) * 100) : 0;
-          const isOver   = usedPct > 100;
-          const isEmpty  = expBudget === 0 && expensesVal === 0;
-
-          // Arc parameters: semicircle from left to right, r=45, centre (55,65)
-          const ARC_LEN = 141;
-          const fillLen    = isEmpty ? 0 : Math.min(usedPct / 100, 1) * ARC_LEN;
-          const dashOffset = ARC_LEN - fillLen;
-
-          const arcColor = isEmpty       ? 'rgba(255,255,255,0.25)'
-                         : isOver        ? '#f9a8d4'  // pink-300
-                         : usedPct >= 80 ? '#fbbf24'  // amber-400
-                         :                 '#6ee7b7'; // emerald-300
 
           return (
             <div className="relative flex items-center gap-4 mb-4">
-              {/* Gauge SVG */}
-              <svg width="110" height="70" viewBox="0 0 110 70" className="flex-shrink-0">
-                {/* Track */}
-                <path d="M 10 65 A 45 45 0 0 1 100 65" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" strokeLinecap="round" />
-                {/* Fill */}
-                {!isEmpty && (
-                  <path
-                    d="M 10 65 A 45 45 0 0 1 100 65"
-                    fill="none"
-                    stroke={arcColor}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={ARC_LEN}
-                    strokeDashoffset={dashOffset}
-                  />
-                )}
-                {/* Label */}
-                <text x="55" y="45" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" opacity={isEmpty ? 0.4 : 0.8}>
-                  {isOver ? 'OVER BUDGET' : 'OF BUDGET'}
-                </text>
-                <text x="55" y="62" textAnchor="middle" fill="white" fontSize="14" fontWeight="800" opacity={isEmpty ? 0.4 : 1}>
-                  {isEmpty ? '—' : `${usedPct}%`}
-                </text>
-              </svg>
+              <div className="flex w-[112px] flex-shrink-0 justify-center">
+                <img
+                  src="/budget-overeview.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[118px] w-auto object-contain drop-shadow-xl"
+                />
+              </div>
 
               {/* Metrics list */}
-              <div className="flex-1 space-y-1.5" style={{ opacity: isEmpty ? 0.4 : 1 }}>
+              <div className="flex-1 space-y-1.5">
                 {[
                   { label: 'Income',   value: incomeVal,   color: '#6ee7b7' },
                   { label: 'Expenses', value: expensesVal, color: '#f9a8d4' },

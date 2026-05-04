@@ -4,6 +4,7 @@ import { CheckInWidget } from "./CheckInWidget";
 import { useCheckIn } from "../hooks";
 import { useDashboardSummary } from "@/features/dashboard/hooks";
 import { useSettings } from "@/features/settings/hooks";
+import { Plus } from "lucide-react";
 
 interface Props {
   streak: StreakData;
@@ -63,7 +64,6 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
     weeks.push(tracking.recentDays.slice(i, i + 7));
   }
 
-  const isDone     = tracking.todayStatus === "logged" || tracking.todayStatus === "checked_in";
   const showCheckIn = tracking.todayStatus === "pending";
 
   const monthlyValues: Record<string, number> = {
@@ -151,29 +151,16 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
                 </span>
               </div>
 
-              {/* Best ever + Today */}
-              <div className="flex items-center gap-4 mt-3">
-                <div>
-                  <div className="text-[11px] text-white/45 mb-1">Best ever</div>
-                  <div className="font-amount text-[17px] font-bold leading-none whitespace-nowrap">
-                    {tracking.longestStreak} days
-                  </div>
-                </div>
-                <div className="w-px h-7 bg-white/20" />
-                <div>
-                  <div className="text-[11px] text-white/45 mb-1">Today</div>
-                  <span
-                    className={cn(
-                      "text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1 whitespace-nowrap",
-                      isDone
-                        ? "bg-emerald-400/30 text-emerald-100 ring-1 ring-emerald-400/40"
-                        : "bg-white/15 text-white/65"
-                    )}
-                  >
-                    {isDone ? "✓ Done today" : "Pending"}
-                  </span>
-                </div>
-              </div>
+              {!showCheckIn && (
+                <button
+                  type="button"
+                  onClick={onSpentSelected}
+                  className="mt-3 hidden h-8 items-center gap-1.5 rounded-lg bg-white/[0.12] px-3 text-xs font-semibold text-white/90 ring-1 ring-white/20 transition-colors hover:bg-white/[0.18] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:inline-flex"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Add transaction
+                </button>
+              )}
             </div>
           </div>
 

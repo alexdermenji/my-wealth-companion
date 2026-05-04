@@ -21,10 +21,10 @@ import { MobileBottomBar } from './MobileBottomBar';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { to: '/budget', label: 'Budget Plan', icon: PiggyBank },
   { to: '/net-worth', label: 'Net Worth', icon: TrendingUp },
   { to: '/timeline', label: 'Timeline', icon: CalendarClock },
+  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
 ];
 
 function getInitials(name: string | undefined): string {
