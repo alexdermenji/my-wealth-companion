@@ -64,7 +64,7 @@ export function NetWorthMobile({
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-auto">
       <div
-        className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-8 text-white mb-4 min-h-[248px]"
+        className="relative overflow-hidden rounded-2xl p-5 text-white mb-4 shrink-0"
         style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
       >
         <div className="pointer-events-none absolute inset-0 z-0">
@@ -74,7 +74,7 @@ export function NetWorthMobile({
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-white/70">
                 Net Worth
@@ -103,13 +103,13 @@ export function NetWorthMobile({
             </div>
           </div>
 
-          <div className="relative flex items-center gap-4 mb-4 mt-3">
-            <div className="flex w-[104px] flex-shrink-0 justify-center">
+          <div className="relative flex items-center gap-4 mb-4">
+            <div className="flex w-[112px] flex-shrink-0 justify-center">
               <img
                 src="/net-worth.png"
                 alt=""
                 aria-hidden="true"
-                className="h-[86px] w-auto object-contain drop-shadow-xl"
+                className="h-[118px] w-auto object-contain drop-shadow-xl"
               />
             </div>
 
@@ -141,7 +141,7 @@ export function NetWorthMobile({
             </div>
           </div>
 
-          <div className="relative pt-4 border-t border-white/15 flex items-baseline justify-between gap-4">
+          <div className="relative pt-3 border-t border-white/15 flex items-baseline justify-between gap-4">
             <span className="text-sm text-white/70">Net worth</span>
             <p
               className={cn('font-amount whitespace-nowrap font-extrabold leading-none tracking-tight', netWorthColor)}

@@ -81,15 +81,6 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
       <div className="pointer-events-none absolute -top-8 -right-8 w-36 h-36 rounded-full bg-white/[0.07]" />
       <div className="pointer-events-none absolute -bottom-6 left-4 w-24 h-24 rounded-full bg-white/[0.05]" />
 
-      {/* ── Mobile: greeting row ── */}
-      <div className="md:hidden flex items-center gap-3 px-4 pt-4 pb-3 relative" style={{ background: "rgba(255,255,255,0.12)" }}>
-        <img src="/streak.png" alt="" aria-hidden="true" className="h-14 w-auto object-contain drop-shadow-lg flex-shrink-0" />
-        <div>
-          <p className="text-[15px] font-bold text-white">{getGreeting()} 👋</p>
-          <p className="text-[12px] text-white/55 mt-0.5">Here's your streak</p>
-        </div>
-      </div>
-
       {/* ── Main row ── */}
       <div className="flex items-stretch relative">
 
@@ -98,7 +89,9 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
           className="hidden md:flex flex-col items-center justify-center flex-shrink-0 w-[180px] py-4 px-4"
           style={{ background: "rgba(255,255,255,0.12)" }}
         >
-          <p className="text-[14px] font-bold text-white mb-3 whitespace-nowrap">{getGreeting()} 👋</p>
+          <p className="mb-3 max-w-full truncate text-center text-[15px] font-bold text-white">
+            {getGreeting()} 👋
+          </p>
           <img src="/streak.png" alt="" aria-hidden="true" className="w-full h-auto object-contain object-bottom drop-shadow-xl" />
         </div>
 
@@ -164,6 +157,34 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
             </div>
           </div>
 
+          {/* Mobile: mascot + monthly stats */}
+          <div className="md:hidden px-5 pb-4">
+            <div className="border-t border-white/15">
+              <div className="flex items-center gap-4">
+                <img src="/streak.png" alt="" aria-hidden="true" className="h-[130px] w-[130px] -translate-x-5 object-contain drop-shadow-xl flex-shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">This month</p>
+                  {MONTH_METRICS.map(({ key, color }) => (
+                    <div key={key} className="flex items-center gap-2 text-xs font-semibold">
+                      <span className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: color }} />
+                      <span className="text-white/70 w-14 flex-shrink-0">{key}</span>
+                      <span className="font-amount">{fmt(monthlyValues[key])}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-baseline justify-end gap-4 pt-3 mt-3 border-t border-white/10">
+                <span className="text-[11px] text-white/50 flex-shrink-0">Net</span>
+                <span
+                  className="font-amount font-bold leading-none whitespace-nowrap text-right"
+                  style={{ color: net >= 0 ? "#6ee7b7" : "#ffffff", fontSize: "clamp(18px, 5vw, 20px)" }}
+                >
+                  {net >= 0 ? "" : "-"}{fmt(net)}
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Check-in widget */}
           {showCheckIn && (
             <CheckInWidget
@@ -172,29 +193,6 @@ export function StreakBanner({ streak, onSpentSelected }: Props) {
             />
           )}
 
-          {/* Mobile: monthly stats */}
-          <div className="md:hidden px-5 pb-5 pt-1">
-            <div className="border-t border-white/15 pt-3 space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">This month</p>
-              {MONTH_METRICS.map(({ key, color }) => (
-                <div key={key} className="flex items-center gap-2 text-xs font-semibold">
-                  <span className="w-1 h-4 rounded-full flex-shrink-0" style={{ background: color }} />
-                  <span className="text-white/70 w-14 flex-shrink-0">{key}</span>
-                  <span className="font-amount">{fmt(monthlyValues[key])}</span>
-                </div>
-              ))}
-              <div className="flex items-start gap-2 pt-2 border-t border-white/10">
-                <span className="w-1 flex-shrink-0" />
-                <span className="text-[11px] text-white/50 w-14 flex-shrink-0 pt-1">Net</span>
-                <span
-                  className="font-amount font-bold text-xl leading-none"
-                  style={{ color: net >= 0 ? "#6ee7b7" : "#ffffff" }}
-                >
-                  {net >= 0 ? "" : "-"}{fmt(net)}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Desktop: monthly stats column */}

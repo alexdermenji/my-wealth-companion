@@ -16,7 +16,14 @@ vi.mock("@/shared/auth/AuthProvider", () => ({
 describe("AppLayout", () => {
   it("renders the app title", () => {
     renderWithProviders(<AppLayout>Content</AppLayout>);
-    expect(screen.getByText("FinanceFlow")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Nubiq" })).toBeInTheDocument();
+  });
+
+  it("sets the browser title for the active page", () => {
+    renderWithProviders(<AppLayout>Content</AppLayout>, {
+      initialEntries: ["/budget"],
+    });
+    expect(document.title).toBe("Nubiq | Budget Plan");
   });
 
   it("renders all navigation links", () => {

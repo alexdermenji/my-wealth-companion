@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ArrowLeftRight, PiggyBank, Settings, TrendingUp, LogOut, Menu, CalendarClock } from 'lucide-react';
 
@@ -27,6 +27,15 @@ const navItems = [
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
 ];
 
+const pageTitles: Record<string, string> = {
+  '/': 'Dashboard',
+  '/budget': 'Budget Plan',
+  '/net-worth': 'Net Worth',
+  '/timeline': 'Timeline',
+  '/transactions': 'Transactions',
+  '/settings': 'Settings',
+};
+
 function getInitials(name: string | undefined): string {
   if (!name) return '?';
   return name
@@ -43,12 +52,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [fullWidth, setFullWidth] = useState(false);
 
+  useEffect(() => {
+    const pageTitle = pageTitles[location.pathname];
+    document.title = pageTitle ? `Nubiq | ${pageTitle}` : 'Nubiq';
+  }, [location.pathname]);
+
   return (
     <FullWidthContext.Provider value={{ fullWidth, setFullWidth }}>
     <div className="min-h-screen bg-background">
       {/* Top header */}
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center px-4 md:px-6">
+        <div className="relative flex h-16 items-center px-4 md:px-6">
           {/* Mobile hamburger for secondary destinations not shown in the bottom bar */}
           <Button
             variant="ghost"
@@ -61,10 +75,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </Button>
 
           {/* Logo */}
-          <Link to="/" className="flex items-center mr-8">
-            <span className="font-display text-2xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
-              FinanceFlow
-            </span>
+          <Link to="/" className="absolute left-1/2 -translate-x-1/2 md:static md:mr-8 md:translate-x-0">
+            <img src="/logo-cropped.png" alt="Nubiq" className="h-12 w-auto object-contain" />
           </Link>
 
           {/* Desktop nav */}
@@ -134,9 +146,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-64 p-0">
           <SheetHeader className="p-4 border-b">
-            <SheetTitle className="flex items-center gap-2 font-display">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              FinanceFlow
+            <SheetTitle className="flex items-center font-display">
+              <img src="/logo-cropped.png" alt="Nubiq" className="h-11 w-auto object-contain" />
             </SheetTitle>
           </SheetHeader>
           <nav className="flex flex-col p-2 gap-1">
