@@ -5,6 +5,13 @@ interface Props {
   onNoSpend: () => void;
 }
 
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export function CheckInWidget({ onSpent, onNoSpend }: Props) {
   const [confirmed, setConfirmed] = useState(false);
 
@@ -43,8 +50,8 @@ export function CheckInWidget({ onSpent, onNoSpend }: Props) {
       className="mx-5 mb-4 rounded-xl px-4 py-3"
       style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.18)" }}
     >
-      <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">
-        Review your day
+      <p className="truncate text-[15px] font-bold text-white mb-1 md:hidden">
+        {getGreeting()} 👋
       </p>
       <p className="text-[14px] font-bold text-white mb-3">
         Any expenses today?

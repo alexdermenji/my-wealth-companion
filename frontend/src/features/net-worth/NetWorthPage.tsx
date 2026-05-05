@@ -189,27 +189,29 @@ export default function NetWorthPage() {
         isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
       )}
     >
-      <div className="flex items-center justify-center shrink-0">
-        <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
-          <button
-            onClick={() => setYear(current => current - 1)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Previous year"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="font-display text-base font-bold text-foreground min-w-[3rem] text-center">
-            {year}
-          </span>
-          <button
-            onClick={() => setYear(current => current + 1)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Next year"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+      {!isMobile && (
+        <div className="flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
+            <button
+              onClick={() => setYear(current => current - 1)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Previous year"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="font-display text-base font-bold text-foreground min-w-[3rem] text-center">
+              {year}
+            </span>
+            <button
+              onClick={() => setYear(current => current + 1)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Next year"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {isMobile ? (
         <NetWorthMobile
