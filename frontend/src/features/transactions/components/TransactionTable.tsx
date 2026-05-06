@@ -50,7 +50,6 @@ export function TransactionTable({
             <TableRow>
               <TableHead>Date</TableHead>
               <TableHead>Amount</TableHead>
-              <TableHead className="hidden sm:table-cell">Details</TableHead>
               <TableHead className="hidden md:table-cell">Account</TableHead>
               <TableHead className="hidden lg:table-cell">Type</TableHead>
               <TableHead className="hidden lg:table-cell">Position</TableHead>
@@ -60,7 +59,7 @@ export function TransactionTable({
           <TableBody>
             {displayRows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
                   No transactions yet. Click "Add Transaction" to get started.
                 </TableCell>
               </TableRow>
@@ -80,7 +79,6 @@ export function TransactionTable({
                         ? formatCurrency(Math.abs(tx.amount))
                         : tx.amount < 0 ? `(${formatCurrency(tx.amount)})` : formatCurrency(tx.amount)}
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell text-sm">{tx.details}</TableCell>
                     <TableCell className="hidden md:table-cell text-sm">{accountLabel}</TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {tx.budgetType

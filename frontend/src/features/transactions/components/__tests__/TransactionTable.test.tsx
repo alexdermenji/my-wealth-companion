@@ -38,8 +38,9 @@ const defaultProps = {
 describe("TransactionTable", () => {
   it("renders transaction rows", () => {
     render(<TransactionTable {...defaultProps} />);
-    expect(screen.getByText("Salary")).toBeInTheDocument();
-    expect(screen.getByText("Groceries")).toBeInTheDocument();
+    expect(screen.queryByText("Details")).not.toBeInTheDocument();
+    expect(screen.getByText("Employment")).toBeInTheDocument();
+    expect(screen.getByText("Food")).toBeInTheDocument();
   });
 
   it("formats dates correctly", () => {

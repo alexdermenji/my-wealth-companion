@@ -1,8 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
+import { toast } from "sonner";
 import {
   useTransactions,
+  usePaginatedTransactions,
   useCreateTransaction,
+  useCreateTransfer,
   useUpdateTransaction,
   useDeleteTransaction,
 } from "../hooks";
@@ -12,6 +15,12 @@ import { createHookWrapper, createTestQueryClient } from "@/test/test-utils";
 import type { Transaction } from "../types";
 
 vi.mock("../api");
+vi.mock("sonner", () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
 
 const mockTransactions: Transaction[] = [
   {
@@ -50,7 +59,7 @@ describe("useTransactions", () => {
   });
 
   it("fetches transactions with filters", async () => {
-    const filters = { budgetType: "Income", accountId: "a1" };
+    const filters = { budgetType: "Income", accountId: "a1", month: 2, year: 2026 };
     const { result } = renderHook(() => useTransactions(filters), {
       wrapper: createHookWrapper(),
     });
@@ -67,6 +76,22 @@ describe("useTransactions", () => {
     await waitFor(() =>
       expect(queryClient.getQueryState(["transactions", filters])).toBeDefined()
     );
+  });
+
+  it("fetches paginated transactions", async () => {
+    const query = { budgetType: "Income", month: 2, year: 2026, page: 2, pageSize: 25 };
+    vi.mocked(transactionsApi.getPage).mockResolvedValue({
+      transactions: mockTransactions,
+      totalCount: 52,
+    });
+    const { result } = renderHook(() => usePaginatedTransactions(query), {
+      wrapper: createHookWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data).toEqual({ transactions: mockTransactions, totalCount: 52 });
+    expect(transactionsApi.getPage).toHaveBeenCalledWith(query);
   });
 });
 
@@ -89,6 +114,45 @@ describe("useCreateTransaction", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["transactions"] });
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["dashboard"] });
+    expect(toast.success).toHaveBeenCalledWith("Transaction added", { id: "transaction-added" });
+  });
+
+  it("shows a failure toast when creating a transaction fails", async () => {
+    vi.mocked(transactionsApi.create).mockRejectedValue(new Error("Nope"));
+    const { result } = renderHook(() => useCreateTransaction(), {
+      wrapper: createHookWrapper(),
+    });
+
+    const newTx = { ...mockTransactions[0] };
+    delete (newTx as Record<string, unknown>).id;
+    result.current.mutate(newTx as Omit<(typeof mockTransactions)[0], "id">);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(toast.error).toHaveBeenCalledWith("Failed to add transaction", { id: "transaction-added" });
+  });
+});
+
+describe("useCreateTransfer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(transactionsApi.createTransfer).mockResolvedValue({ ...mockTransactions[0], id: "t3" });
+  });
+
+  it("creates a transfer and shows the transaction added toast", async () => {
+    const { result } = renderHook(() => useCreateTransfer(), {
+      wrapper: createHookWrapper(),
+    });
+
+    result.current.mutate({
+      date: "2026-01-15",
+      amount: 50,
+      details: "Transfer",
+      accountFromId: "a1",
+      accountToId: "a2",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(toast.success).toHaveBeenCalledWith("Transaction added", { id: "transaction-added" });
   });
 });
 

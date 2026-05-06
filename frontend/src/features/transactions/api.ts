@@ -24,8 +24,25 @@ const toTransaction = (row: TransactionRow): Transaction => ({
   transferPairId: row.TransferPairId ?? undefined,
 });
 
+export type TransactionFilters = {
+  budgetType?: string;
+  accountId?: string;
+  month?: number;
+  year?: number;
+};
+
+export type PaginatedTransactionQuery = TransactionFilters & {
+  page: number;
+  pageSize: number;
+};
+
+export type PaginatedTransactionResult = {
+  transactions: Transaction[];
+  totalCount: number;
+};
+
 export const transactionsApi = {
-  getAll: async (filters?: { budgetType?: string; accountId?: string }): Promise<Transaction[]> => {
+  getAll: async (filters?: TransactionFilters): Promise<Transaction[]> => {
     let query = supabase
       .from("Transactions")
       .select("*")
@@ -35,10 +52,61 @@ export const transactionsApi = {
       query = query.eq("BudgetType", filters.budgetType);
     if (filters?.accountId && filters.accountId !== "all")
       query = query.eq("AccountId", filters.accountId);
+    if (filters?.year) {
+      const startMonth = filters.month ?? 1;
+      const endYear = filters.month ? (filters.month === 12 ? filters.year + 1 : filters.year) : filters.year + 1;
+      const endMonth = filters.month ? (filters.month === 12 ? 1 : filters.month + 1) : 1;
+      const startDate = `${filters.year}-${String(startMonth).padStart(2, "0")}-01`;
+      const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
+      query = query.gte("Date", startDate).lt("Date", endDate);
+    }
 
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data as TransactionRow[]).map(toTransaction);
+    const transactions = (data as TransactionRow[]).map(toTransaction);
+
+    if (filters?.month && !filters.year) {
+      return transactions.filter(tx => Number(tx.date.slice(5, 7)) === filters.month);
+    }
+
+    return transactions;
+  },
+
+  getPage: async ({ page, pageSize, ...filters }: PaginatedTransactionQuery): Promise<PaginatedTransactionResult> => {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    let query = supabase
+      .from("Transactions")
+      .select("*", { count: "exact" })
+      .order("Date", { ascending: false });
+
+    if (filters.budgetType && filters.budgetType !== "all")
+      query = query.eq("BudgetType", filters.budgetType);
+    if (filters.accountId && filters.accountId !== "all")
+      query = query.eq("AccountId", filters.accountId);
+    if (filters.year) {
+      const startMonth = filters.month ?? 1;
+      const endYear = filters.month ? (filters.month === 12 ? filters.year + 1 : filters.year) : filters.year + 1;
+      const endMonth = filters.month ? (filters.month === 12 ? 1 : filters.month + 1) : 1;
+      const startDate = `${filters.year}-${String(startMonth).padStart(2, "0")}-01`;
+      const endDate = `${endYear}-${String(endMonth).padStart(2, "0")}-01`;
+      query = query.gte("Date", startDate).lt("Date", endDate);
+    }
+
+    if (filters.month && !filters.year) {
+      const { data, error } = await query;
+      if (error) throw new Error(error.message);
+      const filtered = (data as TransactionRow[])
+        .map(toTransaction)
+        .filter(tx => Number(tx.date.slice(5, 7)) === filters.month);
+      return { transactions: filtered.slice(from, to + 1), totalCount: filtered.length };
+    }
+
+    const { data, error, count } = await query.range(from, to);
+    if (error) throw new Error(error.message);
+    const transactions = (data as TransactionRow[]).map(toTransaction);
+
+    return { transactions, totalCount: count ?? transactions.length };
   },
 
   create: async (payload: Omit<Transaction, "id">): Promise<Transaction> => {

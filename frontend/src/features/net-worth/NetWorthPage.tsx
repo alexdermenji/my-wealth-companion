@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MONTHS } from '@/shared/types';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { useFullWidth } from '@/app/AppLayout';
 import { useSettings } from '@/features/settings/hooks';
 import { getCurrentBudgetMonth } from '@/features/budget/constants';
@@ -16,7 +16,7 @@ import type { NetWorthType } from './types';
 
 const NET_WORTH_TYPES: NetWorthType[] = ['Asset', 'Liability'];
 
-function NetWorthHero() {
+function NetWorthHero({ action }: { action: ReactNode }) {
   return (
     <section
       className="relative overflow-hidden rounded-2xl text-white"
@@ -24,6 +24,9 @@ function NetWorthHero() {
     >
       <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/[0.08]" />
       <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/[0.06]" />
+      <div className="absolute right-5 top-5 z-10">
+        {action}
+      </div>
 
       <div className="relative flex min-h-[132px] items-stretch">
         <div
@@ -38,17 +41,29 @@ function NetWorthHero() {
           />
         </div>
 
-        <div className="flex flex-1 items-center px-8 py-6">
+        <div className="flex flex-1 items-center px-8 py-6 pr-44">
           <div className="max-w-2xl">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">Net worth</p>
-            <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
+            <h2 className="font-display text-2xl font-bold leading-tight">
               Keep your full picture up to date
             </h2>
-            <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-white/72">
-              Update asset and liability balances each month so the chart, milestones, and monthly movement stay
-              useful. Add anything you own under Assets, add debts under Liabilities, then fill the current month
-              first before backfilling older months.
-            </p>
+            <div className="mt-3 max-w-xl space-y-1.5">
+              {[
+                'Add anything you own under Assets',
+                'Add debts under Liabilities',
+                'Update balances at the end of each month',
+              ].map(instruction => (
+                <div
+                  key={instruction}
+                  className="flex items-center gap-2.5 rounded-xl border border-white/45 bg-white/[0.13] px-3 py-1.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur"
+                >
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#34d399]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="leading-snug">{instruction}</p>
+                  </div>
+                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-[#a7f3d0]" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -189,30 +204,6 @@ export default function NetWorthPage() {
         isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
       )}
     >
-      {!isMobile && (
-        <div className="flex items-center justify-center shrink-0">
-          <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-1.5 shadow-sm">
-            <button
-              onClick={() => setYear(current => current - 1)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Previous year"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="font-display text-base font-bold text-foreground min-w-[3rem] text-center">
-              {year}
-            </span>
-            <button
-              onClick={() => setYear(current => current + 1)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Next year"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {isMobile ? (
         <NetWorthMobile
           year={year}
@@ -229,7 +220,29 @@ export default function NetWorthPage() {
         />
       ) : (
         <>
-          <NetWorthHero />
+          <NetWorthHero
+            action={(
+              <div className="flex items-center gap-3 rounded-full border border-white/40 bg-white/95 px-4 py-1.5 shadow-sm backdrop-blur">
+                <button
+                  onClick={() => setYear(current => current - 1)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Previous year"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="font-display text-base font-bold text-foreground min-w-[3rem] text-center">
+                  {year}
+                </span>
+                <button
+                  onClick={() => setYear(current => current + 1)}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Next year"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          />
 
           <div className="flex shrink-0 gap-3 items-center">
         <div className="flex flex-1 flex-wrap items-center gap-0 overflow-hidden rounded-xl border border-border bg-card shadow-sm">

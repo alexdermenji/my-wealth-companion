@@ -44,4 +44,18 @@ export class TransactionsPage {
     const select = new RadixSelect(this.page, trigger);
     await select.selectOption(account);
   }
+
+  async filterByMonth(month: string) {
+    const filterArea = this.page.locator('.flex.gap-3');
+    const trigger = filterArea.locator('button[role="combobox"]').nth(2);
+    const select = new RadixSelect(this.page, trigger);
+    await select.selectOption(month);
+  }
+
+  async filterByYear(year: string) {
+    const filterArea = this.page.locator('.flex.gap-3');
+    const trigger = filterArea.locator('button[role="combobox"]').nth(3);
+    const select = new RadixSelect(this.page, trigger);
+    await select.selectOption(year);
+  }
 }

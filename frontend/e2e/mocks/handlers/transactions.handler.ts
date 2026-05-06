@@ -25,6 +25,29 @@ function getEqParam(url: URL, col: string): string | null {
   return val?.startsWith('eq.') ? val.slice(3) : null;
 }
 
+function getFilterParam(url: URL, col: string, operator: string): string | null {
+  return url.searchParams
+    .getAll(col)
+    .find((val) => val.startsWith(`${operator}.`))
+    ?.slice(operator.length + 1) ?? null;
+}
+
+function getRange(headers: Record<string, string>): { from: number; to: number } | null {
+  const range = headers.range;
+  if (!range) return null;
+  const match = range.match(/^(\d+)-(\d+)$/);
+  if (!match) return null;
+  return { from: Number(match[1]), to: Number(match[2]) };
+}
+
+function getQueryRange(url: URL): { from: number; to: number } | null {
+  const offset = url.searchParams.get('offset');
+  const limit = url.searchParams.get('limit');
+  if (offset === null || limit === null) return null;
+  const from = Number(offset);
+  return { from, to: from + Number(limit) - 1 };
+}
+
 const isSupabase = (url: URL) => url.hostname.includes('supabase.co');
 
 let nextId = 100;
@@ -88,10 +111,30 @@ export async function setupTransactionsMock(page: Page, options: TransactionsMoc
       if (method === 'GET') {
         const budgetType = getEqParam(reqUrl, 'BudgetType');
         const accountId = getEqParam(reqUrl, 'AccountId');
+        const dateGte = getFilterParam(reqUrl, 'Date', 'gte');
+        const dateLt = getFilterParam(reqUrl, 'Date', 'lt');
         let filtered = [...store];
         if (budgetType) filtered = filtered.filter((t) => t.BudgetType === budgetType);
         if (accountId) filtered = filtered.filter((t) => t.AccountId === accountId);
-        await route.fulfill({ json: filtered });
+        if (dateGte) filtered = filtered.filter((t) => t.Date >= dateGte);
+        if (dateLt) filtered = filtered.filter((t) => t.Date < dateLt);
+        filtered.sort((a, b) => b.Date.localeCompare(a.Date));
+
+        const total = filtered.length;
+        const range = getRange(request.headers()) ?? getQueryRange(reqUrl);
+        const rows = range ? filtered.slice(range.from, range.to + 1) : filtered;
+        const contentRange = total === 0
+          ? '*/0'
+          : `${range?.from ?? 0}-${range ? Math.min(range.to, total - 1) : total - 1}/${total}`;
+
+        await route.fulfill({
+          status: range ? 206 : 200,
+          headers: {
+            'Content-Range': contentRange,
+            'Access-Control-Expose-Headers': 'Content-Range',
+          },
+          json: rows,
+        });
       } else if (method === 'POST') {
         const body = request.postDataJSON();
         const newRow = { Id: `tx-${nextId++}`, UserId: 'e2e-user-id', TransferPairId: null, ...body };

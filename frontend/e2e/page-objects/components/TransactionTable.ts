@@ -20,12 +20,12 @@ export class TransactionTable {
     return this.rows.nth(index);
   }
 
-  getRowByDetails(details: string): Locator {
-    return this.rows.filter({ hasText: details });
-  }
-
   getRowByText(text: string): Locator {
     return this.rows.filter({ hasText: text });
+  }
+
+  getRowByDetails(details: string): Locator {
+    return this.getRowByText(details);
   }
 
   async expectRowCount(count: number) {
@@ -36,25 +36,25 @@ export class TransactionTable {
     }
   }
 
-  async expectRowContains(details: string, expectedTexts: string[]) {
-    const row = this.getRowByDetails(details);
+  async expectRowContains(rowText: string, expectedTexts: string[]) {
+    const row = this.getRowByText(rowText);
     for (const text of expectedTexts) {
       await expect(row).toContainText(text);
     }
   }
 
-  async expectRowDate(details: string, expectedDate: string) {
-    const row = this.getRowByDetails(details);
+  async expectRowDate(rowText: string, expectedDate: string) {
+    const row = this.getRowByText(rowText);
     await expect(row.locator('td').first()).toHaveText(expectedDate);
   }
 
-  async clickEdit(details: string) {
-    const row = this.getRowByDetails(details);
+  async clickEdit(rowText: string) {
+    const row = this.getRowByText(rowText);
     await row.locator('button').first().click();
   }
 
-  async clickDelete(details: string) {
-    const row = this.getRowByDetails(details);
+  async clickDelete(rowText: string) {
+    const row = this.getRowByText(rowText);
     await row.locator('button.text-destructive').click();
   }
 
