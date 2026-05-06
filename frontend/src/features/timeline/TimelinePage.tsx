@@ -24,7 +24,6 @@ import { useSettings } from '@/features/settings/hooks';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useAllNetWorthValues, useNetWorthItems, useNetWorthValues, useSetNetWorthValue } from '@/features/net-worth/hooks';
 import { useBudgetPlans } from '@/features/budget/hooks';
-import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { EventFormDialog } from './components/EventFormDialog';
 import { MilestoneFormDialog } from './components/MilestoneFormDialog';
 import { NetWorthProjectionChart } from './components/NetWorthProjectionChart';
@@ -70,12 +69,68 @@ function milestoneStatusLabel(status: 'reached' | 'on-track' | 'off-track' | 'pr
   return 'Waiting';
 }
 
+function TimelineHero() {
+  return (
+    <section
+      className="relative overflow-hidden rounded-2xl text-white"
+      style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
+    >
+      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/[0.08]" />
+      <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/[0.06]" />
 
+      <div className="relative flex min-h-[132px] items-stretch">
+        <div className="flex flex-1 items-center px-8 py-6">
+          <div className="grid w-full max-w-3xl gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(320px,1.15fr)] lg:items-center">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">Timeline</p>
+              <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
+                Plan what happens next
+              </h2>
+              <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-white/72">
+                Follow these setup steps to make the Timeline and Milestones tabs useful.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              {[
+                'Review projected payoff dates',
+                'Add custom events',
+                'Setup net worth milestones',
+              ].map(instruction => (
+                <div
+                  key={instruction}
+                  className="flex items-center gap-2.5 rounded-xl border border-white/45 bg-white/[0.13] px-3 py-1.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur"
+                >
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#34d399]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="leading-snug">{instruction}</p>
+                  </div>
+                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-[#a7f3d0]" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div
+          className="flex w-[280px] flex-shrink-0 items-center justify-center overflow-hidden"
+          style={{ background: 'rgba(255,255,255,0.12)' }}
+        >
+          <img
+            src="/calendar.png"
+            alt=""
+            aria-hidden="true"
+            className="h-[144px] w-[243px] max-w-none object-cover object-center drop-shadow-xl"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function TimelinePage() {
   const now = new Date();
   const year = now.getFullYear();
-  const isMobile = useIsMobile();
   const [selectedTab, setSelectedTab] = useState<'timeline' | 'milestones'>('timeline');
   const [showClosed, setShowClosed] = useState(false);
   const [eventDialogOpen, setEventDialogOpen] = useState(false);
@@ -128,22 +183,6 @@ export default function TimelinePage() {
     milestones: userMilestones ?? [],
   }), [allNetWorthValues, items, userMilestones]);
   const nextPayoffItemId = model.summary.nextPayoff?.itemId ?? null;
-
-  const debtProgress = useMemo(() => {
-    const liabilityIds = new Set(items.filter(i => i.type === 'Liability').map(i => i.id));
-    const monthMap = new Map<string, number>();
-    for (const v of allNetWorthValues) {
-      if (!liabilityIds.has(v.itemId)) continue;
-      for (const [monthStr, amount] of Object.entries(v.months)) {
-        const key = `${v.year}-${monthStr.padStart(2, '0')}`;
-        monthMap.set(key, (monthMap.get(key) ?? 0) + (amount as number));
-      }
-    }
-    const peak = monthMap.size > 0 ? Math.max(...monthMap.values()) : model.summary.totalActiveBalance;
-    const current = model.summary.totalActiveBalance;
-    const pct = peak > 0 ? Math.round(((peak - current) / peak) * 100) : 0;
-    return { peak, pct };
-  }, [allNetWorthValues, items, model.summary.totalActiveBalance]);
 
   const augmentedFeed = useMemo((): AugmentedFeedEntry[] => {
     if (!showClosed || model.closed.length === 0) return timelineFeed;
@@ -547,15 +586,54 @@ export default function TimelinePage() {
                   className={`overflow-hidden rounded-xl border border-border/70 border-l-2 bg-card ${statusColor}`}
                 >
                   {/* Header */}
-                  <div className="flex items-start justify-between gap-3 px-4 pt-3 pb-2">
-                    <div className="min-w-0">
-                      <p className="font-display text-base font-bold text-foreground">{milestone.label}</p>
-                      {milestone.note && (
-                        <p className="mt-0.5 text-xs text-muted-foreground/70 italic">{milestone.note}</p>
-                      )}
+                  <div className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                    <div className="flex min-w-0 items-center gap-3">
+                      {(() => {
+                        const radius = 15;
+                        const circumference = 2 * Math.PI * radius;
+                        const offset = circumference - (circumference * progressPct) / 100;
+
+                        return (
+                          <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                            <svg className="h-10 w-10 -rotate-90" viewBox="0 0 40 40" aria-hidden="true">
+                              <circle
+                                cx="20"
+                                cy="20"
+                                r={radius}
+                                fill="none"
+                                stroke="hsl(var(--border) / 0.65)"
+                                strokeWidth="4"
+                              />
+                              <circle
+                                cx="20"
+                                cy="20"
+                                r={radius}
+                                fill="none"
+                                stroke={progressColor}
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                                strokeDasharray={circumference}
+                                strokeDashoffset={offset}
+                              />
+                            </svg>
+                            <span className="absolute font-display text-[10px] font-bold text-foreground">
+                              {Math.round(progressPct)}%
+                            </span>
+                          </div>
+                        );
+                      })()}
+                      <div className="min-w-0">
+                        <p className="font-display text-sm font-bold text-foreground">{milestone.label}</p>
+                        <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+                          Target {formatMoney(milestone.amount, currency)}
+                        </p>
+                        {milestone.note && (
+                          <p className="mt-0.5 text-xs text-muted-foreground/70 italic">{milestone.note}</p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-shrink-0 items-center gap-1.5">
-                      <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         milestone.status === 'reached'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : milestone.status === 'on-track'
@@ -573,9 +651,9 @@ export default function TimelinePage() {
                           <DropdownMenuTrigger asChild>
                             <button
                               aria-label={`Actions for ${milestone.label}`}
-                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+                              className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
                             >
-                              <MoreVertical className="h-3.5 w-3.5" />
+                              <MoreVertical className="h-3 w-3" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -596,41 +674,17 @@ export default function TimelinePage() {
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  {milestone.currentNetWorth > 0 && (
-                    <div className="px-4 pb-3">
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5">
-                        <span className="font-semibold">{formatMoney(milestone.currentNetWorth, currency)}</span>
-                        <span>{formatMoney(milestone.amount, currency)}</span>
-                      </div>
-                      <div className="h-1.5 rounded-full overflow-hidden bg-border/60">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${progressPct}%`, background: progressColor }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
                   {/* Data strip */}
                   {milestone.status !== 'unavailable' && milestone.monthLabel && (
-                    <div className="grid grid-cols-2 divide-x divide-border/60 border-t border-border/60">
-                      <div className="px-4 py-2.5">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{dateLabel}</p>
-                        <p className="mt-0.5 font-display text-base font-bold text-foreground leading-tight">
-                          {milestone.monthLabel}
-                        </p>
+                    <div className="flex items-center justify-between gap-3 border-t border-border/60 px-3.5 py-1.5">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{dateLabel}</p>
+                      <div className="min-w-0 text-right">
+                        <p className="font-display text-sm font-bold leading-tight text-foreground">{milestone.monthLabel}</p>
                         {milestone.monthsAway !== null && milestone.monthsAway > 0 && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5">{monthsLabel(milestone.monthsAway)} away</p>
+                          <p className="mt-0.5 inline-flex rounded-full border border-[#b45309]/20 bg-[#b45309]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[#92400e]">
+                            {monthsLabel(milestone.monthsAway)} away
+                          </p>
                         )}
-                      </div>
-                      <div className="px-4 py-2.5">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                          {milestone.status === 'off-track' && !milestone.monthsAway ? 'Now below' : 'Current'}
-                        </p>
-                        <p className="mt-0.5 font-sans text-base font-bold text-foreground leading-tight">
-                          {formatMoney(milestone.currentNetWorth, currency)}
-                        </p>
                       </div>
                     </div>
                   )}
@@ -647,18 +701,10 @@ export default function TimelinePage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ── Page header ── */}
-      <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-foreground">
-          Timeline
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Debt payoff forecasts and your own dated milestones in one place.
-        </p>
-      </div>
+      <TimelineHero />
 
       {/* ── Page-level tab bar ── */}
-      <div role="tablist" className="flex items-center border-b border-border -mt-2">
+      <div role="tablist" className="flex items-center border-b border-border">
         {(['timeline', 'milestones'] as const).map(tab => (
           <button
             key={tab}
@@ -688,90 +734,6 @@ export default function TimelinePage() {
           </div>
         )}
       </div>
-
-      {/* ── Mobile hero card (matches NetWorth mobile pattern) ── */}
-      {isMobile && selectedTab === 'timeline' && (
-        <div
-          className="relative overflow-hidden rounded-2xl px-5 pt-5 pb-6 text-white"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
-        >
-          <div className="pointer-events-none absolute inset-0 z-0">
-            <div className="absolute -top-8 -right-8 h-36 w-36 rounded-full bg-white/[0.07]" />
-            <div className="absolute -bottom-6 left-4 h-24 w-24 rounded-full bg-white/[0.05]" />
-            <div className="absolute -bottom-3 right-4 h-20 w-28 rounded-t-[28px] bg-white/[0.12]" />
-          </div>
-          <div className="relative z-10">
-            <div className="flex items-start gap-3">
-              {/* Left: title + stats */}
-              <div className="flex-1 min-w-0">
-                <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-white/70">Debt-free target</p>
-                <p className="font-display text-lg font-bold text-white">
-                  {model.summary.debtFreeDate?.projectedLabel ?? 'Pending'}
-                </p>
-                <div className="mt-3 space-y-1.5">
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#f9a8d4]" />
-                    <span className="w-24 flex-shrink-0 text-white/70">Total debt</span>
-                    <span className="font-sans text-white">{formatMoney(model.summary.totalActiveBalance, currency)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-semibold">
-                    <span className="h-5 w-1 flex-shrink-0 rounded-full bg-[#6ee7b7]" />
-                    <span className="w-24 flex-shrink-0 text-white/70">Monthly pace</span>
-                    <span className="font-sans text-white">{formatMoney(model.summary.totalMonthlyPayment, currency, 2)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: progress arc */}
-              {(() => {
-                const r = 30;
-                const cx = 40;
-                const cy = 40;
-                const sw = 8;
-                const C = 2 * Math.PI * r;
-                const trackLen = C * 0.75;
-                const progressLen = trackLen * Math.min(debtProgress.pct / 100, 1);
-                return (
-                  <svg width="80" height="80" viewBox="0 0 80 80" className="flex-shrink-0 -mt-1">
-                    {/* Track */}
-                    <circle cx={cx} cy={cy} r={r} fill="none"
-                      stroke="rgba(255,255,255,0.15)" strokeWidth={sw}
-                      strokeDasharray={`${trackLen} ${C - trackLen}`}
-                      strokeLinecap="round"
-                      transform={`rotate(135 ${cx} ${cy})`}
-                    />
-                    {/* Progress */}
-                    {progressLen > 0 && (
-                      <circle cx={cx} cy={cy} r={r} fill="none"
-                        stroke="rgba(255,255,255,0.9)" strokeWidth={sw}
-                        strokeDasharray={`${progressLen} ${C}`}
-                        strokeLinecap="round"
-                        transform={`rotate(135 ${cx} ${cy})`}
-                      />
-                    )}
-                    {/* Label */}
-                    <text x={cx} y={cy - 5} textAnchor="middle" dominantBaseline="middle"
-                      fill="white" fontSize="15" fontWeight="700" fontFamily="inherit">
-                      {debtProgress.pct}%
-                    </text>
-                    <text x={cx} y={cy + 11} textAnchor="middle"
-                      fill="rgba(255,255,255,0.55)" fontSize="9" fontFamily="inherit">
-                      paid off
-                    </text>
-                  </svg>
-                );
-              })()}
-            </div>
-
-            <div className="mt-4 flex items-baseline justify-between border-t border-white/15 pt-3">
-              <span className="text-sm text-white/70">Next payoff</span>
-              <p className="font-display font-extrabold leading-none tracking-tight text-white">
-                {model.summary.nextPayoff?.projectedLabel ?? '—'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Tab content ── */}
       {selectedTab === 'timeline' && payoffCard}
