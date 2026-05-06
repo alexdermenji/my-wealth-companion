@@ -7,6 +7,9 @@ global.ResizeObserver = class ResizeObserver {
 };
 
 window.HTMLElement.prototype.scrollIntoView = () => {};
+window.HTMLElement.prototype.hasPointerCapture = () => false;
+window.HTMLElement.prototype.setPointerCapture = () => {};
+window.HTMLElement.prototype.releasePointerCapture = () => {};
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

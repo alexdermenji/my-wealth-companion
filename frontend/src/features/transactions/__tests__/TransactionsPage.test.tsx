@@ -3,7 +3,7 @@ import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TransactionsPage from "../TransactionsPage";
 import { renderWithProviders } from "@/test/test-utils";
-import { useTransactions, useCreateTransaction } from "../hooks";
+import { usePaginatedTransactions, useCreateTransaction } from "../hooks";
 import { useAccounts } from "@/shared/hooks/useAccounts";
 import { useCategories } from "@/shared/hooks/useCategories";
 import { useSettings } from "@/features/settings/hooks";
@@ -76,10 +76,10 @@ const mockCategories = [
 
 describe("TransactionsPage", () => {
   beforeEach(() => {
-    vi.mocked(useTransactions).mockReturnValue({
-      data: mockTransactions,
+    vi.mocked(usePaginatedTransactions).mockReturnValue({
+      data: { transactions: mockTransactions, totalCount: mockTransactions.length },
       isLoading: false,
-    } as ReturnType<typeof useTransactions>);
+    } as ReturnType<typeof usePaginatedTransactions>);
     vi.mocked(useAccounts).mockReturnValue({
       data: mockAccounts,
       isLoading: false,
@@ -104,10 +104,47 @@ describe("TransactionsPage", () => {
     expect(screen.getByText("2 transactions recorded")).toBeInTheDocument();
   });
 
-  it("renders transaction details", () => {
+  it("shows pagination controls for multi-page transaction results", () => {
+    vi.mocked(usePaginatedTransactions).mockReturnValue({
+      data: { transactions: mockTransactions, totalCount: 52 },
+      isLoading: false,
+    } as ReturnType<typeof usePaginatedTransactions>);
+
     renderWithProviders(<TransactionsPage />);
-    expect(screen.getByText("Salary")).toBeInTheDocument();
-    expect(screen.getByText("Groceries")).toBeInTheDocument();
+
+    expect(screen.getByText("1-25 of 52")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /previous page/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /next page/i })).toBeEnabled();
+  });
+
+  it("returns to the first page when filters change", async () => {
+    vi.mocked(usePaginatedTransactions).mockReturnValue({
+      data: { transactions: mockTransactions, totalCount: 52 },
+      isLoading: false,
+    } as ReturnType<typeof usePaginatedTransactions>);
+    const user = userEvent.setup();
+
+    renderWithProviders(<TransactionsPage />);
+
+    await user.click(screen.getByRole("button", { name: /next page/i }));
+    expect(screen.getByText("Page 2 of 3")).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole("combobox")[0]);
+    await user.click(screen.getByRole("option", { name: "Income" }));
+
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+  });
+
+  it("renders transaction rows", () => {
+    renderWithProviders(<TransactionsPage />);
+    expect(screen.getByText("Employment (Net)")).toBeInTheDocument();
+    expect(screen.getByText("Food & Dining")).toBeInTheDocument();
+  });
+
+  it("renders month and year filters", () => {
+    renderWithProviders(<TransactionsPage />);
+    expect(screen.getByText("All Months")).toBeInTheDocument();
+    expect(screen.getByText("All Years")).toBeInTheDocument();
   });
 
   it("resolves account names", () => {
