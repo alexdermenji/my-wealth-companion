@@ -3,7 +3,7 @@ import type { BudgetCategory } from "@/shared/types";
 
 // DB columns are PascalCase. "Group" and "Order" are SQL reserved words —
 // PostgREST requires them double-quoted in select/order params.
-type CategoryRow = { Id: string; Name: string; Type: BudgetCategory["type"]; Group: string; Order: number };
+type CategoryRow = { Id: string; Name: string; Type: BudgetCategory["type"]; Group: string; Order: number; SpendingType?: BudgetCategory["spendingType"] };
 
 const toCategory = (row: CategoryRow): BudgetCategory => ({
   id: row.Id,
@@ -11,6 +11,7 @@ const toCategory = (row: CategoryRow): BudgetCategory => ({
   type: row.Type,
   group: row.Group,
   order: row.Order,
+  ...(row.SpendingType ? { spendingType: row.SpendingType } : {}),
 });
 
 export const categoriesApi = {
@@ -34,7 +35,7 @@ export const categoriesApi = {
 
     const { data, error } = await supabase
       .from("Categories")
-      .insert({ Name: payload.name, Type: payload.type, Group: payload.group, Order: maxOrder + 1 })
+      .insert({ Name: payload.name, Type: payload.type, Group: payload.group, Order: maxOrder + 1, SpendingType: payload.spendingType ?? null })
       .select("*")
       .single();
     if (error) throw new Error(error.message);
@@ -44,7 +45,7 @@ export const categoriesApi = {
   update: async (id: string, payload: Omit<BudgetCategory, "id" | "order">): Promise<BudgetCategory> => {
     const { data, error } = await supabase
       .from("Categories")
-      .update({ Name: payload.name, Type: payload.type, Group: payload.group })
+      .update({ Name: payload.name, Type: payload.type, Group: payload.group, SpendingType: payload.spendingType ?? null })
       .eq("Id", id)
       .select("*")
       .single();

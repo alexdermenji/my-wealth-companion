@@ -2,6 +2,7 @@ import { BudgetType, BudgetCategory } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const TYPE_COLORS: Partial<Record<BudgetType, string>> = {
   Income: 'text-income',
@@ -49,10 +50,24 @@ export function CategoryBlock({
           <div className="divide-y">
             {categories.map(cat => (
               <div key={cat.id} className="flex items-center justify-between px-3 py-2 group">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{cat.name}</p>
-                  {cat.group && (
-                    <p className="text-xs text-muted-foreground truncate">{cat.group}</p>
+                <div className="min-w-0 flex items-center gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{cat.name}</p>
+                    {cat.group && (
+                      <p className="text-xs text-muted-foreground truncate">{cat.group}</p>
+                    )}
+                  </div>
+                  {cat.type === 'Expenses' && cat.spendingType && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`shrink-0 w-2 h-2 rounded-full ${
+                            cat.spendingType === 'want' ? 'bg-amber-400' : 'bg-blue-400'
+                          }`} />
+                        </TooltipTrigger>
+                        <TooltipContent>{cat.spendingType === 'want' ? 'Want' : 'Need'}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                 </div>
                 <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

@@ -37,7 +37,7 @@ describe('computeInsights — featured insight', () => {
     const [featured] = computeInsights(baseInput);
     expect(featured.featured).toBe(true);
     expect(featured.type).toBe('positive');
-    expect(featured.headline).toBe("You're on track this month");
+    expect(featured.headline).toBe("You're on track");
     expect(featured.value).toContain('under budget');
     expect(featured.actionLabel).toBe('Keep this pace');
   });
@@ -50,9 +50,9 @@ describe('computeInsights — featured insight', () => {
     };
     const [featured] = computeInsights(input);
     expect(featured.type).toBe('warning');
-    expect(featured.headline).toBe("You're on track to overspend");
+    expect(featured.headline).toBe("You're going too fast");
     expect(featured.value).toContain('over budget');
-    expect(featured.actionLabel).toBe('Slow down spending today');
+    expect(featured.actionLabel).toContain('today');
   });
 
   it('returns empty array when expenseBudget is 0', () => {
@@ -125,15 +125,15 @@ describe('computeInsights — savings rate', () => {
     const insights = computeInsights(withSavings(3000, 300)); // 10%
     const card = insights.find(i => i.id === 'savings-rate')!;
     expect(card.value).toBe('10%');
-    expect(card.subtext).toBe('Below recommended level');
-    expect(card.actionLabel).toBe('Increase savings this month');
+    expect(card.subtext).toBe('Below target');
+    expect(card.actionLabel).toBe('Increase savings');
   });
 
   it('shows "Strong savings habit" when rate >= 20%', () => {
     const insights = computeInsights(withSavings(3000, 900)); // 30%
     const card = insights.find(i => i.id === 'savings-rate')!;
     expect(card.value).toBe('30%');
-    expect(card.subtext).toBe('Strong savings habit');
+    expect(card.subtext).toBe('Strong habit');
     expect(card.actionLabel).toBe('Keep it up');
   });
 
@@ -185,14 +185,14 @@ describe('computeInsights — no-spend streak', () => {
     const insights = computeInsights(withStreak(3));
     const card = insights.find(i => i.id === 'no-spend-streak');
     expect(card).toBeDefined();
-    expect(card!.value).toMatch(/^~£/);
-    expect(card!.subtext).toBe('3 days without spending');
-    expect(card!.actionLabel).toBe('Continue streak');
+    expect(card!.value).toBe('3 days');
+    expect(card!.subtext).toMatch(/^~£/);
+    expect(card!.actionLabel).toBe('Keep it going');
   });
 
-  it('streak value starts with "~£"', () => {
+  it('streak subtext starts with "~£"', () => {
     const card = computeInsights(withStreak(4)).find(i => i.id === 'no-spend-streak')!;
-    expect(card.value.startsWith('~£')).toBe(true);
+    expect(card.subtext!.startsWith('~£')).toBe(true);
   });
 
   it('suppresses streak card when streak < 2', () => {
@@ -215,7 +215,7 @@ describe('computeInsights — net worth growth', () => {
     const card = computeInsights(input).find(i => i.id === 'net-worth-growth');
     expect(card).toBeDefined();
     expect(card!.value).toBe('+£1,000');
-    expect(card!.subtext).toBe('Up from last month');
+    expect(card!.subtext).toBe("You're growing your net worth");
   });
 
   it('suppresses net worth card when previous month has no data', () => {
@@ -248,7 +248,83 @@ describe('computeInsights — net worth growth', () => {
     };
     const card = computeInsights(input).find(i => i.id === 'net-worth-growth')!;
     expect(card.type).toBe('warning');
-    expect(card.subtext).toBe('Down from last month');
+    expect(card.subtext).toBe('Net worth dropped this month');
+  });
+});
+
+// ── Wants/Needs insights ────────────────────────────────────────────────────
+
+const wantCat: InsightsInput['categories'][0] = { id: 'c-want', name: 'Netflix', type: 'Expenses', group: 'Fun', order: 2, spendingType: 'want' };
+const needCat: InsightsInput['categories'][0] = { id: 'c-need', name: 'Rent',    type: 'Expenses', group: 'Housing', order: 3, spendingType: 'need' };
+
+const withWantsNeeds = (wantsAmt: number, needsAmt: number, income: number, prevWantsAmt = 0): InsightsInput => ({
+  ...baseInput,
+  categories: [...baseInput.categories, wantCat, needCat],
+  transactions: [
+    { id: 'ti', date: `${YEAR}-${String(MONTH).padStart(2,'0')}-01`, amount: income, details: '', accountId: 'a1', budgetType: 'Income', budgetPositionId: '' },
+    { id: 'tw', date: `${YEAR}-${String(MONTH).padStart(2,'0')}-05`, amount: wantsAmt, details: '', accountId: 'a1', budgetType: 'Expenses', budgetPositionId: 'c-want' },
+    { id: 'tn', date: `${YEAR}-${String(MONTH).padStart(2,'0')}-05`, amount: needsAmt, details: '', accountId: 'a1', budgetType: 'Expenses', budgetPositionId: 'c-need' },
+  ],
+  previousMonthTransactions: prevWantsAmt > 0 ? [
+    { id: 'pw', date: `${YEAR}-${String(MONTH - 1).padStart(2,'0')}-05`, amount: prevWantsAmt, details: '', accountId: 'a1', budgetType: 'Expenses', budgetPositionId: 'c-want' },
+  ] : [],
+});
+
+describe('computeInsights — wants/needs split', () => {
+  it('shows wants-needs-split info card when both wants and needs data exist', () => {
+    const insights = computeInsights(withWantsNeeds(300, 1500, 3000));
+    const card = insights.find(i => i.id === 'wants-needs-split');
+    expect(card).toBeDefined();
+    expect(card!.type).toBe('info');
+    expect(card!.statusLabel).toBe('50/30/20');
+    expect(card!.value).toContain('10%');  // wants: 300/3000
+    expect(card!.value).toContain('50%');  // needs: 1500/3000
+    expect(card!.value).toContain('Savings');
+  });
+
+  it('suppresses wants-needs-split card when no income', () => {
+    const insights = computeInsights(withWantsNeeds(300, 1500, 0));
+    expect(insights.find(i => i.id === 'wants-needs-split')).toBeUndefined();
+  });
+
+  it('suppresses wants-needs-split card when no classified expenses', () => {
+    const insights = computeInsights({ ...baseInput });
+    expect(insights.find(i => i.id === 'wants-needs-split')).toBeUndefined();
+  });
+
+  // Cycle 5 — WantsOverBudget (Wants > 30% income)
+  it('shows wants-over-budget warning when Wants exceed 30% of income', () => {
+    // wants = 1000, income = 3000 → 33% > 30%
+    const insights = computeInsights(withWantsNeeds(1000, 500, 3000));
+    const card = insights.find(i => i.id === 'wants-over-budget');
+    expect(card).toBeDefined();
+    expect(card!.type).toBe('warning');
+  });
+
+  it('suppresses wants-over-budget when Wants <= 30% of income', () => {
+    // wants = 600, income = 3000 → 20% ≤ 30%
+    const insights = computeInsights(withWantsNeeds(600, 500, 3000));
+    expect(insights.find(i => i.id === 'wants-over-budget')).toBeUndefined();
+  });
+
+  // Cycle 7 — WantsTrend (this month vs last month)
+  it('shows wants-trend warning when Wants are up more than 10% vs last month', () => {
+    // this month wants = 500, last month wants = 400 → +25%
+    const insights = computeInsights(withWantsNeeds(500, 500, 3000, 400));
+    const card = insights.find(i => i.id === 'wants-trend');
+    expect(card).toBeDefined();
+    expect(card!.type).toBe('warning');
+  });
+
+  it('suppresses wants-trend when Wants are not up more than 10% vs last month', () => {
+    // this month wants = 420, last month wants = 400 → +5%
+    const insights = computeInsights(withWantsNeeds(420, 500, 3000, 400));
+    expect(insights.find(i => i.id === 'wants-trend')).toBeUndefined();
+  });
+
+  it('suppresses wants-trend when no previous month data', () => {
+    const insights = computeInsights(withWantsNeeds(500, 500, 3000, 0));
+    expect(insights.find(i => i.id === 'wants-trend')).toBeUndefined();
   });
 });
 
