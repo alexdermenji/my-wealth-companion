@@ -92,7 +92,6 @@ describe("CategoryFormDialog", () => {
   });
 
   it("does not show Want/Need toggle for non-Expenses types", async () => {
-    const user = userEvent.setup();
     renderWithProviders(
       <CategoryFormDialog open onOpenChange={vi.fn()} defaultType="Income" existingGroups={[]} />
     );
