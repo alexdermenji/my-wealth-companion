@@ -8,6 +8,9 @@ import type { InsightsInput } from './types';
 export function useInsightsInput(): { input: InsightsInput | null; isLoading: boolean } {
   const today = new Date();
   const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const prevMonth = month === 1 ? 12 : month - 1;
 
   const { data: transactions = [], isLoading: txLoading } = useTransactions();
   const { data: budgetPlans = [], isLoading: bpLoading } = useBudgetPlans(year);
@@ -20,8 +23,13 @@ export function useInsightsInput(): { input: InsightsInput | null; isLoading: bo
 
   if (!engagement) return { input: null, isLoading };
 
+  const previousMonthTransactions = transactions.filter(tx => {
+    const d = new Date(tx.date);
+    return d.getFullYear() === prevYear && d.getMonth() + 1 === prevMonth;
+  });
+
   return {
-    input: { transactions, budgetPlans, categories, engagement, netWorthItems, netWorthValues, today },
+    input: { transactions, previousMonthTransactions, budgetPlans, categories, engagement, netWorthItems, netWorthValues, today },
     isLoading,
   };
 }

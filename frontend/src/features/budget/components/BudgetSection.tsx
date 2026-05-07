@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BudgetCell } from './BudgetCell';
 import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
 import { useForceDeleteCategory } from '@/shared/hooks/useCategories';
 import { cn } from '@/lib/utils';
@@ -168,7 +169,21 @@ export function BudgetSection({
                 </div>
                 <div className="flex flex-col min-w-0 overflow-hidden">
                   <span className="text-[10px] italic text-muted-foreground leading-tight truncate">{cat.group || cat.name}</span>
-                  <span className="text-sm font-medium text-foreground truncate" title={cat.name}>{cat.name}</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium text-foreground truncate" title={cat.name}>{cat.name}</span>
+                    {cat.spendingType && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`shrink-0 w-2 h-2 rounded-full ${
+                              cat.spendingType === 'want' ? 'bg-amber-400' : 'bg-blue-400'
+                            }`} />
+                          </TooltipTrigger>
+                          <TooltipContent>{cat.spendingType === 'want' ? 'Want' : 'Need'}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 </div>
                 <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                   <DropdownMenu>
