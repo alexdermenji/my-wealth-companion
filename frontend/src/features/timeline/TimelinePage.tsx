@@ -79,16 +79,24 @@ function TimelineHero() {
       <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/[0.06]" />
 
       <div className="relative flex min-h-[132px] items-stretch">
-        <div className="flex flex-1 items-center px-8 py-6">
-          <div className="grid w-full max-w-3xl gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(320px,1.15fr)] lg:items-center">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/45">Timeline</p>
-              <h2 className="mt-2 font-display text-2xl font-bold leading-tight">
+        <div className="flex flex-1 items-center px-5 py-5 sm:px-8 sm:py-6">
+          <div className="grid w-full max-w-3xl gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(320px,1.15fr)] lg:items-center">
+            <div className="sm:block">
+              <h2 className="font-display text-2xl font-bold leading-tight">
                 Plan what happens next
               </h2>
-              <p className="mt-2 max-w-sm text-sm font-medium leading-relaxed text-white/72">
-                Follow these setup steps to make the Timeline and Milestones tabs useful.
-              </p>
+              {/* Description + image: 50/50 on mobile, text-only on sm+ */}
+              <div className="mt-2 flex items-center gap-3 sm:block">
+                <p className="flex-1 min-w-0 text-sm font-medium leading-relaxed text-white/72">
+                  Follow these setup steps to make the Timeline and Milestones tabs useful.
+                </p>
+                <img
+                  src="/calendar.png"
+                  alt=""
+                  aria-hidden="true"
+                  className="sm:hidden flex-shrink-0 w-[45%] h-auto object-contain drop-shadow-xl"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -113,7 +121,7 @@ function TimelineHero() {
         </div>
 
         <div
-          className="flex w-[280px] flex-shrink-0 items-center justify-center overflow-hidden"
+          className="hidden sm:flex w-[280px] flex-shrink-0 items-center justify-center overflow-hidden"
           style={{ background: 'rgba(255,255,255,0.12)' }}
         >
           <img

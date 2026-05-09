@@ -24,6 +24,7 @@ export function classifyBudgetHealth({
   // Guard against rounding artefacts where independently rounded debtPct > needsPct
   const expenseNeedsPct = Math.max(0, needsPct - debtPct);
   const debtDriven = debtPct > 0 && expenseNeedsPct <= 50;
+  const debtPriorityMonth = debtPct >= 20 && expenseNeedsPct <= 55 && wantsPct <= 30;
 
   // 1. Spending + saving exceeds income (drawing down other accounts)
   if (total > 100) {
@@ -55,8 +56,9 @@ export function classifyBudgetHealth({
     };
   }
 
-  // 3. Needs high but driven by debt repayments (expenses alone are fine)
-  if (needsPct > 50 && debtDriven) {
+  // 3. Needs high but driven by debt repayments. Debt is treated as productive
+  // net-worth progress, so a heavy debt month should not be framed as failed saving.
+  if (needsPct > 50 && (debtDriven || debtPriorityMonth)) {
     if (savingsPct >= 20) {
       return {
         type: 'positive',
@@ -75,8 +77,8 @@ export function classifyBudgetHealth({
     }
     return {
       type: 'info',
-      statusLabel: 'Focused on debt',
-      subtext: `Most of your income goes to essentials + debt\nThat's fine short-term — it builds net worth\nHave a plan: move these payments into savings later`,
+      statusLabel: 'Debt-first month',
+      subtext: `Debt repayment is taking priority over savings\nThat's productive — it improves your net worth\nWhen debt clears, redirect those payments to savings`,
       actionLabel: 'Plan ahead',
     };
   }

@@ -31,6 +31,7 @@ export function useCreateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["engagement", "summary"] });
       toast.success("Transaction added", { id: "transaction-added" });
     },
     onError: () => {
@@ -52,6 +53,7 @@ export function useUpdateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["engagement", "summary"] });
     },
   });
 }
@@ -63,6 +65,7 @@ export function useDeleteTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["engagement", "summary"] });
     },
   });
 }
@@ -75,6 +78,7 @@ export function useCreateTransfer() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["engagement", "summary"] });
       toast.success("Transaction added", { id: "transaction-added" });
     },
     onError: () => {

@@ -326,6 +326,35 @@ describe('computeInsights — wants/needs split', () => {
     const insights = computeInsights(withWantsNeeds(500, 500, 3000, 0));
     expect(insights.find(i => i.id === 'wants-trend')).toBeUndefined();
   });
+
+  it('does not round away small unallocated budget amounts', () => {
+    const input: InsightsInput = {
+      ...baseInput,
+      categories: [
+        { id: 'income', name: 'Salary', type: 'Income', group: 'Work', order: 1 },
+        { id: 'need', name: 'Bills', type: 'Expenses', group: 'Bills', order: 2, spendingType: 'need' },
+        { id: 'debt', name: 'Loan', type: 'Debt', group: 'Loans', order: 3 },
+      ],
+      budgetPlans: [
+        { categoryId: 'income', year: YEAR, months: { [MONTH]: 3828.19 } },
+        { categoryId: 'need', year: YEAR, months: { [MONTH]: 2288.41 } },
+        { categoryId: 'debt', year: YEAR, months: { [MONTH]: 1527.37 } },
+      ],
+      transactions: [
+        { id: 'tn', date: `${YEAR}-${String(MONTH).padStart(2,'0')}-05`, amount: 1984.74, details: '', accountId: 'a1', budgetType: 'Expenses', budgetPositionId: 'need' },
+        { id: 'td', date: `${YEAR}-${String(MONTH).padStart(2,'0')}-05`, amount: 1827.37, details: '', accountId: 'a1', budgetType: 'Debt', budgetPositionId: 'debt' },
+      ],
+    };
+
+    const card = computeInsights(input).find(i => i.id === 'wants-needs-split')!;
+
+    expect(card.headline).toBe('Debt-first month');
+    expect(card.value).toContain('99.6% Needs');
+    expect(card.stats?.find(s => s.label === 'Not Allocated')?.value).toBe('0.3%');
+    expect(card.points?.some(p => p.text === 'No savings this month')).toBe(false);
+    expect(card.points?.some(p => p.text === 'Debt repayment is taking priority over savings' && p.positive)).toBe(true);
+    expect(card.points?.some(p => p.text.includes('£12.41 not allocated'))).toBe(true);
+  });
 });
 
 describe('computeInsights — ordering and limits', () => {
