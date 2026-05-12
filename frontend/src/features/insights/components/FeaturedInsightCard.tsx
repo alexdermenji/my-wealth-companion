@@ -62,7 +62,7 @@ export function FeaturedInsightCard({ insight, className }: { insight: Insight; 
       )}
 
       {/* Main content + points side by side */}
-      <div className="relative flex gap-3 mb-1">
+      <div className="relative flex flex-col sm:flex-row gap-3 mb-1">
         {/* Left: headline, body, stats, action */}
         <div className="flex-1 min-w-0">
           <p className={cn('text-base font-bold leading-tight mb-2', theme.text)}>
@@ -80,7 +80,8 @@ export function FeaturedInsightCard({ insight, className }: { insight: Insight; 
         {insight.points && insight.points.length > 0 && (
           <div className={cn(
             'flex-shrink-0 flex flex-col gap-3 self-start',
-            'pl-3 border-l-2 border-current/20',
+            'sm:pl-3 sm:border-l-2 border-current/20',
+            'pt-3 border-t-2 sm:pt-0 sm:border-t-0',
           )}>
             {(['positive', 'negative'] as const).map(group => {
               const filtered = insight.points!.filter(p => group === 'positive' ? p.positive : !p.positive);
@@ -95,7 +96,7 @@ export function FeaturedInsightCard({ insight, className }: { insight: Insight; 
                       )}>
                         {point.positive ? '✓' : '✗'}
                       </span>
-                      <span className={cn('text-sm leading-snug whitespace-nowrap', theme.muted)}>
+                      <span className={cn('text-sm leading-snug', theme.muted)}>
                         {point.text}
                       </span>
                     </div>
@@ -109,22 +110,20 @@ export function FeaturedInsightCard({ insight, className }: { insight: Insight; 
 
       {/* Numbers — compact footnote */}
       {insight.stats && (
-        <div className="relative mb-4">
+        <div className={cn('relative mb-4 pt-3 border-t border-current/10')}>
           <p className={cn('text-[10px] font-semibold uppercase tracking-wider mb-1.5 opacity-60', theme.muted)}>
             Your breakdown this month
           </p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5">
             {insight.stats.map(stat => (
-              <div key={stat.label} className="flex flex-col gap-0.5">
-                <div className="flex items-baseline gap-1">
-                  <span className={cn('font-amount text-lg font-bold leading-none', theme.text)}>
-                    {stat.value}
-                  </span>
-                  <span className={cn('text-[11px] font-medium', theme.muted)}>
-                    {stat.label}
-                  </span>
-                </div>
-                </div>
+              <div key={stat.label} className="flex items-baseline gap-1 whitespace-nowrap">
+                <span className={cn('font-amount text-lg font-bold leading-none', theme.text)}>
+                  {stat.value}
+                </span>
+                <span className={cn('text-[11px] font-medium', theme.muted)}>
+                  {stat.label}
+                </span>
+              </div>
             ))}
           </div>
         </div>

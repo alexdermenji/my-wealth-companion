@@ -8,6 +8,22 @@ function fmt(amount: number): string {
   return `£${Math.round(amount).toLocaleString('en-GB')}`;
 }
 
+function fmtExact(amount: number): string {
+  return `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatPct(value: number): string {
+  if (!Number.isFinite(value)) return '0%';
+  const abs = Math.abs(value);
+  const rounded = Math.round(value);
+
+  if ((abs > 0 && abs < 1) || (rounded === 100 && value !== 100)) {
+    return `${value.toFixed(1)}%`;
+  }
+
+  return `${rounded}%`;
+}
+
 export function computeInsights(input: InsightsInput): Insight[] {
   const { transactions, budgetPlans, categories, engagement, netWorthItems, netWorthValues, today } = input;
 
@@ -143,7 +159,10 @@ export function computeInsights(input: InsightsInput): Insight[] {
 
   if ((budgetedIncome > 0 || split.incomeAmount > 0) && (split.wantsAmount > 0 || split.needsAmount > 0)) {
     const base = budgetedIncome || split.incomeAmount;
-    const savingsPct = base > 0 ? Math.round((totalSavings / base) * 100) : 0;
+    const exactNeedsPct = base > 0 ? (split.needsAmount / base) * 100 : 0;
+    const exactWantsPct = base > 0 ? (split.wantsAmount / base) * 100 : 0;
+    const exactSavingsPct = base > 0 ? (totalSavings / base) * 100 : 0;
+    const savingsPct = Math.round(exactSavingsPct);
     const debtPct = base > 0
       ? Math.round((currentMonthTx.filter(tx => tx.budgetType === 'Debt').reduce((s, tx) => s + Math.abs(tx.amount), 0) / base) * 100)
       : 0;
@@ -155,15 +174,21 @@ export function computeInsights(input: InsightsInput): Insight[] {
       ? ((split.wantsAmount - prevSplit.wantsAmount) / prevSplit.wantsAmount) * 100
       : null;
 
-    const allocatedPct = split.needsPct + split.wantsPct + savingsPct;
-    const surplusPct = Math.max(0, 100 - allocatedPct);
+    const budgetedOutflow = categories
+      .filter(c => c.type === 'Expenses' || c.type === 'Savings' || c.type === 'Debt')
+      .reduce((sum, cat) => {
+        const plan = budgetPlans.find(p => p.categoryId === cat.id);
+        return sum + (plan?.months[month] ?? 0);
+      }, 0);
+    const unallocatedAmount = Math.max(0, budgetedIncome - budgetedOutflow);
+    const unallocatedPct = base > 0 ? (unallocatedAmount / base) * 100 : 0;
 
     const points: import('./types').InsightPoint[] = [];
 
     if (split.needsPct <= 50) {
-      points.push({ text: `Needs at ${split.needsPct}% — within the 50% limit`, positive: true });
+      points.push({ text: `Needs at ${formatPct(exactNeedsPct)} — within the 50% limit`, positive: true });
     } else {
-      points.push({ text: `Needs at ${split.needsPct}% — over the 50% limit`, positive: false });
+      points.push({ text: `Needs at ${formatPct(exactNeedsPct)} — over the 50% limit`, positive: false });
     }
 
     if (debtPct > 0) {
@@ -171,15 +196,17 @@ export function computeInsights(input: InsightsInput): Insight[] {
     }
 
     if (split.wantsPct <= 30) {
-      points.push({ text: `Wants at ${split.wantsPct}% — within the 30% limit`, positive: true });
+      points.push({ text: `Wants at ${formatPct(exactWantsPct)} — within the 30% limit`, positive: true });
     } else {
-      points.push({ text: `Wants at ${split.wantsPct}% — over the 30% limit`, positive: false });
+      points.push({ text: `Wants at ${formatPct(exactWantsPct)} — over the 30% limit`, positive: false });
     }
 
     if (savingsPct >= 20) {
-      points.push({ text: `Saving ${savingsPct}% — hitting the 20% goal`, positive: true });
+      points.push({ text: `Saving ${formatPct(exactSavingsPct)} — hitting the 20% goal`, positive: true });
     } else if (savingsPct > 0) {
-      points.push({ text: `Saving ${savingsPct}% — short of the 20% goal`, positive: false });
+      points.push({ text: `Saving ${formatPct(exactSavingsPct)} — short of the 20% goal`, positive: false });
+    } else if (debtPct >= 20) {
+      points.push({ text: 'Debt repayment is taking priority over savings', positive: true });
     } else {
       points.push({ text: 'No savings this month', positive: false });
     }
@@ -190,23 +217,23 @@ export function computeInsights(input: InsightsInput): Insight[] {
       points.push({ text: 'Wants down vs last month', positive: true });
     }
 
-    if (surplusPct > 0) {
-      points.push({ text: `${surplusPct}% of income not allocated`, positive: false });
+    if (unallocatedAmount > 0.005) {
+      points.push({ text: `${fmtExact(unallocatedAmount)} not allocated (${formatPct(unallocatedPct)} of income)`, positive: false });
     }
 
     featured = {
       id: 'wants-needs-split',
       type: health.type,
       headline: health.statusLabel,
-      value: `${split.needsPct}% Needs · ${split.wantsPct}% Wants · ${savingsPct}% Savings`,
+      value: `${formatPct(exactNeedsPct)} Needs · ${formatPct(exactWantsPct)} Wants · ${formatPct(exactSavingsPct)} Savings`,
       stats: (() => {
         const base = [
-          { label: 'Needs',   value: `${split.needsPct}%`, numericValue: split.needsPct, target: '≤50%', color: 'bg-blue-400',    status: split.needsPct <= 50 ? 'good' as const : 'bad' as const },
-          { label: 'Wants',   value: `${split.wantsPct}%`, numericValue: split.wantsPct, target: '≤30%', color: 'bg-amber-400',   status: split.wantsPct <= 30 ? 'good' as const : 'bad' as const },
-          { label: 'Savings', value: `${savingsPct}%`,     numericValue: savingsPct,     target: '≥20%', color: 'bg-emerald-400', status: savingsPct >= 20    ? 'good' as const : 'bad' as const },
+          { label: 'Needs',   value: formatPct(exactNeedsPct),   numericValue: exactNeedsPct,   target: '≤50%', color: 'bg-blue-400',    status: split.needsPct <= 50 ? 'good' as const : 'bad' as const },
+          { label: 'Wants',   value: formatPct(exactWantsPct),   numericValue: exactWantsPct,   target: '≤30%', color: 'bg-amber-400',   status: split.wantsPct <= 30 ? 'good' as const : 'bad' as const },
+          { label: 'Savings', value: formatPct(exactSavingsPct), numericValue: exactSavingsPct, target: '≥20%', color: 'bg-emerald-400', status: savingsPct >= 20    ? 'good' as const : 'bad' as const },
         ];
-        if (surplusPct > 0) {
-          base.push({ label: 'Not Allocated', value: `${surplusPct}%`, numericValue: surplusPct, target: '', color: 'bg-slate-300', status: 'bad' as const });
+        if (unallocatedAmount > 0.005) {
+          base.push({ label: 'Not Allocated', value: formatPct(unallocatedPct), numericValue: unallocatedPct, target: '', color: 'bg-slate-300', status: 'bad' as const });
         }
         return base;
       })(),

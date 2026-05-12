@@ -52,7 +52,15 @@ describe('classifyBudgetHealth', () => {
     // User scenario: 70% Needs (30% debt), 30% Wants, 0% Savings
     const r = classify(70, 10, 0, 30);
     expect(r.type).toBe('info');
-    expect(r.statusLabel).toBe('Focused on debt');
+    expect(r.statusLabel).toBe('Debt-first month');
+  });
+
+  it('prioritises debt repayment when living costs are only slightly above target', () => {
+    // Realistic heavy-debt month: living costs ~52%, debt ~48%, wants 0%, savings 0%.
+    const r = classify(100, 0, 0, 48);
+    expect(r.type).toBe('info');
+    expect(r.statusLabel).toBe('Debt-first month');
+    expect(r.subtext).toContain('Debt repayment is taking priority over savings');
   });
 
   // 5. Needs >50%, not debt-driven
@@ -139,6 +147,7 @@ describe('classifyBudgetHealth', () => {
       classify(70, 10, 20, 30),  // debt-driven, strong savings
       classify(70, 10, 5, 30),   // debt-driven, some savings
       classify(70, 10, 0, 30),   // debt-driven, no savings
+      classify(100, 0, 0, 48),   // debt-priority month
       classify(60, 10, 25, 0),   // pure expenses high, savings strong
       classify(60, 10, 5),       // pure expenses high, savings weak
       classify(40, 35, 20),      // wants high, savings strong
