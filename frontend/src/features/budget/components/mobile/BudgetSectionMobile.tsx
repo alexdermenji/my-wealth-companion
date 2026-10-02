@@ -10,8 +10,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { BudgetCell } from '../BudgetCell';
 import { BudgetSortButton } from '../BudgetSortButton';
+import { HiddenBudgetItems } from '../HiddenBudgetItems';
+import { useBudgetVisibility } from '../../hooks/useBudgetVisibility';
+import { partitionBudgetCategories } from '../../visibility';
 import { nextBudgetSort, sortBudgetCategories, type BudgetSort } from '../../sorting';
-import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuTrigger,
@@ -68,13 +71,16 @@ export function BudgetSectionMobile({
     [categories, type],
   );
 
+  const { visible: visibleCats, hidden: hiddenCats } = partitionBudgetCategories(typeCats);
+  const visibility = useBudgetVisibility(typeCats);
+
   const existingGroups = useMemo(
     () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
     [categories],
   );
 
   const { tabFills, getBudget } = useTabFill({ budgetPlans, onAmountChange });
-  const displayCats = sortBudgetCategories(typeCats, sort, getBudget);
+  const displayCats = sortBudgetCategories(visibleCats, sort, getBudget);
   const { monthTotals } = useHeatMap({ typeCats, budgetPlans, tabFills, cssKey });
 
   const fmt = (v: number) => v > 0 ? `${currency}${new Intl.NumberFormat('en-US').format(v)}` : '—';
@@ -118,7 +124,7 @@ export function BudgetSectionMobile({
               key={cat.id}
               className={cn(
                 'flex items-center justify-between pl-4 pr-1 py-3',
-                i < typeCats.length - 1 && 'border-b border-border/40',
+                i < displayCats.length - 1 && 'border-b border-border/40',
               )}
             >
               <div className="flex flex-col gap-0.5 min-w-0 flex-1 mr-2">
@@ -144,11 +150,15 @@ export function BudgetSectionMobile({
                 </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center justify-center min-h-[44px] min-w-[36px] rounded text-muted-foreground/50">
+                    <button aria-label={`Actions for ${cat.name}`} ref={el => { visibility.rowButtonRefs.current[cat.id] = el; }} className="flex items-center justify-center min-h-[44px] min-w-[36px] rounded text-muted-foreground/50">
                       <MoreVertical className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem disabled={visibility.pendingIds.has(cat.id)} onClick={() => visibility.setHidden(cat.id, true)}>
+                      <EyeOff className="h-3.5 w-3.5 mr-2" />
+                      {visibility.pendingIds.has(cat.id) ? 'Hiding…' : 'Hide'}
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setEditingCat(cat)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" />
                       Edit
@@ -167,7 +177,7 @@ export function BudgetSectionMobile({
           ))}
 
           {/* Add category button */}
-          <div className={cn('px-4 py-3', typeCats.length > 0 && 'border-t border-border/40')}>
+          <div className={cn('px-4 py-3', displayCats.length > 0 && 'border-t border-border/40')}>
             <button
               className="flex items-center gap-1.5 rounded-md border border-dashed border-border px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:border-primary hover:text-primary w-full justify-center"
               onClick={() => setAdding(true)}
@@ -176,6 +186,11 @@ export function BudgetSectionMobile({
               Add category
             </button>
           </div>
+          {hiddenCats.length > 0 && (
+            <div className="border-t border-border/40 px-2">
+              <HiddenBudgetItems categories={hiddenCats} section={displayLabel} pendingIds={visibility.pendingIds} buttonRef={visibility.hiddenButtonRef} onRestore={id => visibility.setHidden(id, false)} />
+            </div>
+          )}
         </Card>
       </div>
 

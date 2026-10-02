@@ -3,7 +3,7 @@ import type { BudgetCategory } from "@/shared/types";
 
 // DB columns are PascalCase. "Group" and "Order" are SQL reserved words —
 // PostgREST requires them double-quoted in select/order params.
-type CategoryRow = { Id: string; Name: string; Type: BudgetCategory["type"]; Group: string; Order: number; SpendingType?: BudgetCategory["spendingType"] };
+type CategoryRow = { Id: string; Name: string; Type: BudgetCategory["type"]; Group: string; Order: number; SpendingType?: BudgetCategory["spendingType"]; IsHiddenInBudget?: boolean };
 
 const toCategory = (row: CategoryRow): BudgetCategory => ({
   id: row.Id,
@@ -11,6 +11,7 @@ const toCategory = (row: CategoryRow): BudgetCategory => ({
   type: row.Type,
   group: row.Group,
   order: row.Order,
+  isHiddenInBudget: row.IsHiddenInBudget ?? false,
   ...(row.SpendingType ? { spendingType: row.SpendingType } : {}),
 });
 
@@ -56,6 +57,17 @@ export const categoriesApi = {
   delete: async (id: string): Promise<void> => {
     const { error } = await supabase.from("Categories").delete().eq("Id", id);
     if (error) throw new Error(error.message);
+  },
+
+  setHiddenInBudget: async (id: string, hidden: boolean): Promise<BudgetCategory> => {
+    const { data, error } = await supabase
+      .from("Categories")
+      .update({ IsHiddenInBudget: hidden })
+      .eq("Id", id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return toCategory(data as CategoryRow);
   },
 
   forceDelete: async (id: string): Promise<void> => {

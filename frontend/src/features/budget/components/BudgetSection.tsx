@@ -5,8 +5,11 @@ import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { BudgetCell } from './BudgetCell';
 import { BudgetSortButton } from './BudgetSortButton';
+import { HiddenBudgetItems } from './HiddenBudgetItems';
+import { useBudgetVisibility } from '../hooks/useBudgetVisibility';
+import { partitionBudgetCategories } from '../visibility';
 import { nextBudgetSort, sortBudgetCategories, type BudgetSort } from '../sorting';
-import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
@@ -62,6 +65,9 @@ export function BudgetSection({
     [categories, type],
   );
 
+  const { hidden: hiddenCats } = partitionBudgetCategories(typeCats);
+  const visibility = useBudgetVisibility(typeCats);
+
   const existingGroups = useMemo(
     () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
     [categories],
@@ -69,7 +75,7 @@ export function BudgetSection({
 
   const { tabFills, getBudget, handleTab, cellRefs } = useTabFill({ budgetPlans, onAmountChange });
 
-  const { displayCats: manualCats, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
+  const { displayCats: manualCats, isReordering, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
     useDragReorder(typeCats);
   const displayCats = sortBudgetCategories(manualCats, sort, getBudget);
 
@@ -158,7 +164,7 @@ export function BudgetSection({
             </tr>
           )}
           <TableRow
-            draggable={!sort}
+            draggable={!sort && !isReordering}
             onDragStart={sort ? undefined : () => handleDragStart(index)}
             onDragOver={sort ? undefined : e => handleDragOver(e, index)}
             onDrop={sort ? undefined : handleDrop}
@@ -198,14 +204,18 @@ export function BudgetSection({
                     )}
                   </div>
                 </div>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                      <button aria-label={`Actions for ${cat.name}`} ref={el => { visibility.rowButtonRefs.current[cat.id] = el; }} className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60">
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem disabled={visibility.pendingIds.has(cat.id)} onClick={() => visibility.setHidden(cat.id, true)}>
+                        <EyeOff className="h-3.5 w-3.5 mr-2" />
+                        {visibility.pendingIds.has(cat.id) ? 'Hiding…' : 'Hide'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingCat(cat)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" />
                         Edit
@@ -322,6 +332,13 @@ export function BudgetSection({
           </button>
         </TableCell>
       </TableRow>
+      {hiddenCats.length > 0 && (
+        <TableRow className="border-t border-border bg-card">
+          <TableCell colSpan={colSpan} className="px-3 py-1">
+            <HiddenBudgetItems categories={hiddenCats} section={displayLabel} pendingIds={visibility.pendingIds} buttonRef={visibility.hiddenButtonRef} onRestore={id => visibility.setHidden(id, false)} />
+          </TableCell>
+        </TableRow>
+      )}
     </>
   );
 }
