@@ -9,6 +9,8 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { BudgetCell } from '../BudgetCell';
+import { BudgetSortButton } from '../BudgetSortButton';
+import { nextBudgetSort, sortBudgetCategories, type BudgetSort } from '../../sorting';
 import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent,
@@ -26,6 +28,8 @@ interface BudgetSectionMobileProps {
   onAmountChange: (catId: string, month: number, value: string) => void;
   currency: string;
   month: number;
+  sort?: BudgetSort;
+  onSortChange?: (sort: BudgetSort) => void;
 }
 
 function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
@@ -41,7 +45,13 @@ export function BudgetSectionMobile({
   onAmountChange,
   currency,
   month,
+  sort: controlledSort,
+  onSortChange,
 }: BudgetSectionMobileProps) {
+  const [localSort, setLocalSort] = useState<BudgetSort>(null);
+  const savedSort = controlledSort === undefined ? localSort : controlledSort;
+  const sort = savedSort ? { ...savedSort, month } : null;
+  const changeSort = onSortChange ?? setLocalSort;
   const accentColor  = SECTION_ACCENT[type];
   const cssKey       = SECTION_CSS_KEY[type];
   const displayLabel = DISPLAY_LABELS[type] ?? type;
@@ -64,6 +74,7 @@ export function BudgetSectionMobile({
   );
 
   const { tabFills, getBudget } = useTabFill({ budgetPlans, onAmountChange });
+  const displayCats = sortBudgetCategories(typeCats, sort, getBudget);
   const { monthTotals } = useHeatMap({ typeCats, budgetPlans, tabFills, cssKey });
 
   const fmt = (v: number) => v > 0 ? `${currency}${new Intl.NumberFormat('en-US').format(v)}` : '—';
@@ -92,13 +103,17 @@ export function BudgetSectionMobile({
           </span>
         </div>
 
+        <div className="flex justify-end mb-1">
+          <BudgetSortButton mobile sort={sort} month={month} section={displayLabel} onClick={() => changeSort(nextBudgetSort(sort, month))} />
+        </div>
+
         {/* Card body */}
         <Card
           className="overflow-hidden"
           style={{ borderLeft: `3px solid ${accentColor}` }}
         >
           {/* Category rows */}
-          {typeCats.map((cat, i) => (
+          {displayCats.map((cat, i) => (
             <div
               key={cat.id}
               className={cn(

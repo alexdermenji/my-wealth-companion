@@ -47,6 +47,7 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
   }, forwardedRef) {
     const [focused, setFocused] = useState(false);
     const [draft, setDraft] = useState('');
+    const [dirty, setDirty] = useState(false);
     const innerRef = useRef<HTMLInputElement>(null);
 
     // Merge the internal ref (for cursor management) with the forwarded ref (for parent focus control)
@@ -71,6 +72,7 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
 
       const formatted = applyCommas(el.value);
       setDraft(formatted);
+      setDirty(true);
 
       // After React re-renders, restore cursor at the same logical raw-char position
       requestAnimationFrame(() => {
@@ -113,20 +115,20 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
           ref={mergedRef}
           type="text"
           inputMode="decimal"
-          value={focused ? draft : blurDisplay(value, displayFormatOptions)}
+          // A restored focus after row movement must not revive a stale draft.
+          value={focused && dirty ? draft : blurDisplay(value, displayFormatOptions)}
           placeholder="—"
           onChange={handleChange}
           onFocus={() => {
-            // Initialise draft from the blur display so there's no visual jump on focus.
-            // The user can then clear/overwrite the .00 naturally as they type.
-            setDraft(value ? blurDisplay(value, displayFormatOptions) : '');
+            setDirty(false);
             setFocused(true);
             setTimeout(() => innerRef.current?.select(), 0);
           }}
           onBlur={() => {
             setFocused(false);
+            setDirty(false);
             const num = parseFloat(draft.replace(/,/g, '')) || 0;
-            if (num !== value) onChange(draft.replace(/,/g, ''));
+            if (dirty && num !== value) onChange(draft.replace(/,/g, ''));
           }}
           onKeyDown={e => {
             if (e.key === 'Enter') e.currentTarget.blur();
@@ -137,7 +139,7 @@ export const BudgetCell = forwardRef<HTMLInputElement, BudgetCellProps>(
             if (e.key === 'Tab' && e.shiftKey) {
               e.preventDefault();
               // Pass the raw numeric string (commas stripped) so callers can parseFloat safely
-              const numericValue = draft.replace(/,/g, '');
+              const numericValue = dirty ? draft.replace(/,/g, '') : value ? String(value) : '';
               // Blur first so onBlur commits the current value before we move focus
               innerRef.current?.blur();
               onTab?.(numericValue);
