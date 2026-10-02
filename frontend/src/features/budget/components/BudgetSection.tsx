@@ -1,10 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
+import { BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../types';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { BudgetCell } from './BudgetCell';
-import { GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { BudgetSortButton } from './BudgetSortButton';
+import { HiddenBudgetItems } from './HiddenBudgetItems';
+import { useBudgetVisibility } from '../hooks/useBudgetVisibility';
+import { partitionBudgetCategories } from '../visibility';
+import { nextBudgetSort, sortBudgetCategories, type BudgetSort } from '../sorting';
+import { EyeOff, GripVertical, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CategoryFormDialog } from '@/features/settings/components/CategoryFormDialog';
@@ -20,6 +25,8 @@ interface BudgetSectionProps {
   onAmountChange: (catId: string, month: number, value: string) => void;
   currency?: string;
   currentMonth?: number | null;
+  sort?: BudgetSort;
+  onSortChange?: (sort: BudgetSort) => void;
 }
 
 function getTrendDirection(current: number, previous: number): 'up' | 'down' | null {
@@ -35,7 +42,12 @@ export function BudgetSection({
   onAmountChange,
   currency = '£',
   currentMonth = null,
+  sort: controlledSort,
+  onSortChange,
 }: BudgetSectionProps) {
+  const [localSort, setLocalSort] = useState<BudgetSort>(null);
+  const sort = controlledSort === undefined ? localSort : controlledSort;
+  const changeSort = onSortChange ?? setLocalSort;
   const accentColor  = SECTION_ACCENT[type];
   const cssKey       = SECTION_CSS_KEY[type];
   const displayLabel = DISPLAY_LABELS[type] ?? type;
@@ -53,6 +65,9 @@ export function BudgetSection({
     [categories, type],
   );
 
+  const { hidden: hiddenCats } = partitionBudgetCategories(typeCats);
+  const visibility = useBudgetVisibility(typeCats);
+
   const existingGroups = useMemo(
     () => [...new Set(categories.map(c => c.group).filter(Boolean))].sort(),
     [categories],
@@ -60,8 +75,9 @@ export function BudgetSection({
 
   const { tabFills, getBudget, handleTab, cellRefs } = useTabFill({ budgetPlans, onAmountChange });
 
-  const { displayCats, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
+  const { displayCats: manualCats, isReordering, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
     useDragReorder(typeCats);
+  const displayCats = sortBudgetCategories(manualCats, sort, getBudget);
 
   const { monthTotals, getHeatBg } = useHeatMap({ typeCats, budgetPlans, tabFills, cssKey });
 
@@ -110,13 +126,15 @@ export function BudgetSection({
         {ALL_MONTHS.map(mo => (
           <TableCell
             key={mo}
+            role="columnheader"
+            aria-sort={sort?.month === mo ? sort.direction : 'none'}
             data-current-month={currentMonth === mo ? 'true' : undefined}
             className={cn(
               'text-center font-display text-[10px] font-bold uppercase tracking-wider py-2.5 text-muted-foreground bg-secondary border-r border-[#f0f2f8] dark:border-border',
               currentMonth === mo && 'bg-[hsl(var(--warning)/0.14)] text-foreground shadow-[inset_0_1px_0_hsl(var(--warning)/0.45),inset_0_-1px_0_hsl(var(--warning)/0.45)]',
             )}
           >
-            {MONTHS[mo - 1]}
+            <BudgetSortButton sort={sort} month={mo} section={displayLabel} onClick={() => changeSort(nextBudgetSort(sort, mo))} />
           </TableCell>
         ))}
       </TableRow>
@@ -136,7 +154,7 @@ export function BudgetSection({
       {displayCats.map((cat, index) => (
         <React.Fragment key={cat.id}>
           {/* Drop indicator above this row */}
-          {dropLineIndex === index && dragIndexRef.current !== index && dragIndexRef.current !== index - 1 && (
+          {!sort && dropLineIndex === index && dragIndexRef.current !== index && dragIndexRef.current !== index - 1 && (
             <tr aria-hidden>
               <td colSpan={colSpan} style={{ padding: 0, border: 'none' }}>
                 <div style={{ position: 'relative', height: '3px', background: accentColor }}>
@@ -146,10 +164,10 @@ export function BudgetSection({
             </tr>
           )}
           <TableRow
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={e => handleDragOver(e, index)}
-            onDrop={handleDrop}
+            draggable={!sort && !isReordering}
+            onDragStart={sort ? undefined : () => handleDragStart(index)}
+            onDragOver={sort ? undefined : e => handleDragOver(e, index)}
+            onDrop={sort ? undefined : handleDrop}
             onDragEnd={handleDragEnd}
             className="group/row border-t border-[#f0f2f8] hover:bg-[#fafbff] bg-card dark:border-border dark:hover:bg-muted/30"
           >
@@ -162,7 +180,8 @@ export function BudgetSection({
             >
               <div className="relative flex items-center h-full pl-0 pr-6">
                 <div
-                  className="flex-shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors mr-2"
+                  title={sort ? "Restore manual order to drag categories" : "Drag to reorder"}
+                  className={cn("flex-shrink-0 text-muted-foreground/40 transition-colors mr-2", sort ? "cursor-default opacity-30" : "cursor-grab active:cursor-grabbing hover:text-muted-foreground")}
                   onMouseDown={e => e.stopPropagation()}
                 >
                   <GripVertical className="h-3.5 w-3.5" />
@@ -185,14 +204,18 @@ export function BudgetSection({
                     )}
                   </div>
                 </div>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60">
+                      <button aria-label={`Actions for ${cat.name}`} ref={el => { visibility.rowButtonRefs.current[cat.id] = el; }} className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60">
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem disabled={visibility.pendingIds.has(cat.id)} onClick={() => visibility.setHidden(cat.id, true)}>
+                        <EyeOff className="h-3.5 w-3.5 mr-2" />
+                        {visibility.pendingIds.has(cat.id) ? 'Hiding…' : 'Hide'}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingCat(cat)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" />
                         Edit
@@ -236,7 +259,7 @@ export function BudgetSection({
       ))}
 
       {/* Drop indicator after the last row */}
-      {dropLineIndex === displayCats.length && dragIndexRef.current !== displayCats.length - 1 && (
+      {!sort && dropLineIndex === displayCats.length && dragIndexRef.current !== displayCats.length - 1 && (
         <tr aria-hidden>
           <td colSpan={colSpan} style={{ padding: 0, border: 'none' }}>
             <div style={{ position: 'relative', height: '3px', background: accentColor }}>
@@ -309,6 +332,13 @@ export function BudgetSection({
           </button>
         </TableCell>
       </TableRow>
+      {hiddenCats.length > 0 && (
+        <TableRow className="border-t border-border bg-card">
+          <TableCell colSpan={colSpan} className="px-3 py-1">
+            <HiddenBudgetItems categories={hiddenCats} section={displayLabel} pendingIds={visibility.pendingIds} buttonRef={visibility.hiddenButtonRef} onRestore={id => visibility.setHidden(id, false)} />
+          </TableCell>
+        </TableRow>
+      )}
     </>
   );
 }

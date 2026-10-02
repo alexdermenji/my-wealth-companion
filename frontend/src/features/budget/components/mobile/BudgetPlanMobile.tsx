@@ -4,6 +4,7 @@ import { MONTHS, BudgetType, BudgetCategory } from '@/shared/types';
 import type { BudgetPlan } from '../../types';
 import { cn } from '@/lib/utils';
 import { BudgetSectionMobile } from './BudgetSectionMobile';
+import type { BudgetSort } from '../../sorting';
 
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
@@ -19,6 +20,8 @@ interface BudgetPlanMobileProps {
   toBeAllocated: number[];
   onAmountChange: (catId: string, month: number, value: string) => void;
   currency: string;
+  sorts?: Partial<Record<BudgetType, BudgetSort>>;
+  onSortChange?: (type: BudgetType, sort: BudgetSort) => void;
 }
 
 export function BudgetPlanMobile({
@@ -32,6 +35,8 @@ export function BudgetPlanMobile({
   toBeAllocated,
   onAmountChange,
   currency,
+  sorts,
+  onSortChange,
 }: BudgetPlanMobileProps) {
   const [selectedType, setSelectedType] = useState<BudgetType>('Income');
 
@@ -161,7 +166,10 @@ export function BudgetPlanMobile({
       </div>
 
       <BudgetSectionMobile
+        key={selectedType}
         type={selectedType}
+        sort={sorts ? sorts[selectedType] ?? null : undefined}
+        onSortChange={onSortChange ? sort => onSortChange(selectedType, sort) : undefined}
         categories={categories}
         budgetPlans={budgetPlans}
         onAmountChange={onAmountChange}

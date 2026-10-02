@@ -1,9 +1,37 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BudgetCell } from "../BudgetCell";
 
 describe("BudgetCell", () => {
+  it("shows updated saved data after focus is restored without submitting a stale draft", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<BudgetCell value={800} onChange={onChange} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "2500" } });
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("2500");
+    onChange.mockClear();
+    fireEvent.focus(input);
+    rerender(<BudgetCell value={2500} onChange={onChange} />);
+    expect(input).toHaveValue("2,500.00");
+    fireEvent.blur(input);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("preserves unfinished input when saved data refreshes", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<BudgetCell value={100} onChange={onChange} />);
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "350" } });
+    rerender(<BudgetCell value={200} onChange={onChange} />);
+    expect(input).toHaveValue("350");
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledWith("350");
+  });
+
   it("displays formatted value when not focused", () => {
     render(<BudgetCell value={500} onChange={vi.fn()} />);
     expect(screen.getByDisplayValue("500.00")).toBeInTheDocument();

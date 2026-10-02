@@ -132,6 +132,6 @@ describe("BudgetSection", () => {
 
   it("marks the supplied current month column", () => {
     renderInTable(<BudgetSection {...defaultProps} currentMonth={4} />);
-    expect(screen.getAllByText("Apr")[0]).toHaveAttribute("data-current-month", "true");
+    expect(screen.getAllByText("Apr")[0].closest("[data-current-month]")).toHaveAttribute("data-current-month", "true");
   });
 });

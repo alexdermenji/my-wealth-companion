@@ -1,6 +1,8 @@
 import { type DragEvent, useRef, useState } from 'react';
 import type { BudgetCategory } from '@/shared/types';
 import { useReorderCategory } from '@/shared/hooks/useCategories';
+import { toast } from 'sonner';
+import { moveVisibleBudgetCategory, partitionBudgetCategories } from '../visibility';
 
 /**
  * Manages drag-and-drop row reordering for a budget section.
@@ -11,11 +13,22 @@ export function useDragReorder(typeCats: BudgetCategory[]) {
   const reorderMutation = useReorderCategory();
   const dragIndexRef = useRef<number | null>(null);
   const [dropLineIndex, setDropLineIndex] = useState<number | null>(null);
-  const [optimisticCats, setOptimisticCats] = useState<BudgetCategory[] | null>(null);
+  const [optimisticIds, setOptimisticIds] = useState<string[] | null>(null);
 
-  const displayCats = optimisticCats ?? typeCats;
+  // Keep only order optimistic, never a stale copy of category visibility/data.
+  const fullCats = optimisticIds
+    ? [...typeCats].sort((a, b) => {
+      const rank = (id: string) => {
+        const index = optimisticIds.indexOf(id);
+        return index < 0 ? optimisticIds.length : index;
+      };
+      return rank(a.id) - rank(b.id);
+    })
+    : typeCats;
+  const { visible: displayCats } = partitionBudgetCategories(fullCats);
 
   const handleDragStart = (index: number) => {
+    if (reorderMutation.isPending) return;
     dragIndexRef.current = index;
   };
 
@@ -29,6 +42,7 @@ export function useDragReorder(typeCats: BudgetCategory[]) {
 
   const handleDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
+    if (reorderMutation.isPending) return;
     const dragIndex = dragIndexRef.current;
     if (dragIndex === null || dropLineIndex === null) {
       dragIndexRef.current = null;
@@ -46,17 +60,21 @@ export function useDragReorder(typeCats: BudgetCategory[]) {
       return;
     }
 
-    const reordered = [...displayCats];
-    const [moved] = reordered.splice(dragIndex, 1);
-    reordered.splice(dest, 0, moved);
-    setOptimisticCats(reordered);
+    const moved = displayCats[dragIndex];
+    if (!moved) return;
+    const result = moveVisibleBudgetCategory(fullCats, moved.id, dest);
+    if (!result) return;
+    setOptimisticIds(result.categories.map(category => category.id));
 
     dragIndexRef.current = null;
     setDropLineIndex(null);
 
     reorderMutation.mutate(
-      { id: moved.id, newOrder: dest },
-      { onSuccess: () => setOptimisticCats(null) },
+      { id: moved.id, newOrder: result.newOrder },
+      {
+        onError: () => toast.error("Couldn't reorder categories. Please try again."),
+        onSettled: () => setOptimisticIds(null),
+      },
     );
   };
 
@@ -67,6 +85,7 @@ export function useDragReorder(typeCats: BudgetCategory[]) {
 
   return {
     displayCats,
+    isReordering: reorderMutation.isPending,
     dropLineIndex,
     dragIndexRef,
     handleDragStart,

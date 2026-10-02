@@ -9,4 +9,5 @@ export interface BudgetCategory {
   group: string; // e.g. "Housing", "Fun", "Bills"
   order: number;
   spendingType?: SpendingType;
+  isHiddenInBudget?: boolean;
 }

@@ -131,6 +131,8 @@ test.describe('Budget Plan - Shift+Tab fill', () => {
     await budgetPlanPage.switchToEditTab();
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 0, '3000');
     await budgetPlanPage.setCategoryAmount('Employment (Net)', 1, '1500');
+    // Wait for the saved model to refresh before testing an already-filled month.
+    await expect(budgetPlanPage.getCellInput('Employment (Net)', 1)).toHaveValue('1,500.00');
 
     await budgetPlanPage.shiftTabCell('Employment (Net)', 0);
 

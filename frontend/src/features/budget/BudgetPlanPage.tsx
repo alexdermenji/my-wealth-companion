@@ -19,6 +19,8 @@ import BudgetBreakdown from '@/features/dashboard/components/BudgetBreakdown';
 import { MobileDashboard } from '@/features/dashboard/components/MobileDashboard';
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton';
 
+import type { BudgetSort } from './sorting';
+
 const BUDGET_TYPES: BudgetType[] = ['Income', 'Expenses', 'Savings', 'Debt'];
 
 type Tab = 'overview' | 'edit';
@@ -68,6 +70,19 @@ export default function BudgetPlanPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const isMobile = useIsMobile();
+  const [sorts, setSorts] = useState<Partial<Record<BudgetType, BudgetSort>>>({});
+  const changeSort = (type: BudgetType, sort: BudgetSort) => {
+    setSorts(previous => ({ ...previous, [type]: sort }));
+  };
+
+  useEffect(() => { setSorts({}); }, [year, activeTab]);
+  useEffect(() => {
+    if (isMobile) {
+      setSorts(previous => Object.fromEntries(
+        Object.entries(previous).map(([type, sort]) => [type, sort ? { ...sort, month: selectedMonth } : null]),
+      ));
+    }
+  }, [isMobile, selectedMonth]);
   const { setFullWidth } = useFullWidth();
 
   useEffect(() => {
@@ -240,6 +255,8 @@ export default function BudgetPlanPage() {
             isMobile ? <BudgetPlanMobileSkeleton /> : <BudgetPlanSkeleton />
           ) : isMobile ? (
             <BudgetPlanMobile
+              sorts={sorts}
+              onSortChange={changeSort}
               year={year}
               selectedMonth={selectedMonth}
               onMonthChange={setSelectedMonth}
@@ -323,6 +340,8 @@ export default function BudgetPlanPage() {
                       <BudgetSection
                         key={type}
                         type={type}
+                        sort={sorts[type] ?? null}
+                        onSortChange={sort => changeSort(type, sort)}
                         categories={allCategories}
                         budgetPlans={budgetPlans}
                         onAmountChange={handleChange}

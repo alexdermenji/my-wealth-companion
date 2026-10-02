@@ -6,3 +6,4 @@ export const useUpdateCategory = vi.fn().mockReturnValue({ mutate: vi.fn() });
 export const useDeleteCategory = vi.fn().mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
 export const useForceDeleteCategory = vi.fn().mockReturnValue({ mutate: vi.fn() });
 export const useReorderCategory = vi.fn().mockReturnValue({ mutate: vi.fn() });
+export const useSetCategoryHiddenInBudget = vi.fn().mockReturnValue({ mutate: vi.fn(), mutateAsync: vi.fn() });
