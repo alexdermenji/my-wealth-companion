@@ -28,7 +28,7 @@ const PERIODS: Array<{ key: PeriodKey; label: string; months: number | null }> =
   { key: 'all', label: 'All', months: null },
 ];
 
-function buildChartData(items: NetWorthItem[], values: NetWorthValue[]): DataPoint[] {
+function buildChartData(items: NetWorthItem[], values: NetWorthValue[], currentMonthKey: number): DataPoint[] {
   const assetIds = new Set(items.filter(i => i.type === 'Asset').map(i => i.id));
   const liabilityIds = new Set(items.filter(i => i.type === 'Liability').map(i => i.id));
 
@@ -43,6 +43,8 @@ function buildChartData(items: NetWorthItem[], values: NetWorthValue[]): DataPoi
     for (const [monthStr, amount] of Object.entries(v.months)) {
       const month = parseInt(monthStr, 10);
       const key = v.year * 100 + month;
+      // Future entries are not part of historical net worth, even when saved as zero.
+      if (key > currentMonthKey) continue;
       map.set(key, (map.get(key) ?? 0) + (amount as number));
     }
   }
@@ -69,6 +71,7 @@ function buildChartData(items: NetWorthItem[], values: NetWorthValue[]): DataPoi
 }
 
 function filterDataByPeriod(data: DataPoint[], period: PeriodKey): DataPoint[] {
+  if (data.length === 0) return data;
   const selectedPeriod = PERIODS.find(p => p.key === period) ?? PERIODS[0];
   if (selectedPeriod.months === null) return data;
 
@@ -124,7 +127,9 @@ function CustomTooltip({ active, payload, label, currency }: TooltipProps) {
 
 export function NetWorthChart({ items, values, currency }: Props) {
   const [period, setPeriod] = useState<PeriodKey>('all');
-  const data = useMemo(() => buildChartData(items, values), [items, values]);
+  const now = new Date();
+  const currentMonthKey = now.getFullYear() * 100 + now.getMonth() + 1;
+  const data = useMemo(() => buildChartData(items, values, currentMonthKey), [items, values, currentMonthKey]);
   const visibleData = useMemo(() => filterDataByPeriod(data, period), [data, period]);
 
   if (data.length < 2) return null;

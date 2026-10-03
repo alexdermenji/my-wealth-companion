@@ -61,7 +61,7 @@ function CustomTooltip({ active, payload, label, currency }: TooltipProps) {
   );
 }
 
-function buildData(items: NetWorthItem[], values: NetWorthValue[]) {
+function buildData(items: NetWorthItem[], values: NetWorthValue[], currentMonthKey: number) {
   const assetIds = new Set(items.filter(i => i.type === 'Asset').map(i => i.id));
   const liabilityIds = new Set(items.filter(i => i.type === 'Liability').map(i => i.id));
 
@@ -73,6 +73,7 @@ function buildData(items: NetWorthItem[], values: NetWorthValue[]) {
     const sign = isAsset ? 1 : -1;
     for (const [monthStr, amount] of Object.entries(v.months)) {
       const key = v.year * 100 + parseInt(monthStr, 10);
+      if (key > currentMonthKey) continue;
       nwMap.set(key, (nwMap.get(key) ?? 0) + sign * (amount as number));
     }
   }
@@ -125,7 +126,9 @@ function buildData(items: NetWorthItem[], values: NetWorthValue[]) {
 }
 
 export function NetWorthProjectionChart({ items, values, currency, milestoneAmounts }: Props) {
-  const result = useMemo(() => buildData(items, values), [items, values]);
+  const now = new Date();
+  const currentMonthKey = now.getFullYear() * 100 + now.getMonth() + 1;
+  const result = useMemo(() => buildData(items, values, currentMonthKey), [items, values, currentMonthKey]);
 
   if (!result) return null;
 

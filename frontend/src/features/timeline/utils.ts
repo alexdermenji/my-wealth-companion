@@ -309,10 +309,12 @@ export function buildNetWorthMilestoneModel({
   items,
   values,
   milestones,
+  currentMonthKey = new Date().getFullYear() * 100 + new Date().getMonth() + 1,
 }: {
   items: NetWorthItem[];
   values: NetWorthValue[];
   milestones: UserMilestone[];
+  currentMonthKey?: number;
 }): NetWorthMilestoneModel {
   const itemTypeMap = new Map(items.map(item => [item.id, item.type]));
   const pointMap = new Map<string, NetWorthTimelinePoint>();
@@ -322,6 +324,7 @@ export function buildNetWorthMilestoneModel({
     if (!type) continue;
 
     for (let month = 1; month <= 12; month += 1) {
+      if (value.year * 100 + month > currentMonthKey) continue;
       if (!Object.prototype.hasOwnProperty.call(value.months, month)) continue;
 
       const key = `${value.year}-${month}`;
