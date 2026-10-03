@@ -46,7 +46,9 @@ export const transactionsApi = {
     let query = supabase
       .from("Transactions")
       .select("*")
-      .order("Date", { ascending: false });
+      .order("CreatedAt", { ascending: false, nullsFirst: false })
+      .order("Date", { ascending: false })
+      .order("Id", { ascending: false });
 
     if (filters?.budgetType && filters.budgetType !== "all")
       query = query.eq("BudgetType", filters.budgetType);
@@ -78,7 +80,9 @@ export const transactionsApi = {
     let query = supabase
       .from("Transactions")
       .select("*", { count: "exact" })
-      .order("Date", { ascending: false });
+      .order("CreatedAt", { ascending: false, nullsFirst: false })
+      .order("Date", { ascending: false })
+      .order("Id", { ascending: false });
 
     if (filters.budgetType && filters.budgetType !== "all")
       query = query.eq("BudgetType", filters.budgetType);

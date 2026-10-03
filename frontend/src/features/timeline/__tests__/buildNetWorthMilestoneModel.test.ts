@@ -177,3 +177,29 @@ describe('buildNetWorthMilestoneModel', () => {
     expect(result.milestones[2].label).toBe('500');
   });
 });
+
+describe('milestone historical cutoff', () => {
+  it('keeps October balance, growth and reached status despite future zeros', () => {
+    const result = buildNetWorthMilestoneModel({
+      items: [asset('a')],
+      values: [values('a', 2026, { 9: 110000, 10: 120000, 11: 0, 12: 0 }), values('a', 2027, { 1: 999999 })],
+      milestones: [milestone({ amount: 100000 }), milestone({ amount: 150000 })],
+      currentMonthKey: 202610,
+    });
+    expect(result.points).toHaveLength(2);
+    expect(result.latestPoint).toMatchObject({ year: 2026, month: 10, netWorth: 120000 });
+    expect(result.monthlyGrowth).toBe(10000);
+    expect(result.milestones[0]).toMatchObject({ status: 'reached', monthLabel: 'Sep 2026' });
+    expect(result.milestones[1]).toMatchObject({ status: 'projected', monthLabel: 'Jan 2027', monthsAway: 3 });
+  });
+
+  it('leaves milestones unavailable when all snapshots are in the future', () => {
+    const result = buildNetWorthMilestoneModel({
+      items: [asset('a')], values: [values('a', 2027, { 1: 999999 })],
+      milestones: [milestone({ amount: 100000 })], currentMonthKey: 202610,
+    });
+    expect(result.latestPoint).toBeNull();
+    expect(result.monthlyGrowth).toBeNull();
+    expect(result.milestones[0].status).toBe('unavailable');
+  });
+});

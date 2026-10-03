@@ -185,11 +185,13 @@ export default function TimelinePage() {
     () => buildTimelineFeed(model.forecasted, timelineEvents),
     [model.forecasted, timelineEvents],
   );
+  const currentMonthKey = now.getFullYear() * 100 + now.getMonth() + 1;
   const milestoneModel = useMemo(() => buildNetWorthMilestoneModel({
     items,
     values: allNetWorthValues,
     milestones: userMilestones ?? [],
-  }), [allNetWorthValues, items, userMilestones]);
+    currentMonthKey,
+  }), [allNetWorthValues, items, userMilestones, currentMonthKey]);
   const nextPayoffItemId = model.summary.nextPayoff?.itemId ?? null;
 
   const augmentedFeed = useMemo((): AugmentedFeedEntry[] => {
