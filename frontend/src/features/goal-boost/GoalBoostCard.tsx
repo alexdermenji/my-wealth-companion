@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   Rocket,
@@ -17,23 +16,21 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { useCategories } from '@/shared/hooks/useCategories';
 import { useSettings } from '@/features/settings/hooks';
 import { useGoalBoost, useBoostCommand } from './hooks';
 import { summarize, type BoostEntry } from './model';
 import { BoostEntryForm, selectClass } from './BoostEntryForm';
-import { BoostForecast } from './BoostForecast';
+import { interestSummary } from './interest';
+import { BoostGoalForm } from './BoostGoalForm';
 export function GoalBoostCard() {
   const query = useGoalBoost(),
     command = useBoostCommand();
-  const { data: categories = [] } = useCategories();
   const { data: settings } = useSettings();
   const [panel, setPanel] = useState<
-    'add' | 'contribute' | 'history' | 'goal' | 'forecast' | null
+    'add' | 'contribute' | 'history' | 'goal' | null
   >(null);
   const [editing, setEditing] = useState<BoostEntry>();
   const [period, setPeriod] = useState('all');
-  const [category, setCategory] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<BoostEntry>();
@@ -41,12 +38,15 @@ export function GoalBoostCard() {
     goals = query.data?.goals ?? [];
   const goal = goals.find((g) => g.active),
     totals = summarize(entries);
+  const interest = interestSummary(goals, entries);
   const currency = settings?.currency ?? '£',
     money = (n: number) =>
       `${currency}${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const history =
     period === 'month'
-      ? entries.filter((e) => e.date.startsWith(format(new Date(), 'yyyy-MM')))
+      ? entries.filter((e) =>
+          e.date.startsWith(format(new Date(), 'yyyy-MM')),
+        )
       : entries;
   const filtered = summarize(history);
   function open(next: typeof panel) {
@@ -54,18 +54,6 @@ export function GoalBoostCard() {
     setEditing(undefined);
     setRemoving(undefined);
     setPanel(next);
-  }
-  async function saveGoal(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await command.mutateAsync({
-        action: 'goal',
-        data: { categoryId: category },
-      });
-      setPanel(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
   }
   async function remove() {
     if (!removing) return;
@@ -89,9 +77,7 @@ export function GoalBoostCard() {
         ? 'Record contribution'
         : panel === 'goal'
           ? 'Choose your goal'
-          : panel === 'forecast'
-            ? 'What could a payment today save?'
-            : 'Goal Boost history';
+          : 'Goal Boost history';
   return (
     <section
       className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden"
@@ -161,10 +147,7 @@ export function GoalBoostCard() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  setCategory(goal?.category_id ?? '');
-                  open('goal');
-                }}
+                onClick={() => open('goal')}
               >
                 {goal ? 'Change' : 'Choose'}
               </Button>
@@ -185,14 +168,52 @@ export function GoalBoostCard() {
                 <ArrowUpRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
-            {goal?.kind === 'Debt' && (
-              <Button
-                variant="link"
-                className="h-auto p-0 whitespace-normal text-left"
-                onClick={() => open('forecast')}
+            {(goal?.kind === 'Debt' ||
+              interest.configured ||
+              interest.missingGoals.length > 0) && (
+              <div
+                className="rounded-xl bg-primary/5 p-4 space-y-2"
+                aria-live="polite"
               >
-                What could a payment today save?
-              </Button>
+                <p className="text-sm text-muted-foreground">
+                  Estimated interest saved
+                </p>
+                <p
+                  className="text-3xl font-amount font-bold text-primary"
+                  data-testid="boost-interest"
+                >
+                  {interest.configured ? money(interest.saved) : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  From recorded extra repayments across your debt goals.
+                  This is projected interest avoided, not money available to
+                  spend.
+                </p>
+                {interest.missingGoals.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Some repayments are not included. Check debt details
+                    for:{' '}
+                    {interest.missingGoals.map((g) => g.name).join(', ')}.
+                  </p>
+                )}
+                {goal?.kind === 'Debt' &&
+                  interest.byGoal[goal.id]?.error && (
+                    <p className="text-sm">
+                      {interest.byGoal[goal.id].error}
+                    </p>
+                  )}
+                {goal?.kind === 'Debt' && (
+                  <Button
+                    variant="link"
+                    className="h-auto p-0"
+                    onClick={() => open('goal')}
+                  >
+                    {goal.settings.version === 2
+                      ? 'Edit debt details'
+                      : 'Set up interest savings'}
+                  </Button>
+                )}
+              </div>
             )}
           </>
         )}
@@ -203,7 +224,11 @@ export function GoalBoostCard() {
             <span className="text-xs text-muted-foreground uppercase tracking-wider">
               Recent activity
             </span>
-            <Button size="sm" variant="ghost" onClick={() => open('history')}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => open('history')}
+            >
               View all
             </Button>
           </div>
@@ -227,6 +252,12 @@ export function GoalBoostCard() {
                           'Contribution')}{' '}
                     · {e.date}
                   </p>
+                  {interest.byEntry[e.id] != null && (
+                    <p className="text-xs text-primary">
+                      Estimated interest saved:{' '}
+                      {money(interest.byEntry[e.id])}
+                    </p>
+                  )}
                 </div>
                 <span className="text-sm font-amount whitespace-nowrap">
                   {e.kind === 'contribution' ? '−' : '+'}
@@ -254,9 +285,7 @@ export function GoalBoostCard() {
                 ? 'Savings, received money and contributions. Unlinking keeps the original transaction.'
                 : panel === 'goal'
                   ? 'Choose a Debt or Savings category. Past contributions stay with their original goal; only unused funds carry over.'
-                  : panel === 'forecast'
-                    ? 'Keep your monthly payment and shorten the term.'
-                    : 'Track money towards your goal without counting transactions twice.'}
+                  : 'Track money towards your goal without counting transactions twice.'}
             </DialogDescription>
           </DialogHeader>
           {(panel === 'add' || panel === 'contribute') && (
@@ -276,43 +305,12 @@ export function GoalBoostCard() {
             />
           )}
           {panel === 'goal' && (
-            <form onSubmit={saveGoal} className="space-y-4">
-              <label className="grid gap-2 text-sm">
-                Budget category
-                <select
-                  className={selectClass}
-                  required
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  <option value="">Choose a category</option>
-                  {categories
-                    .filter((c) => c.type === 'Debt' || c.type === 'Savings')
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} · {c.type}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <Link
-                className="block text-sm text-primary underline"
-                to="/budget"
-                onClick={() => setPanel(null)}
-              >
-                Add a category in Budget Plan
-              </Link>
-              <Button disabled={command.isPending} type="submit">
-                {command.isPending ? 'Saving…' : 'Save goal'}
-              </Button>
-            </form>
-          )}
-          {panel === 'forecast' && goal && (
-            <BoostForecast
-              key={goal.id}
+            <BoostGoalForm
               goal={goal}
-              available={totals.available}
+              entries={entries}
               currency={currency}
+              onSaving={setSaving}
+              onDone={() => setPanel(null)}
             />
           )}
           {panel === 'history' && (
@@ -335,7 +333,9 @@ export function GoalBoostCard() {
                 </p>
                 <p>
                   Received{' '}
-                  <strong className="block">{money(filtered.received)}</strong>
+                  <strong className="block">
+                    {money(filtered.received)}
+                  </strong>
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -346,7 +346,9 @@ export function GoalBoostCard() {
                 <div key={e.id} className="border-t pt-3 space-y-2">
                   <div className="flex justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-medium break-words">{e.description}</p>
+                      <p className="font-medium break-words">
+                        {e.description}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {e.date} ·{' '}
                         {e.kind === 'contribution'
@@ -355,6 +357,21 @@ export function GoalBoostCard() {
                             ? 'Saved'
                             : 'Received'}
                       </p>
+                      {interest.byEntry[e.id] != null && (
+                        <p className="text-xs text-primary">
+                          Estimated interest saved:{' '}
+                          {money(interest.byEntry[e.id])}
+                        </p>
+                      )}
+                      {e.kind === 'contribution' &&
+                        goals.find((g) => g.id === e.goal_id)?.kind ===
+                          'Debt' &&
+                        interest.byEntry[e.id] == null && (
+                          <p className="text-xs text-muted-foreground">
+                            Interest estimate unavailable — check debt
+                            details.
+                          </p>
+                        )}
                       {e.face_value != null && (
                         <p className="text-xs text-muted-foreground">
                           {money(e.face_value)} voucher · paid{' '}

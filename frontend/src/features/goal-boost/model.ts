@@ -6,6 +6,9 @@ export interface BoostGoal {
   active: boolean;
   settings: Partial<ForecastInput> & {
     debtType?: 'loan' | 'card' | 'mortgage';
+    version?: 2;
+    balanceDate?: string;
+    nextPaymentDate?: string;
   };
 }
 export interface BoostEntry {

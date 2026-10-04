@@ -14,7 +14,7 @@ export async function setupGoalBoostMock(page: Page) {
   await page.route('**/rest/v1/GoalBoostEntries*', (route) =>
     route.fulfill({ json: [...entries].reverse() }),
   );
-  await page.route('**/rest/v1/rpc/goal_boost_command', async (route) => {
+  await page.route('**/rest/v1/rpc/goal_boost_*', async (route) => {
     if (failure) {
       failure = false;
       await route.fulfill({
@@ -23,8 +23,24 @@ export async function setupGoalBoostMock(page: Page) {
       });
       return;
     }
-    const { p_action: a, p_data: d } = route.request().postDataJSON();
+    const request = route.request().postDataJSON();
+    const savingGoal = route
+      .request()
+      .url()
+      .endsWith('/goal_boost_save_goal');
+    const a = savingGoal ? 'goal' : request.p_action;
+    const d = savingGoal
+      ? { categoryId: request.p_category_id, settings: request.p_settings }
+      : request.p_data;
     if (a === 'goal') {
+      const current = goals.find(
+        (g) => g.active && g.category_id === d.categoryId,
+      );
+      if (current) {
+        if (d.settings) current.settings = d.settings;
+        await route.fulfill({ json: current });
+        return;
+      }
       goals.forEach((g) => (g.active = false));
       const c = mockCategories.find((c) => c.id === d.categoryId)!;
       goals.unshift({
@@ -33,7 +49,7 @@ export async function setupGoalBoostMock(page: Page) {
         name: c.name,
         kind: c.type as 'Debt' | 'Savings',
         active: true,
-        settings: {},
+        settings: d.settings ?? {},
       });
     } else if (a === 'settings') {
       goals.find((g) => g.id === d.goalId)!.settings = d.settings;
@@ -59,7 +75,9 @@ export async function setupGoalBoostMock(page: Page) {
         face_value: d.faceValue ?? null,
         paid: d.paid ?? null,
         transaction_id:
-          d.kind === 'saved' ? null : d.transactionId || crypto.randomUUID(),
+          d.kind === 'saved'
+            ? null
+            : d.transactionId || crypto.randomUUID(),
         goal_id: d.goalId ?? null,
       });
     }
