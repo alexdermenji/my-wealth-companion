@@ -8,6 +8,7 @@ import { useCategories } from '@/shared/hooks/useCategories';
 import { transactionsApi } from '@/features/transactions/api';
 import { useBoostCommand } from './hooks';
 import { cents, type BoostEntry, type BoostGoal } from './model';
+import { goalInterest } from './interest';
 
 export const selectClass =
   'flex h-11 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm';
@@ -32,14 +33,20 @@ export function BoostEntryForm({
   onDone,
   onSaving,
 }: Props) {
-  const [mode, setMode] = useState(editing?.face_value ? 'voucher' : 'saved');
+  const [mode, setMode] = useState(
+    editing?.face_value ? 'voucher' : 'saved',
+  );
   const [source, setSource] = useState('existing');
   const [id] = useState(() => editing?.id ?? crypto.randomUUID());
   const [date, setDate] = useState(
     editing?.date ?? format(new Date(), 'yyyy-MM-dd'),
   );
-  const [description, setDescription] = useState(editing?.description ?? '');
-  const [amount, setAmount] = useState(editing ? String(editing.amount) : '');
+  const [description, setDescription] = useState(
+    editing?.description ?? '',
+  );
+  const [amount, setAmount] = useState(
+    editing ? String(editing.amount) : '',
+  );
   const [face, setFace] = useState(
     editing?.face_value ? String(editing.face_value) : '',
   );
@@ -83,6 +90,23 @@ export function BoostEntryForm({
     mode === 'voucher' && !contribution
       ? (cents(Number(face)) - cents(Number(paid))) / 100
       : Number(amount);
+  const contributionDate =
+    source === 'existing'
+      ? eligible.find((tx) => tx.id === txId)?.date
+      : date;
+  const projection =
+    contribution && goal?.kind === 'Debt' && value > 0 && contributionDate
+      ? goalInterest(goal, [
+          ...entries,
+          {
+            id,
+            kind: 'contribution',
+            amount: value,
+            date: contributionDate,
+            goal_id: goal.id,
+          } as BoostEntry,
+        ])
+      : undefined;
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -100,11 +124,16 @@ export function BoostEntryForm({
         action: editing ? 'edit' : 'add',
         data: {
           id,
-          kind: contribution ? 'contribution' : linked ? 'received' : 'saved',
+          kind: contribution
+            ? 'contribution'
+            : linked
+              ? 'received'
+              : 'saved',
           amount: value,
           description,
           date,
-          faceValue: !contribution && mode === 'voucher' ? Number(face) : null,
+          faceValue:
+            !contribution && mode === 'voucher' ? Number(face) : null,
           paid: !contribution && mode === 'voucher' ? Number(paid) : null,
           goalId: goal?.id,
           transactionId: source === 'existing' && linked ? txId : null,
@@ -138,7 +167,9 @@ export function BoostEntryForm({
               <option value="saved">I saved — enter an amount</option>
               <option value="voucher">I saved — voucher discount</option>
               {!editing && (
-                <option value="received">I received unexpected money</option>
+                <option value="received">
+                  I received unexpected money
+                </option>
               )}
             </select>
           </label>
@@ -152,7 +183,9 @@ export function BoostEntryForm({
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               >
-                <option value="existing">Link an existing transaction</option>
+                <option value="existing">
+                  Link an existing transaction
+                </option>
                 <option value="new">Record a new transaction</option>
               </select>
             </label>
@@ -186,12 +219,14 @@ export function BoostEntryForm({
                     </button>
                   </p>
                 )}
-                {!txs.isLoading && !txs.isError && eligible.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    No eligible transactions on this page. Try another page or
-                    record a new transaction.
-                  </p>
-                )}
+                {!txs.isLoading &&
+                  !txs.isError &&
+                  eligible.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No eligible transactions on this page. Try another
+                      page or record a new transaction.
+                    </p>
+                  )}
                 {(txs.data?.totalCount ?? 0) > 25 && (
                   <div className="flex items-center gap-3">
                     <Button
@@ -353,6 +388,13 @@ export function BoostEntryForm({
               ? 'Only the allocated part counts towards your goal. Existing income is not recorded twice.'
               : 'Savings do not create income or change your account balance.'}
         </p>
+        {projection && (
+          <p className="text-sm text-primary" aria-live="polite">
+            {projection.error
+              ? `Interest estimate unavailable: ${projection.error}`
+              : `Estimated interest saved by this contribution: ${currency}${projection.byEntry[id].toFixed(2)}`}
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-sm text-destructive">
             {error}

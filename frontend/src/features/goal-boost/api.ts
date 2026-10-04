@@ -23,10 +23,16 @@ export const goalBoostApi = {
     return { goals, entries };
   },
   async command(action: string, data: Record<string, unknown>) {
-    const { error } = await supabase.rpc('goal_boost_command', {
-      p_action: action,
-      p_data: data,
-    });
+    const { error } =
+      action === 'save-goal'
+        ? await supabase.rpc('goal_boost_save_goal', {
+            p_category_id: data.categoryId,
+            p_settings: data.settings ?? null,
+          })
+        : await supabase.rpc('goal_boost_command', {
+            p_action: action,
+            p_data: data,
+          });
     if (error) throw new Error(error.message);
   },
 };
