@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
+import { useGoalBoost } from '@/features/goal-boost/hooks';
 import { BudgetType } from '@/shared/types';
 import type { Transaction } from './types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -52,36 +55,44 @@ export default function TransactionsPage() {
   const updateTransactionMutation = useUpdateTransaction();
   const deleteTransactionMutation = useDeleteTransaction();
 
+  const boost = useGoalBoost();
+  const queryClient = useQueryClient();
+  const linkedToBoost = (id: string) => boost.data?.entries.some(e => e.transaction_id === id) ?? false;
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
 
   if (txLoading || accountsLoading || categoriesLoading) return <TransactionsSkeleton />;
 
-  const handleSubmit = (data: FormValues) => {
-    if (data.budgetType === 'Transfer' && !editing) {
-      createTransfer.mutate({
-        date: data.date,
-        amount: data.amount,
-        details: data.details,
-        accountFromId: data.accountId,
-        accountToId: data.accountToId!,
-      });
-    } else {
-      const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
-        ? -Math.abs(data.amount)
-        : Math.abs(data.amount);
-      const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType, budgetPositionId: data.budgetPositionId ?? '' };
-      if (editing) {
-        updateTransactionMutation.mutate({ id: editing.id, data: payload });
+  const handleSubmit = async (data: FormValues) => {
+    try {
+      if (data.budgetType === 'Transfer' && !editing) {
+        createTransfer.mutate({
+          date: data.date,
+          amount: data.amount,
+          details: data.details,
+          accountFromId: data.accountId,
+          accountToId: data.accountToId!,
+        });
       } else {
-        createTransaction.mutate(payload);
+        const signedAmount = OUTFLOW_TYPES.includes(data.budgetType as BudgetType | '')
+          ? -Math.abs(data.amount)
+          : Math.abs(data.amount);
+        const payload = { ...data, amount: signedAmount, budgetType: data.budgetType as BudgetType, budgetPositionId: data.budgetPositionId ?? '' };
+        if (editing) {
+          await updateTransactionMutation.mutateAsync({ id: editing.id, data: payload });
+          await queryClient.invalidateQueries({ queryKey: ['goal-boost'] });
+        } else {
+          createTransaction.mutate(payload);
+        }
       }
-    }
-    setOpen(false);
-    setEditing(null);
+      setOpen(false);
+      setEditing(null);
+    } catch (error) { toast.error((error as Error).message); }
   };
 
   const handleEdit = (tx: Transaction) => {
+    if (linkedToBoost(tx.id) && !window.confirm("This transaction is linked to Goal Boost. Changes must preserve its allocated amount and category. Continue editing?")) return;
     setEditing(tx);
     setOpen(true);
   };
@@ -179,7 +190,11 @@ export default function TransactionsPage() {
         getCategoryName={getCategoryName}
         formatCurrency={formatCurrency}
         onEdit={handleEdit}
-        onDelete={(id) => deleteTransactionMutation.mutate(id)}
+        onDelete={async (id) => {
+          if (linkedToBoost(id)) { toast.error("Linked to Goal Boost. Unlink it in Dashboard → Goal Boost → View all before deleting."); return; }
+          try { await deleteTransactionMutation.mutateAsync(id); await queryClient.invalidateQueries({ queryKey: ["goal-boost"] }); }
+          catch (error) { toast.error((error as Error).message); }
+        }}
       />
 
       {totalCount > PAGE_SIZE && (

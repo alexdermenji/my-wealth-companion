@@ -1,3 +1,4 @@
+import { setupGoalBoostMock } from './goal-boost.handler';
 import { Page } from '@playwright/test';
 import { setupAccountsMock } from './accounts.handler';
 import { setupCategoriesMock, type CategoriesMockOptions } from './categories.handler';
@@ -17,6 +18,7 @@ export interface AllMocksOptions {
 }
 
 export async function setupAllMocks(page: Page, options: AllMocksOptions = {}) {
+  const goalBoostMock = await setupGoalBoostMock(page);
   const settingsMock = await setupSettingsMock(page);
   const accountsMock = await setupAccountsMock(page);
   const categoriesMock = await setupCategoriesMock(page, options.categories);
@@ -25,5 +27,5 @@ export async function setupAllMocks(page: Page, options: AllMocksOptions = {}) {
   await setupEngagementMock(page);
   const budgetPlansMock = await setupBudgetPlansMock(page, options.budgetPlans);
   const netWorthMock = await setupNetWorthMock(page);
-  return { txMock, accountsMock, categoriesMock, settingsMock, budgetPlansMock, netWorthMock };
+  return { goalBoostMock, txMock, accountsMock, categoriesMock, settingsMock, budgetPlansMock, netWorthMock };
 }

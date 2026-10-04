@@ -12,8 +12,7 @@ import { useAccounts } from '@/shared/hooks/useAccounts';
 import { useCategories } from '@/shared/hooks/useCategories';
 import { useCreateTransaction, useCreateTransfer } from '@/features/transactions/hooks';
 import { BudgetType } from '@/shared/types';
-import { FeaturedInsightSection } from '@/features/insights/components/FeaturedInsightSection';
-import { SecondaryInsightsCard } from '@/features/insights/components/SecondaryInsightsCard';
+import { GoalBoostCard } from '@/features/goal-boost/GoalBoostCard';
 
 const OUTFLOW_TYPES = ['Expenses', 'Debt'];
 
@@ -67,16 +66,10 @@ export default function DashboardPage() {
           : <StreakBanner streak={engagement.streak} onSpentSelected={() => setTxOpen(true)} />
       )}
 
-      {/* Featured insight + secondary insights (connected) + Task panel */}
+      {/* Goal Boost and task panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-stretch">
         <div className="lg:order-1 flex flex-col">
-          {engagement && !isNewUser && (
-            <>
-              <FeaturedInsightSection className="rounded-b-none border-b-0" />
-              <SecondaryInsightsCard className="rounded-t-none" />
-              <div className="flex-1" />
-            </>
-          )}
+          <GoalBoostCard />
         </div>
         <div className="lg:order-2 h-full">
           {engagement ? (
