@@ -62,7 +62,7 @@ export function NetWorthMobile({
   const netWorthColor = netWorth < 0 ? 'text-[#f9a8d4]' : 'text-white';
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+    <div className="flex flex-col flex-1 min-h-0 overflow-auto pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
       <div
         className="relative overflow-hidden rounded-2xl p-5 text-white mb-4 shrink-0"
         style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
