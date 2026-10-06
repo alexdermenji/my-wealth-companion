@@ -184,7 +184,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Main content — extra bottom padding on mobile so content clears the bottom bar */}
-      <main className={cn('mx-auto px-4 md:px-6 py-6 pb-24 md:pb-6', !fullWidth && 'max-w-7xl')}>
+      <main className={cn('mx-auto px-4 md:px-6 py-6 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] md:pb-6', !fullWidth && 'max-w-7xl')}>
         {children}
       </main>
 

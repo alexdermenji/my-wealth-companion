@@ -67,7 +67,7 @@ export function BudgetPlanMobile({
     : remaining < 0 ? `-${fmt(Math.abs(remaining))}` : fmt(remaining);
 
   return (
-    <div className="flex flex-col flex-1 min-h-0 overflow-auto">
+    <div className="flex flex-col flex-1 min-h-0 overflow-auto pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
       {/* Hero card */}
       <div
         className="rounded-2xl p-5 text-white relative overflow-hidden mb-4 shrink-0"
