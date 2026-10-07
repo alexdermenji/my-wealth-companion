@@ -1,9 +1,11 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { MONTHS } from '@/shared/types';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowDownRight, ArrowUpRight, Info } from 'lucide-react';
 import { useFullWidth } from '@/app/AppLayout';
 import { useSettings } from '@/features/settings/hooks';
 import { getCurrentBudgetMonth } from '@/features/budget/constants';
@@ -16,58 +18,36 @@ import type { NetWorthType } from './types';
 
 const NET_WORTH_TYPES: NetWorthType[] = ['Asset', 'Liability'];
 
-function NetWorthHero({ action }: { action: ReactNode }) {
+function NetWorthHeader({ action }: { action: ReactNode }) {
   return (
-    <section
-      className="relative overflow-hidden rounded-2xl text-white"
-      style={{ background: 'linear-gradient(135deg, hsl(var(--primary)) 0%, #8b78ff 60%, #a99ef8 100%)' }}
-    >
-      <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/[0.08]" />
-      <div className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-white/[0.06]" />
-      <div className="absolute right-5 top-5 z-10">
-        {action}
-      </div>
-
-      <div className="relative flex min-h-[132px] items-stretch">
-        <div
-          className="flex w-[240px] flex-shrink-0 items-center justify-center px-5 py-4"
-          style={{ background: 'rgba(255,255,255,0.12)' }}
-        >
-          <img
-            src="/net-worth.png"
-            alt=""
-            aria-hidden="true"
-            className="max-h-[116px] w-auto object-contain drop-shadow-xl"
-          />
-        </div>
-
-        <div className="flex flex-1 items-center px-8 py-6 pr-44">
-          <div className="max-w-2xl">
-            <h2 className="font-display text-2xl font-bold leading-tight">
-              Keep your full picture up to date
-            </h2>
-            <div className="mt-3 max-w-xl space-y-1.5">
-              {[
-                'Add anything you own under Assets',
-                'Add debts under Liabilities',
-                'Update balances at the end of each month',
-              ].map(instruction => (
-                <div
-                  key={instruction}
-                  className="flex items-center gap-2.5 rounded-xl border border-white/45 bg-white/[0.13] px-3 py-1.5 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] backdrop-blur"
-                >
-                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#34d399]" />
-                  <div className="min-w-0 flex-1">
-                    <p className="leading-snug">{instruction}</p>
-                  </div>
-                  <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0 text-[#a7f3d0]" />
-                </div>
-              ))}
-            </div>
-          </div>
+    <Collapsible className="shrink-0">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold tracking-tight">Net Worth</h1>
+        <div className="flex items-center gap-3">
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" className="gap-2 bg-card">
+              <Info className="h-4 w-4" aria-hidden="true" />
+              How it works
+            </Button>
+          </CollapsibleTrigger>
+          {action}
         </div>
       </div>
-    </section>
+      <CollapsibleContent>
+        <ul className="mt-3 grid gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground lg:grid-cols-3">
+          {[
+            'Add anything you own under Assets',
+            'Add debts under Liabilities',
+            'Update balances at the end of each month',
+          ].map(instruction => (
+            <li key={instruction} className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+              {instruction}
+            </li>
+          ))}
+        </ul>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
@@ -184,12 +164,7 @@ export default function NetWorthPage() {
     return isMobile ? <NetWorthMobileSkeleton /> : (
       <div className="space-y-4 animate-pulse">
         <div className="h-10 w-32 rounded-full bg-muted" />
-        <div className="grid gap-3 md:grid-cols-4">
-          <div className="h-20 rounded-xl bg-muted" />
-          <div className="h-20 rounded-xl bg-muted" />
-          <div className="h-20 rounded-xl bg-muted" />
-          <div className="h-20 rounded-xl bg-muted" />
-        </div>
+        <div className="h-12 rounded-xl bg-muted" />
         <div className="h-[420px] rounded-xl bg-muted" />
       </div>
     );
@@ -200,8 +175,8 @@ export default function NetWorthPage() {
   return (
     <div
       className={cn(
-        'flex flex-col h-[calc(100vh-80px)] gap-4 animate-fade-in',
-        isMobile ? 'w-full' : 'max-w-[90%] mx-auto',
+        'flex flex-col gap-4 animate-fade-in',
+        isMobile ? 'w-full h-[calc(100vh-80px)]' : 'max-w-[90%] mx-auto h-[calc(100dvh-113px)]',
       )}
     >
       {isMobile ? (
@@ -220,12 +195,12 @@ export default function NetWorthPage() {
         />
       ) : (
         <>
-          <NetWorthHero
+          <NetWorthHeader
             action={(
-              <div className="flex items-center gap-3 rounded-full border border-white/40 bg-white/95 px-4 py-1.5 shadow-sm backdrop-blur">
+              <div className="flex h-10 items-center gap-1 rounded-lg border border-border bg-card px-1 shadow-sm">
                 <button
                   onClick={() => setYear(current => current - 1)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Previous year"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -235,7 +210,7 @@ export default function NetWorthPage() {
                 </span>
                 <button
                   onClick={() => setYear(current => current + 1)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label="Next year"
                 >
                   <ChevronRight className="h-4 w-4" />
