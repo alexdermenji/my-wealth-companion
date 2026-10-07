@@ -9,6 +9,7 @@ type ItemRow = {
   Group: string;
   Type: NetWorthType;
   Order: number;
+  IsHidden?: boolean;
   LinkedBudgetCategoryId: string | null;
 };
 
@@ -26,6 +27,7 @@ function rowToItem(row: ItemRow): NetWorthItem {
     group: row.Group,
     type: row.Type,
     order: row.Order,
+    isHidden: row.IsHidden ?? false,
     linkedBudgetCategoryId: row.LinkedBudgetCategoryId,
   };
 }
@@ -77,6 +79,13 @@ export const netWorthApi = {
       .eq('Id', id)
       .select('*')
       .single();
+    if (error) throw new Error(error.message);
+    return rowToItem(data as ItemRow);
+  },
+
+  setHidden: async (id: string, hidden: boolean): Promise<NetWorthItem> => {
+    const { data, error } = await supabase.from('NetWorthItems')
+      .update({ IsHidden: hidden }).eq('Id', id).select('*').single();
     if (error) throw new Error(error.message);
     return rowToItem(data as ItemRow);
   },

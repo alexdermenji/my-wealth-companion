@@ -2,7 +2,7 @@ import { type DragEvent, useRef, useState } from 'react';
 import type { NetWorthItem } from '../types';
 import { useReorderNetWorthItem } from './useNetWorthItems';
 
-export function useNetWorthDragReorder(typeItems: NetWorthItem[]) {
+export function useNetWorthDragReorder(typeItems: NetWorthItem[], allTypeItems = typeItems) {
   const reorderMutation = useReorderNetWorthItem();
   const dragIndexRef = useRef<number | null>(null);
   const [dropLineIndex, setDropLineIndex] = useState<number | null>(null);
@@ -48,8 +48,8 @@ export function useNetWorthDragReorder(typeItems: NetWorthItem[]) {
     setDropLineIndex(null);
 
     reorderMutation.mutate(
-      { id: moved.id, newOrder: dest },
-      { onSuccess: () => setOptimisticItems(null) },
+      { id: moved.id, newOrder: allTypeItems.findIndex(item => item.id === displayItems[dest].id) },
+      { onSettled: () => setOptimisticItems(null) },
     );
   };
 

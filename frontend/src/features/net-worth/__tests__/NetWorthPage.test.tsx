@@ -64,6 +64,21 @@ describe('NetWorthPage', () => {
     expect(screen.getByText('£100')).toBeInTheDocument();
   });
 
+  it('includes hidden assets and liabilities in historical totals', () => {
+    vi.mocked(useNetWorthItems).mockReturnValue({
+      data: [
+        { id: 'a1', name: 'Cash', group: 'Savings', type: 'Asset', order: 0, isHidden: true },
+        { id: 'l1', name: 'Mortgage', group: 'Home', type: 'Liability', order: 0, isHidden: true },
+      ],
+      isLoading: false,
+    } as ReturnType<typeof useNetWorthItems>);
+    renderWithProviders(<NetWorthPage />);
+    expect(screen.getByText('£1,200')).toBeInTheDocument();
+    expect(screen.getByText('£500')).toBeInTheDocument();
+    expect(screen.getAllByText('£700').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('£100')).toBeInTheDocument();
+  });
+
   it('passes the selected year to the values hook when navigating', () => {
     renderWithProviders(<NetWorthPage />);
     expect(useNetWorthValues).toHaveBeenLastCalledWith(2026);

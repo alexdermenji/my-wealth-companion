@@ -35,7 +35,12 @@ export async function setupNetWorthMock(page: Page) {
 
   await page.route(
     (url) => isSupabase(url) && url.pathname === '/rest/v1/NetWorthItems',
-    async route => {
+    async (route, request) => {
+      const id = getEqParam(new URL(request.url()), 'Id');
+      if (request.method() === 'PATCH') {
+        const item = itemStore.find(item => item.id === id);
+        if (item) item.isHidden = request.postDataJSON().IsHidden;
+      }
       const rows = itemStore.map(item => ({
         Id: item.id,
         Name: item.name,
@@ -43,8 +48,9 @@ export async function setupNetWorthMock(page: Page) {
         Type: item.type,
         Order: item.order,
         UserId: 'e2e-user-id',
+        IsHidden: item.isHidden ?? false,
       }));
-      await route.fulfill({ json: rows });
+      await route.fulfill({ json: request.method() === 'PATCH' ? rows.find(row => row.Id === id) : rows });
     },
   );
 
@@ -78,6 +84,14 @@ export async function setupNetWorthMock(page: Page) {
           UserId: 'e2e-user-id',
         });
       }
+
+      // Mirrors the database trigger; the actual SQL is tested in a disposable DB.
+      const item = itemStore.find(item => item.id === p_item_id);
+      const now = new Date();
+      const limit = now.getFullYear() * 12 + now.getMonth() + 1;
+      const latest = valueRows.filter(row => row.ItemId === p_item_id && row.Year * 12 + row.Month <= limit)
+        .sort((a, b) => b.Year - a.Year || b.Month - a.Month)[0];
+      if (item?.type === 'Liability' && latest?.Year === p_year && latest.Month === p_month) item.isHidden = p_amount <= 0;
 
       const itemYearRows = valueRows.filter(row => row.ItemId === p_item_id && row.Year === p_year);
       const months: Record<string, number> = {};
