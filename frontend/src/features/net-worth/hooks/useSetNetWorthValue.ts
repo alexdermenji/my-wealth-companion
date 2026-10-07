@@ -7,8 +7,9 @@ export function useSetNetWorthValue() {
   return useMutation({
     mutationFn: (payload: { itemId: string; year: number; month: number; amount: number }) =>
       netWorthApi.setValue(payload),
-    onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['netWorthValues', variables.year] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['netWorthItems'] });
+      queryClient.invalidateQueries({ queryKey: ['netWorthValues'] });
     },
     onError: () => {
       toast.error('Failed to save value', { id: 'nw-saved' });

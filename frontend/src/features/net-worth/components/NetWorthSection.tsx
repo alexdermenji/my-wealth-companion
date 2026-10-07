@@ -1,3 +1,5 @@
+import { HiddenNetWorthItems } from './HiddenNetWorthItems';
+import { useNetWorthVisibility } from '../hooks/useNetWorthVisibility';
 import React, { useMemo, useState } from 'react';
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +16,7 @@ import {
 import { BudgetCell } from '@/features/budget/components/BudgetCell';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { CheckCircle2, GripVertical, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, CheckCircle2, GripVertical, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { ALL_MONTHS, SECTION_ACCENT, SECTION_CSS_KEY } from '../constants';
 import { useDeleteNetWorthItem, useNetWorthDragReorder, useNetWorthHeatMap, useNetWorthTabFill } from '../hooks';
 import type { NetWorthItem, NetWorthType, NetWorthValue } from '../types';
@@ -103,9 +105,13 @@ export function NetWorthSection({
     [items, type],
   );
 
+  const visibility = useNetWorthVisibility(typeItems);
+  const visibleItems = typeItems.filter(item => !item.isHidden);
+  const hiddenItems = typeItems.filter(item => item.isHidden);
+
   const { tabFills, getValue, handleTab, cellRefs } = useNetWorthTabFill({ values, onAmountChange });
   const { displayItems, dropLineIndex, dragIndexRef, handleDragStart, handleDragOver, handleDrop, handleDragEnd } =
-    useNetWorthDragReorder(typeItems);
+    useNetWorthDragReorder(visibleItems, typeItems);
   const { monthTotals, getHeatBg } = useNetWorthHeatMap({ typeItems, values, tabFills, cssKey });
 
   const handleDelete = () => {
@@ -260,11 +266,12 @@ export function NetWorthSection({
                     </div>
                   )}
                 </div>
-                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 transition-opacity">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         aria-label={`Open actions for ${item.name}`}
+                        ref={el => { visibility.rowButtonRefs.current[item.id] = el; }}
                         className="flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
@@ -277,6 +284,10 @@ export function NetWorthSection({
                           Mark as paid off
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem disabled={visibility.pendingIds.has(item.id)} onClick={() => visibility.setHidden(item.id, true)}>
+                        <EyeOff className="h-3.5 w-3.5 mr-2" />
+                        Hide
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => setEditingItem(item)}>
                         <Pencil className="h-3.5 w-3.5 mr-2" />
                         Edit
@@ -365,6 +376,14 @@ export function NetWorthSection({
           </TableCell>
         ))}
       </TableRow>
+
+      {hiddenItems.length > 0 && (
+        <TableRow className="border-t border-border bg-card">
+          <TableCell colSpan={colSpan} className="px-3 py-1">
+            <HiddenNetWorthItems items={hiddenItems} section={displayLabel} pendingIds={visibility.pendingIds} buttonRef={visibility.hiddenButtonRef} onRestore={id => visibility.setHidden(id, false)} />
+          </TableCell>
+        </TableRow>
+      )}
 
       <AlertDialog open={!!deletingItem} onOpenChange={open => { if (!open) setDeletingItem(null); }}>
         <AlertDialogContent>

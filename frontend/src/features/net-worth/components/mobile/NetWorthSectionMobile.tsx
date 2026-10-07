@@ -1,3 +1,5 @@
+import { HiddenNetWorthItems } from '../HiddenNetWorthItems';
+import { useNetWorthVisibility } from '../../hooks/useNetWorthVisibility';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -13,7 +15,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { BudgetCell } from '@/features/budget/components/BudgetCell';
-import { CheckCircle2, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
+import { EyeOff, CheckCircle2, Link2, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,6 +110,10 @@ export function NetWorthSectionMobile({
     [items, type],
   );
 
+  const visibility = useNetWorthVisibility(typeItems);
+  const visibleItems = typeItems.filter(item => !item.isHidden);
+  const hiddenItems = typeItems.filter(item => item.isHidden);
+
   const { tabFills, getValue } = useNetWorthTabFill({ values, onAmountChange });
   const { monthTotals } = useNetWorthHeatMap({ typeItems, values, tabFills, cssKey });
   const shouldShowTrend = currentMonth === null || month <= currentMonth;
@@ -146,7 +152,7 @@ export function NetWorthSectionMobile({
         </div>
 
         <Card className="overflow-hidden" style={{ borderLeft: `3px solid ${accentColor}` }}>
-          {typeItems.map((item, index) => {
+          {visibleItems.map((item, index) => {
             const linkStatus = getLinkStatus(item, values, currentMonth ?? 12);
 
             return (
@@ -154,7 +160,7 @@ export function NetWorthSectionMobile({
               key={item.id}
               className={cn(
                 'flex items-center justify-between pl-4 pr-1 py-3',
-                index < typeItems.length - 1 && 'border-b border-border/40',
+                index < visibleItems.length - 1 && 'border-b border-border/40',
               )}
             >
               <div className="flex flex-col gap-0.5 min-w-0 flex-1 mr-2">
@@ -204,6 +210,7 @@ export function NetWorthSectionMobile({
                   <DropdownMenuTrigger asChild>
                     <button
                       aria-label={`Open actions for ${item.name}`}
+                      ref={el => { visibility.rowButtonRefs.current[item.id] = el; }}
                       className="flex items-center justify-center min-h-[44px] min-w-[36px] rounded text-muted-foreground/50"
                     >
                       <MoreVertical className="h-4 w-4" />
@@ -216,6 +223,10 @@ export function NetWorthSectionMobile({
                         Mark as paid off
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem disabled={visibility.pendingIds.has(item.id)} onClick={() => visibility.setHidden(item.id, true)}>
+                      <EyeOff className="h-3.5 w-3.5 mr-2" />
+                      Hide
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setEditingItem(item)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" />
                       Edit
@@ -243,6 +254,9 @@ export function NetWorthSectionMobile({
               Add item
             </button>
           </div>
+          {hiddenItems.length > 0 && (
+            <HiddenNetWorthItems items={hiddenItems} section={displayLabel} pendingIds={visibility.pendingIds} buttonRef={visibility.hiddenButtonRef} onRestore={id => visibility.setHidden(id, false)} />
+          )}
         </Card>
       </div>
 
