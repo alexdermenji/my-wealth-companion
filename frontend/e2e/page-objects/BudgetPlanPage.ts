@@ -78,6 +78,6 @@ export class BudgetPlanPage {
   }
 
   getSectionTotalRow(type: string): Locator {
-    return this.page.locator('tr').filter({ hasText: 'Total' }).filter({ hasText: type });
+    return this.page.locator('tr').filter({ has: this.page.getByText(`Total ${type}`, { exact: true }) });
   }
 }

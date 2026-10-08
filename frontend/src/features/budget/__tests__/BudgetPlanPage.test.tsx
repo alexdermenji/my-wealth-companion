@@ -76,6 +76,24 @@ describe("BudgetPlanPage", () => {
     vi.useRealTimers();
   });
 
+  it("shows the signed annual remaining across income, expenses, savings and debt", () => {
+    vi.mocked(useCategories).mockReturnValue({
+      data: [...mockCategories,
+        { id: 'c3', name: 'Savings', type: 'Savings', group: '', order: 0 },
+        { id: 'c4', name: 'Loan', type: 'Debt', group: '', order: 0, isHiddenInBudget: true },
+      ], isLoading: false,
+    } as ReturnType<typeof useCategories>);
+    vi.mocked(useBudgetPlans).mockReturnValue({ data: [
+      { categoryId: 'c1', year: 2026, months: { 1: 1000.50, 12: 2000 } },
+      { categoryId: 'c2', year: 2026, months: { 1: 1000, 12: 1000 } },
+      { categoryId: 'c3', year: 2026, months: { 6: 800 } },
+      { categoryId: 'c4', year: 2026, months: { 12: 500.75 } },
+    ], isLoading: false } as unknown as ReturnType<typeof useBudgetPlans>);
+    renderWithProviders(<BudgetPlanPage />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit Budget' }));
+    expect(screen.getByText('Remaining').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£-300.25');
+  });
+
   // ── Slice 1: tab bar renders, Overview is default ──────────────────
   describe("tab navigation", () => {
     it("renders Overview and Edit Budget tabs", () => {

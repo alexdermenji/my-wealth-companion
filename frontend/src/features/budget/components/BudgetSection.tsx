@@ -88,7 +88,7 @@ export function BudgetSection({
     forceDeleteMutation.mutate(deletingCat.id, { onSuccess: () => setDeletingCat(null) });
   };
 
-  const colSpan = ALL_MONTHS.length + 2;
+  const colSpan = ALL_MONTHS.length + 3;
   const shouldShowTrendForMonth = (month: number) => currentMonth === null || month <= currentMonth;
 
   return (
@@ -137,6 +137,9 @@ export function BudgetSection({
             <BudgetSortButton sort={sort} month={mo} section={displayLabel} onClick={() => changeSort(nextBudgetSort(sort, mo))} />
           </TableCell>
         ))}
+        <TableCell role="columnheader" className="min-w-[120px] border-l-2 border-border bg-secondary px-3 py-2.5 text-right font-display text-[10px] font-bold uppercase tracking-wider text-foreground">
+          Total
+        </TableCell>
       </TableRow>
 
       {/* Gradient accent line — bottom */}
@@ -254,6 +257,9 @@ export function BudgetSection({
                 />
               </TableCell>
             ))}
+            <TableCell data-annual-total className="min-w-[120px] border-l-2 border-border bg-secondary/40 px-3 py-2 text-right font-amount text-sm font-semibold whitespace-nowrap">
+              {currency}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(ALL_MONTHS.reduce((sum, month) => sum + getBudget(cat.id, month), 0))}
+            </TableCell>
           </TableRow>
         </React.Fragment>
       ))}
@@ -291,6 +297,9 @@ export function BudgetSection({
             </span>
           </TableCell>
         ))}
+        <TableCell data-annual-total className="min-w-[120px] border-l-2 border-border px-3 py-2 text-right font-amount text-sm font-bold whitespace-nowrap" style={{ color: totalText }}>
+          {currency}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(ALL_MONTHS.reduce((sum, month) => sum + (monthTotals[month] ?? 0), 0))}
+        </TableCell>
       </TableRow>
 
       {/* Delete confirmation */}
