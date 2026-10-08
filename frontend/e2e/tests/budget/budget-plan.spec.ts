@@ -81,8 +81,14 @@ test.describe('Budget Plan', () => {
   test('should display section totals', async ({ budgetPlanPage }) => {
     await budgetPlanPage.switchToEditTab();
     // Income total for Jan = 4000 + 1000 = 5000 → rendered as $5,000
-    const totalRow = budgetPlanPage.page.locator('tr').filter({ hasText: /Total/ }).first();
+    const totalRow = budgetPlanPage.getSectionTotalRow('Income');
     await expect(totalRow).toContainText('$5,000');
+    await expect(totalRow.locator('[data-annual-total]')).toHaveText('$14,000.00');
+    await expect(budgetPlanPage.getCategoryRow('Employment (Net)').locator('[data-annual-total]')).toHaveText('$12,000.00');
+    await expect(budgetPlanPage.getRemainingRow().locator('[data-annual-total]')).toHaveText('$6,400.00');
+    await budgetPlanPage.setCategoryAmount('Employment (Net)', 11, '100.25');
+    await expect(totalRow.locator('[data-annual-total]')).toHaveText('$14,100.25');
+    await expect(budgetPlanPage.getRemainingRow().locator('[data-annual-total]')).toHaveText('$6,500.25');
   });
 
   test('should switch year', async ({ budgetPlanPage }) => {

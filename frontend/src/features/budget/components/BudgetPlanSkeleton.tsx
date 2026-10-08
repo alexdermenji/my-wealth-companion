@@ -14,14 +14,14 @@ export function BudgetPlanSkeleton() {
           {/* Allocations header row */}
           <div className="border-b bg-secondary flex px-4 py-3 gap-3 items-center">
             <Skeleton className="h-3 w-32" />
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 13 }).map((_, i) => (
               <Skeleton key={i} className="h-3 w-12 shrink-0" />
             ))}
           </div>
           {/* Remaining row */}
           <div className="border-b bg-card flex px-4 py-3 gap-3 items-center">
             <Skeleton className="h-3 w-24" />
-            {Array.from({ length: 12 }).map((_, i) => (
+            {Array.from({ length: 13 }).map((_, i) => (
               <Skeleton key={i} className="h-3 w-12 shrink-0" />
             ))}
           </div>
@@ -36,7 +36,7 @@ export function BudgetPlanSkeleton() {
               {Array.from({ length: 3 }).map((_, ri) => (
                 <div key={ri} className="border-b last:border-0 flex px-4 py-2.5 gap-3 items-center">
                   <Skeleton className="h-3 w-32" />
-                  {Array.from({ length: 12 }).map((_, ci) => (
+                  {Array.from({ length: 13 }).map((_, ci) => (
                     <Skeleton key={ci} className="h-7 w-12 shrink-0 rounded" />
                   ))}
                 </div>

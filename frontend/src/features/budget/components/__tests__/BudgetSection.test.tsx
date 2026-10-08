@@ -61,6 +61,26 @@ describe("BudgetSection", () => {
     expect(screen.getByText("£5,000")).toBeInTheDocument();
   });
 
+  it("sums all twelve months, including hidden rows in the annual section total", () => {
+    renderInTable(<BudgetSection {...defaultProps}
+      categories={categories.map(category => ({ ...category, isHiddenInBudget: category.id === 'c2' }))}
+      budgetPlans={[
+        { categoryId: 'c1', year: 2026, months: { 1: 100.25, 6: 200.50, 12: 300.75 } },
+        { categoryId: 'c2', year: 2026, months: { 12: 50.25 } },
+      ]}
+    />);
+    expect(screen.getByText('Salary').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£601.50');
+    expect(screen.getByText('Total Income').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£651.75');
+  });
+
+  it("updates annual totals after saved values change and renders zero for empty rows", () => {
+    const { rerender } = renderInTable(<BudgetSection {...defaultProps} budgetPlans={[]} />);
+    expect(screen.getByText('Salary').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£0.00');
+    rerender(<table><tbody><BudgetSection {...defaultProps} budgetPlans={budgetPlans} /></tbody></table>);
+    expect(screen.getByText('Salary').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£12,000.00');
+    expect(screen.getByText('Total Income').closest('tr')!.querySelector('[data-annual-total]')).toHaveTextContent('£13,000.00');
+  });
+
   it("displays Liabilities label for Debt type", () => {
     const debtCategories: BudgetCategory[] = [
       { id: "d1", name: "Loan", type: "Debt", group: "Loans", order: 0 },

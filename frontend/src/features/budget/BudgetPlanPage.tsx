@@ -152,6 +152,8 @@ export default function BudgetPlanPage() {
     });
   }, [typeTotals]);
 
+  const annualRemaining = toBeAllocated.reduce((sum, value) => sum + value, 0);
+
   const breakdown = summary?.breakdown ?? [];
 
   return (
@@ -300,12 +302,15 @@ export default function BudgetPlanPage() {
                           {m}
                         </TableHead>
                       ))}
+                      <TableHead className="min-w-[120px] border-l-2 border-border bg-secondary px-3 py-2.5 text-right font-display text-[10px] font-bold uppercase tracking-wider text-foreground">
+                        Total
+                      </TableHead>
                     </TableRow>
 
                     {/* Gradient accent line */}
                     <tr aria-hidden>
                       <td
-                        colSpan={14}
+                        colSpan={15}
                         style={{
                           padding: 0,
                           height: '1px',
@@ -333,6 +338,9 @@ export default function BudgetPlanPage() {
                           {val === 0 ? '—' : `${currency}${new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val))}`}
                         </TableHead>
                       ))}
+                      <TableHead data-annual-total className={cn('min-w-[120px] border-l-2 border-border bg-secondary/40 px-3 text-right font-amount text-sm font-bold whitespace-nowrap', allocationColor(annualRemaining))}>
+                        {currency}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(annualRemaining)}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
