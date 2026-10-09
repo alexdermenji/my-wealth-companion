@@ -24,9 +24,22 @@ function planToRows(p: BudgetPlan) {
   }));
 }
 
-export async function setupBudgetPlansMock(page: Page, options: BudgetPlansMockOptions = {}) {
+export async function setupBudgetPlansMock(page: Page, options: BudgetPlansMockOptions = {}, getCategories: () => { Id: string; IsHiddenInBudget: boolean }[] = () => []) {
   // Store as flat DB rows
   const rows = (options.initialData ?? mockBudgetPlans).flatMap(planToRows);
+
+  await page.route('**/rest/v1/rpc/copy_budget_to_january', async (route, request) => {
+    const { p_year } = request.postDataJSON();
+    const visible = new Set(getCategories().filter(c => !c.IsHiddenInBudget).map(c => c.Id));
+    const source = rows.filter(r => r.Year === p_year - 1 && r.Month === 12 && visible.has(r.CategoryId));
+    let copiedCount = 0;
+    for (const row of source) {
+      if (rows.some(r => r.CategoryId === row.CategoryId && r.Year === p_year && r.Month === 1)) continue;
+      rows.push({ ...row, Year: p_year, Month: 1 });
+      copiedCount++;
+    }
+    await route.fulfill({ json: { copiedCount, sourceCount: source.length } });
+  });
 
   // RPC: set_budget_amount (upsert)
   await page.route(

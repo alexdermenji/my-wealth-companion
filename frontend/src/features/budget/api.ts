@@ -2,6 +2,11 @@ import { supabase } from "@/shared/auth/supabase";
 import type { BudgetPlan } from "./types";
 
 export const budgetPlansApi = {
+  copyToJanuary: async (year: number): Promise<{ copiedCount: number; sourceCount: number }> => {
+    const { data, error } = await supabase.rpc('copy_budget_to_january', { p_year: year });
+    if (error) throw new Error(error.message);
+    return data as { copiedCount: number; sourceCount: number };
+  },
   getByYear: async (year: number, categoryId?: string): Promise<BudgetPlan[]> => {
     let query = supabase
       .from("BudgetPlans")

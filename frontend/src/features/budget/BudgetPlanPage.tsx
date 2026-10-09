@@ -7,6 +7,7 @@ import { useCategories } from '@/shared/hooks/useCategories';
 import { useBudgetPlans, useSetBudgetAmount } from './hooks';
 import { cn } from '@/lib/utils';
 import { useFullWidth } from '@/app/AppLayout';
+import { CopyBudgetButton } from './components/CopyBudgetButton';
 import { BudgetSection } from './components/BudgetSection';
 import { useSettings } from '@/features/settings/hooks';
 import { BudgetPlanSkeleton } from './components/BudgetPlanSkeleton';
@@ -212,9 +213,10 @@ export default function BudgetPlanPage() {
           </div>
         )}
 
-        {/* Edit Budget (desktop): Year dropdown only */}
+        {/* Edit Budget (desktop): copy action and year */}
         {activeTab === 'edit' && !isMobile && (
-          <div className="ml-auto pb-1">
+          <div className="ml-auto flex items-center gap-3 pb-1">
+            <CopyBudgetButton year={year} onCopied={() => setSelectedMonth(1)} />
             <Select value={year.toString()} onValueChange={v => setYear(Number(v))}>
               <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -226,6 +228,12 @@ export default function BudgetPlanPage() {
           </div>
         )}
       </div>
+
+      {activeTab === 'edit' && isMobile && (
+        <div className="mb-3 shrink-0">
+          <CopyBudgetButton year={year} onCopied={() => setSelectedMonth(1)} />
+        </div>
+      )}
 
       {/* ── Overview tab ───────────────────────────────────────────── */}
       {activeTab === 'overview' && (
