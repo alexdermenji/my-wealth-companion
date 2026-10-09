@@ -25,7 +25,7 @@ export async function setupAllMocks(page: Page, options: AllMocksOptions = {}) {
   const txMock = await setupTransactionsMock(page, options.transactions);
   await setupDashboardMock(page);
   await setupEngagementMock(page);
-  const budgetPlansMock = await setupBudgetPlansMock(page, options.budgetPlans);
+  const budgetPlansMock = await setupBudgetPlansMock(page, options.budgetPlans, categoriesMock.getStore);
   const netWorthMock = await setupNetWorthMock(page);
   return { goalBoostMock, txMock, accountsMock, categoriesMock, settingsMock, budgetPlansMock, netWorthMock };
 }
